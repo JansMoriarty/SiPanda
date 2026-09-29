@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 
-export default function Index({ documents = [] }) {
+export default function Index({ documents = [], courses = [] }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showAddCourse, setShowAddCourse] = useState(false);
     const [deletingDoc, setDeletingDoc] = useState(null); // State untuk Modal Hapus
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState('list'); // 'list' | 'grid'
@@ -12,7 +13,12 @@ export default function Index({ documents = [] }) {
 
     const { data, setData, post, processing, reset, errors } = useForm({
         file: null,
-        subject: '',
+        course_id: courses[0]?.id ?? '',
+    });
+
+    const courseForm = useForm({
+        name: '',
+        color: '#465FFF',
     });
 
     // --- Kalkulasi Storage Dinamis ---
@@ -60,8 +66,19 @@ export default function Index({ documents = [] }) {
         post('/documents', {
             forceFormData: true,
             onSuccess: () => {
-                reset();
+                reset('file');
                 setIsModalOpen(false);
+            },
+        });
+    }
+
+    function handleAddCourse(e) {
+        e.preventDefault();
+        courseForm.post('/courses', {
+            preserveScroll: true,
+            onSuccess: () => {
+                courseForm.reset();
+                setShowAddCourse(false);
             },
         });
     }
@@ -85,7 +102,7 @@ export default function Index({ documents = [] }) {
         const query = searchQuery.toLowerCase();
         return (
             doc.original_filename?.toLowerCase().includes(query) ||
-            doc.subject?.toLowerCase().includes(query)
+            doc.course?.name?.toLowerCase().includes(query)
         );
     });
 
@@ -122,13 +139,24 @@ export default function Index({ documents = [] }) {
         );
     };
 
+    // Badge kecil warna mata kuliah
+    const renderCourseBadge = (course) => {
+        if (!course) return <span className="text-slate-300">-</span>;
+        return (
+            <span className="inline-flex items-center gap-1.5 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60 text-slate-600 font-medium text-[11px]">
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: course.color || '#465FFF' }} />
+                {course.name}
+            </span>
+        );
+    };
+
     return (
         <AppLayout>
             <div className="flex flex-1 h-full bg-[#F8FAFC] text-slate-800 overflow-hidden font-['Outfit'] relative">
-                
+
                 {/* LEFT / MAIN CONTENT AREA */}
                 <div className="flex-1 h-full overflow-y-auto p-6 sm:p-7 space-y-6 no-scrollbar">
-                    
+
                     {/* Header Section */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
@@ -255,7 +283,7 @@ export default function Index({ documents = [] }) {
                                     <thead>
                                         <tr className="border-b border-slate-100 bg-slate-50/60 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                                             <th className="px-4 py-3">File Name</th>
-                                            <th className="px-4 py-3">Subject</th>
+                                            <th className="px-4 py-3">Mata Kuliah</th>
                                             <th className="px-4 py-3">Size</th>
                                             <th className="px-4 py-3">Status</th>
                                             <th className="px-4 py-3 text-right">Action</th>
@@ -273,27 +301,27 @@ export default function Index({ documents = [] }) {
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-slate-600">
-                                                    {doc.subject ? (
-                                                        <span className="inline-block bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60 text-slate-600 font-medium text-[11px]">
-                                                            {doc.subject}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-slate-300">-</span>
-                                                    )}
+                                                    {renderCourseBadge(doc.course)}
                                                 </td>
                                                 <td className="px-4 py-3 text-slate-500 uppercase font-mono text-[11px]">
                                                     {formatFileSize(doc.file_size)}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium border capitalize ${
-                                                        doc.status === 'completed' || doc.status === 'ready'
+                                                        doc.status === 'processed'
                                                             ? 'bg-emerald-50 text-emerald-600 border-emerald-200/80'
-                                                            : 'bg-blue-50 text-[#465FFF] border-blue-200/80'
+                                                            : doc.status === 'failed'
+                                                                ? 'bg-rose-50 text-rose-600 border-rose-200/80'
+                                                                : 'bg-blue-50 text-[#465FFF] border-blue-200/80'
                                                     }`}>
                                                         <span className={`w-1.5 h-1.5 rounded-full ${
-                                                            doc.status === 'completed' || doc.status === 'ready' ? 'bg-emerald-500' : 'bg-[#465FFF] animate-ping'
+                                                            doc.status === 'processed'
+                                                                ? 'bg-emerald-500'
+                                                                : doc.status === 'failed'
+                                                                    ? 'bg-rose-500'
+                                                                    : 'bg-[#465FFF] animate-ping'
                                                         }`} />
-                                                        {doc.status || 'Ready'}
+                                                        {doc.status || 'uploaded'}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
@@ -365,21 +393,15 @@ export default function Index({ documents = [] }) {
                                             <h3 className="font-semibold text-xs text-slate-800 line-clamp-2 leading-relaxed group-hover:text-[#465FFF] transition-colors" title={doc.original_filename}>
                                                 {doc.original_filename}
                                             </h3>
-                                            {doc.subject ? (
-                                                <span className="inline-block text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
-                                                    {doc.subject}
-                                                </span>
-                                            ) : (
-                                                <span className="text-[10px] text-slate-300 block">-</span>
-                                            )}
+                                            {renderCourseBadge(doc.course)}
                                         </div>
                                     </div>
 
                                     <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                                         <span className="uppercase font-mono">{doc.file_type} • {formatFileSize(doc.file_size)}</span>
                                         <span className={`w-1.5 h-1.5 rounded-full ${
-                                            doc.status === 'completed' || doc.status === 'ready' ? 'bg-emerald-500' : 'bg-[#465FFF]'
-                                        }`} title={`Status: ${doc.status || 'Ready'}`} />
+                                            doc.status === 'processed' ? 'bg-emerald-500' : doc.status === 'failed' ? 'bg-rose-500' : 'bg-[#465FFF]'
+                                        }`} title={`Status: ${doc.status || 'uploaded'}`} />
                                     </div>
                                 </div>
                             ))}
@@ -390,7 +412,7 @@ export default function Index({ documents = [] }) {
                 {/* RIGHT SIDEBAR: STORAGE DETAILS */}
                 <aside className="w-80 h-full bg-white text-slate-700 shrink-0 border-l border-slate-200/80 overflow-y-auto p-6 flex flex-col justify-between z-20 no-scrollbar">
                     <div className="space-y-6">
-                        
+
                         {/* Title Header */}
                         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                             <h3 className="font-bold text-slate-900 text-sm tracking-tight">Storage Details</h3>
@@ -403,7 +425,7 @@ export default function Index({ documents = [] }) {
                                 {/* Track */}
                                 <div className="w-40 h-40 rounded-full border-[12px] border-slate-100 absolute top-0" />
                                 {/* Gauge Arc */}
-                                <div 
+                                <div
                                     className="w-40 h-40 rounded-full border-[12px] border-[#465FFF] border-t-transparent border-r-transparent absolute top-0 transition-all duration-700 ease-out"
                                     style={{
                                         transform: `rotate(${45 + (storageStats.usedPercentage * 1.8)}deg)`
@@ -419,7 +441,7 @@ export default function Index({ documents = [] }) {
                         {/* Storage Category Breakdown */}
                         <div className="space-y-3.5 pt-4 border-t border-slate-100">
                             <span className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">Categories</span>
-                            
+
                             {/* PDF */}
                             <div className="space-y-1.5">
                                 <div className="flex items-center justify-between text-xs">
@@ -430,7 +452,7 @@ export default function Index({ documents = [] }) {
                                     <span className="text-slate-400 font-mono text-[11px]">{formatFileSize(storageStats.pdf.size)}</span>
                                 </div>
                                 <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div 
+                                    <div
                                         className="h-full bg-rose-500 rounded-full transition-all duration-500"
                                         style={{ width: `${Math.min(100, (storageStats.pdf.size / MAX_STORAGE_BYTES) * 100)}%` }}
                                     />
@@ -447,7 +469,7 @@ export default function Index({ documents = [] }) {
                                     <span className="text-slate-400 font-mono text-[11px]">{formatFileSize(storageStats.ppt.size)}</span>
                                 </div>
                                 <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div 
+                                    <div
                                         className="h-full bg-amber-500 rounded-full transition-all duration-500"
                                         style={{ width: `${Math.min(100, (storageStats.ppt.size / MAX_STORAGE_BYTES) * 100)}%` }}
                                     />
@@ -464,7 +486,7 @@ export default function Index({ documents = [] }) {
                                     <span className="text-slate-400 font-mono text-[11px]">{formatFileSize(storageStats.doc.size)}</span>
                                 </div>
                                 <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div 
+                                    <div
                                         className="h-full bg-[#465FFF] rounded-full transition-all duration-500"
                                         style={{ width: `${Math.min(100, (storageStats.doc.size / MAX_STORAGE_BYTES) * 100)}%` }}
                                     />
@@ -481,7 +503,7 @@ export default function Index({ documents = [] }) {
                                     <span className="text-slate-400 font-mono text-[11px]">{formatFileSize(storageStats.others.size)}</span>
                                 </div>
                                 <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div 
+                                    <div
                                         className="h-full bg-slate-300 rounded-full transition-all duration-500"
                                         style={{ width: `${Math.min(100, (storageStats.others.size / MAX_STORAGE_BYTES) * 100)}%` }}
                                     />
@@ -518,7 +540,7 @@ export default function Index({ documents = [] }) {
             {/* MODAL UPLOAD DOCUMENT */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-                    <div 
+                    <div
                         className="bg-white rounded-2xl border border-slate-200/90 shadow-xl max-w-md w-full p-6 space-y-5"
                         onClick={(e) => e.stopPropagation()}
                     >
@@ -534,7 +556,8 @@ export default function Index({ documents = [] }) {
                             <button
                                 onClick={() => {
                                     setIsModalOpen(false);
-                                    reset();
+                                    reset('file');
+                                    setShowAddCourse(false);
                                 }}
                                 className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
                             >
@@ -547,12 +570,12 @@ export default function Index({ documents = [] }) {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                                    Select File (PDF / PPTX / DOCX)
+                                    Select File (PDF / PPTX)
                                 </label>
                                 <div className="relative border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-[#465FFF]/60 transition-colors bg-slate-50/50">
                                     <input
                                         type="file"
-                                        accept=".pdf,.pptx,.ppt,.doc,.docx"
+                                        accept=".pdf,.pptx,.ppt"
                                         onChange={(e) => setData('file', e.target.files[0])}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                     />
@@ -563,24 +586,59 @@ export default function Index({ documents = [] }) {
                                         <span className="text-xs font-medium text-slate-700">
                                             {data.file ? data.file.name : 'Click or drop file here'}
                                         </span>
-                                        <span className="text-[10px] text-slate-400">PDF, PPTX, or DOCX up to 20MB</span>
+                                        <span className="text-[10px] text-slate-400">PDF or PPTX up to 20MB</span>
                                     </div>
                                 </div>
                                 {errors.file && <p className="text-rose-600 text-xs mt-1.5 font-medium">{errors.file}</p>}
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                                    Subject / Category <span className="text-slate-400 font-normal">(Optional)</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="e.g. Web Development, Database..."
-                                    value={data.subject}
-                                    onChange={(e) => setData('subject', e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none focus:bg-white focus:border-[#465FFF] focus:ring-1 focus:ring-[#465FFF]/20 transition-all"
-                                />
-                                {errors.subject && <p className="text-rose-600 text-xs mt-1.5 font-medium">{errors.subject}</p>}
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <label className="block text-xs font-semibold text-slate-700">
+                                        Mata Kuliah
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAddCourse((v) => !v)}
+                                        className="text-[11px] font-semibold text-[#465FFF] hover:underline"
+                                    >
+                                        {showAddCourse ? 'Batal' : '+ Mata kuliah baru'}
+                                    </button>
+                                </div>
+
+                                {courses.length > 0 && !showAddCourse && (
+                                    <select
+                                        value={data.course_id}
+                                        onChange={(e) => setData('course_id', e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 outline-none focus:bg-white focus:border-[#465FFF] focus:ring-1 focus:ring-[#465FFF]/20 transition-all"
+                                    >
+                                        {courses.map((course) => (
+                                            <option key={course.id} value={course.id}>{course.name}</option>
+                                        ))}
+                                    </select>
+                                )}
+
+                                {(showAddCourse || courses.length === 0) && (
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder="mis. Basis Data"
+                                            value={courseForm.data.name}
+                                            onChange={(e) => courseForm.setData('name', e.target.value)}
+                                            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none focus:bg-white focus:border-[#465FFF] focus:ring-1 focus:ring-[#465FFF]/20 transition-all"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleAddCourse}
+                                            disabled={courseForm.processing || !courseForm.data.name}
+                                            className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium px-3 py-2 rounded-lg transition-all disabled:opacity-50 shrink-0"
+                                        >
+                                            Tambah
+                                        </button>
+                                    </div>
+                                )}
+                                {courseForm.errors.name && <p className="text-rose-600 text-xs mt-1.5 font-medium">{courseForm.errors.name}</p>}
+                                {errors.course_id && <p className="text-rose-600 text-xs mt-1.5 font-medium">{errors.course_id}</p>}
                             </div>
 
                             <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -588,7 +646,8 @@ export default function Index({ documents = [] }) {
                                     type="button"
                                     onClick={() => {
                                         setIsModalOpen(false);
-                                        reset();
+                                        reset('file');
+                                        setShowAddCourse(false);
                                     }}
                                     className="px-3.5 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 transition-all"
                                 >
@@ -596,7 +655,7 @@ export default function Index({ documents = [] }) {
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={processing || !data.file}
+                                    disabled={processing || !data.file || !data.course_id}
                                     className="bg-[#465FFF] hover:bg-blue-600 text-white font-medium text-xs px-4 py-2 rounded-lg shadow-xs transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-50"
                                 >
                                     {processing ? 'Uploading...' : 'Upload Document'}
@@ -610,7 +669,7 @@ export default function Index({ documents = [] }) {
             {/* MODAL KONFIRMASI HAPUS DOKUMEN */}
             {deletingDoc && (
                 <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-                    <div 
+                    <div
                         className="bg-white rounded-2xl border border-slate-200/90 shadow-xl max-w-sm w-full p-6 space-y-4"
                         onClick={(e) => e.stopPropagation()}
                     >

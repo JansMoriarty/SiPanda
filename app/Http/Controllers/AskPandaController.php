@@ -24,7 +24,7 @@ class AskPandaController extends Controller
         $question = $request->input('question');
         $history = $request->input('history', []);
 
-        $chunks = $retrieval->search($question);
+        $chunks = $retrieval->search($question, $request->user()->id);
 
         $grouped = collect($chunks)->groupBy(fn($item) => $item['chunk']->document_id);
         $sources = $grouped->map(function ($items) {

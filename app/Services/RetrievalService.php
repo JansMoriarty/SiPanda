@@ -9,13 +9,16 @@ class RetrievalService
     public function __construct(protected GeminiClient $gemini) {}
 
     /**
-     * Cari top-N chunks paling relevan dengan pertanyaan.
+     * Cari top-N chunks paling relevan dengan pertanyaan,
+     * dibatasi hanya ke dokumen milik $userId.
      */
-    public function search(string $question, int $topN = 3, float $minScore = 0.65): array
+    public function search(string $question, int $userId, int $topN = 3, float $minScore = 0.65): array
     {
         $questionEmbedding = $this->gemini->embed($question, 'RETRIEVAL_QUERY');
 
-        $chunks = Chunk::whereNotNull('embedding')->get();
+        $chunks = Chunk::whereNotNull('embedding')
+            ->whereHas('document.course', fn ($q) => $q->where('user_id', $userId))
+            ->get();
 
         $scored = $chunks->map(function (Chunk $chunk) use ($questionEmbedding) {
             return [
