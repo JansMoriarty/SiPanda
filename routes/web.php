@@ -18,6 +18,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/settings', fn() => Inertia::render('Settings/Index'))->name('settings.index');
     Route::post('/profile/avatar', [ProfileAvatarController::class, 'store'])->name('profile.avatar.store');
     Route::delete('/profile/avatar', [ProfileAvatarController::class, 'destroy'])->name('profile.avatar.destroy');
+
+    /*
+    |--------------------------------------------------------------------------
+    | SiPanda V2 (UI shell — mock data, belum menyentuh DB)
+    |--------------------------------------------------------------------------
+    | Route di bawah hanya merender halaman dengan data statis supaya UI V2
+    | bisa di-review dulu (prinsip "UI First" di AGENTS.md). Belum ada query
+    | ke documents/chunks/concepts, jadi tidak ada risiko scoping di sini.
+    |
+    | Catatan: '/' tetap documents.index (V1) dan TIDAK digantikan /materials.
+    |
+    | TODO V2: ganti closure Inertia::render di bawah dengan controller
+    | sungguhan yang sudah di-scope lewat course.user_id.
+    */
+    Route::get('/dashboard', fn() => Inertia::render('Dashboard'))->name('dashboard');
+    Route::get('/materials', fn() => Inertia::render('Materials/Index'))->name('materials.index');
+    Route::get('/progress', fn() => Inertia::render('Progress/Index'))->name('progress');
+    Route::get('/documents/{document}', fn() => Inertia::render('Materials/Show'))->name('materials.show');
+    Route::get('/documents/{document}/study-pack', fn() => Inertia::render('Materials/StudyPack'))->name('materials.study-pack');
 });
 
 require __DIR__ . '/auth.php';

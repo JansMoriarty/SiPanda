@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import AppLayout from '@/Layouts/AppLayout';
+import ShellLayout from '@/Layouts/ShellLayout';
 
 function TypewriterHeading() {
     const text1 = "Good Morning, User";
@@ -353,7 +353,7 @@ export default function Index() {
     );
 
     return (
-        <AppLayout>
+        <>
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @keyframes waveMove1 {
@@ -744,6 +744,8 @@ export default function Index() {
                     </div>
                 </aside>
             </div>
-        </AppLayout>
+        </>
     );
 }
+
+Index.layout = (page) => <ShellLayout>{page}</ShellLayout>;
