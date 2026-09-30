@@ -39,6 +39,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/documents/{document}/study-pack', fn() => Inertia::render('Materials/StudyPack'))->name('materials.study-pack');
     Route::get('/documents/{document}/quiz', fn() => Inertia::render('Quiz/Index'))->name('materials.quiz');
     Route::get('/quiz/{attempt}/results', fn() => Inertia::render('Quiz/Results'))->name('quiz.results');
+
+    /*
+    | Personalized Practice disusun dari konsep lemah per course. Closure ini
+    | hanya merender halaman dengan mock, tidak ada query DB, jadi belum
+    | mungkin membocorkan course milik user lain.
+    |
+    | TODO V2: waktu diganti controller, course WAJIB di-scope lewat
+    | course.user_id = auth()->id() dulu. Jangan pakai Course::find()
+    | polos lalu memercayai id dari URL.
+    */
+    Route::get('/practice/{course}', fn($course) => Inertia::render('Practice/Index', ['courseId' => $course]))->name('practice.show');
 });
 
 require __DIR__ . '/auth.php';

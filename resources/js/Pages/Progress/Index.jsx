@@ -170,7 +170,7 @@ function PracticeCard({ gap }) {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-bold text-slate-900">Latihan personalisasi</h2>
                 <span className="rounded-lg border border-amber-200/80 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600">
-                    TAHAP BERIKUTNYA
+                    MOCK — DARI KONSEP LEMAH
                 </span>
             </div>
 
@@ -185,11 +185,9 @@ function PracticeCard({ gap }) {
                 </p>
             )}
 
-            <button
-                type="button"
-                disabled
-                title="Halaman Personalized Practice dibangun pada tahap 12"
-                className="mt-4 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 py-3 text-xs font-semibold text-slate-400"
+            <Link
+                href={`/practice/${gap.course?.id}`}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#465FFF] py-3 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-600 active:scale-[0.99]"
             >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path
@@ -199,10 +197,11 @@ function PracticeCard({ gap }) {
                     />
                 </svg>
                 Buat latihan personal
-            </button>
+            </Link>
             <p className="mt-2 text-center text-[10px] text-slate-400">
-                Tombol sengaja nonaktif. Personalized Practice adalah tahap 12 dan butuh soal yang digenerate
-                per konsep.
+                {weak.length > 0
+                    ? `Latihan ini hanya memakai soal dari ${weak.length} konsep lemah di atas, bukan seluruh materi.`
+                    : "Tidak ada soal yang bisa disusun karena tidak ada konsep lemah di mata kuliah ini."}
             </p>
         </section>
     );
@@ -302,7 +301,7 @@ export default function Index() {
                         </p>
                         <p className="mx-auto mt-1 max-w-md text-xs text-slate-400">
                             Knowledge gap hanya bisa dihitung dari jawaban yang sudah ada. Selesaikan satu quiz
-                            dulu, laluConcepts yang lemah akan muncul di sini.
+                            dulu, lalu konsep yang lemah akan muncul di sini.
                         </p>
                         <Link
                             href="/materials"

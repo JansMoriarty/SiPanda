@@ -572,6 +572,248 @@ export const mockQuizAttempts = [
  * user_id + course_id.
  */
 
+// ------------------------------------------------------- personalized practice
+
+/**
+ * Bank soal Personalized Practice. Sengaja dipisah dari `mockQuestions`:
+ *
+ * - `mockQuestions` adalah registry Knowledge Gap. Menambah baris di sana
+ *   berarti menambah soal yang "sudah ada" di materi.
+ * - Bank ini adalah soal latihan yang dibuat SETELAH student dinyatakan
+ *   lemah di suatu konsep, jadi tidak mungkin sudah ada di quiz sebelumnya.
+ *
+ * Karena pisahnya, menjawab latihan tidak mengubah satu angka pun di
+ * halaman Progress. Itu bukan kebetulan: attempt practice belum disimpan
+ * ke server, dan selama belum ada tabelnya, Progress harus jujur soal itu.
+ *
+ * `question_id` di attempt practice nanti akan menunjuk ke baris di sini.
+ */
+export const mockPracticeQuestions = [
+  // -- c1 Integral Tak Sederhana -------------------------------------------
+  {
+    id: 'pc1',
+    course_id: 1,
+    concept_id: 'c1',
+    question: 'Hitung: ∫ (5x² + 3) dx',
+    options: ['(5/3)x³ + 3x + C', '5x³/2 + 3 + C', '(5/3)x³ + 3x', '10x + 3x + C'],
+    correct_index: 0,
+    explanation:
+      'Pangkat turun satu lalu dibagi pangkat itu: 5x² menjadi (5/3)x³. Konstanta 3 menjadi 3x. Satu C di akhir saja.',
+  },
+  {
+    id: 'pc2',
+    course_id: 1,
+    concept_id: 'c1',
+    question: 'Berapakah ∫ x⁴ dx ?',
+    options: ['5x⁵ + C', 'x⁵ + C', 'x⁵/5 + C', '4x³ + C'],
+    correct_index: 2,
+    explanation:
+      'Aturan pangkat: pangkat turun satu (4 → 3) lalu dibagi pangkat itu (÷4). Jadi x⁴ → x⁵/5, bukan x⁵ dan bukan 4x³.',
+  },
+  {
+    id: 'pc3',
+    course_id: 1,
+    concept_id: 'c1',
+    question: 'Manakah hasil dari ∫ (2x³ − x + 4) dx yang benar?',
+    options: ['x⁴/2 − x²/2 + 4x', '6x² − 1 + 4x + C', '2x⁴/4 − x²/2 + 4x + C', 'x⁴/2 − x²/2 + 4x + C'],
+    correct_index: 3,
+    explanation:
+      'Tiap suku diintegralkan terpisah: 2x³ → x⁴/2, −x → −x²/2, 4 → 4x. Konstanta C tetap satu di akhir, dan tidak ikut diintegralkan.',
+  },
+
+  // -- c2 Substitusi U ----------------------------------------------------
+  {
+    id: 'pc4',
+    course_id: 1,
+    concept_id: 'c2',
+    question: 'Dengan u = 3x² + 1, bentuk dari ∫ 6x·(3x² + 1)⁴ dx adalah ...',
+    options: ['∫ u⁵ du', '∫ u⁴ du', '∫ 3u⁴ du', '∫ x·u⁴ dx'],
+    correct_index: 1,
+    explanation:
+      'du = 6x dx, jadi bagian 6x dx hilang diganti du dan tinggal u⁴. Hasil akhirnya u⁵/5 + C, tapi bentuk integralnya masih ∫ u⁴ du.',
+  },
+  {
+    id: 'pc5',
+    course_id: 1,
+    concept_id: 'c2',
+    question: 'Substitusi apa yang cocok untuk ∫ 2x·cos(x²) dx ?',
+    options: ['u = x², karena du = 2x dx', 'u = cos(x²), karena du = −2x·sin(x²) dx', 'u = 2x, karena du = 2 dx', 'Tidak ada substitusi yang cocok'],
+    correct_index: 0,
+    explanation:
+      'Cari ungkapan yang turunannya sudah ada utuh. Turunan dari x² adalah 2x, persis faktor di depan cos. Jadi u = x² dan integralnya jadi ∫ cos u du.',
+  },
+  {
+    id: 'pc6',
+    course_id: 1,
+    concept_id: 'c2',
+    question: 'Kapan substitusi u TIDAK tepat dipakai?',
+    options: ['Ketika integralnya mengandung pangkat', 'Ketika hasilnya nanti berupa logaritma', 'Ketika tidak ada ungkapan yang turunannya muncul utuh di dalam integral', 'Ketika batas integrasinya berupa pecahan'],
+    correct_index: 2,
+    explanation:
+      'Substitusi u bergantung pada pola du. Kalau tidak ada ungkapan yang turunannya sudah ada di integral, pola itu tidak ada dan cara ini tidak mempercepat apa pun.',
+  },
+
+  // -- c3 Integrasi Per Bagian -------------------------------------------
+  {
+    id: 'pc7',
+    course_id: 1,
+    concept_id: 'c3',
+    question: 'Hasil dari ∫ x·eˣ dx adalah ...',
+    options: ['x·eˣ + eˣ + C', 'eˣ + C', 'x²/2·eˣ + C', 'x·eˣ − eˣ + C'],
+    correct_index: 3,
+    explanation:
+      'Ambil u = x dan dv = eˣ dx, jadi v = eˣ. Rumus ∫ u dv = uv − ∫ v du memberi x·eˣ − ∫ eˣ dx = x·eˣ − eˣ + C. Integral kedua ikut dihitung, tidak boleh dihilangkan.',
+  },
+  {
+    id: 'pc8',
+    course_id: 1,
+    concept_id: 'c3',
+    question: 'Hasil dari ∫ ln(x) dx adalah ...',
+    options: ['ln(x)/x + C', 'x·ln(x) − x + C', 'x·ln(x) + C', 'ln(x²) + C'],
+    correct_index: 1,
+    explanation:
+      'LIATE menyuruh ln(x) jadi u dan dx jadi dv, jadi du = (1/x) dx dan v = x. Maka uv − ∫ v du = x·ln(x) − ∫ x·(1/x) dx = x·ln(x) − x + C.',
+  },
+  {
+    id: 'pc9',
+    course_id: 1,
+    concept_id: 'c3',
+    question: 'Untuk ∫ x·cos(x) dx, pembagian yang benar menurut LIATE adalah ...',
+    options: ['u = x, dv = cos(x) dx', 'u = cos(x), dv = x dx', 'u = x·cos(x), dv = dx', 'u = 1, dv = x·cos(x) dx'],
+    correct_index: 0,
+    explanation:
+      'LIATE: Logaritma, Inverse, Algebra, Trigonometri, Eksponensial. Di sini hanya ada trigonometri dan aljabar, jadi yang lebih tinggi pangkatnya (x) jadi u.',
+  },
+
+  // -- c4 Teorema Dasar Kalkulus -----------------------------------------
+  {
+    id: 'pc10',
+    course_id: 1,
+    concept_id: 'c4',
+    question: 'Jika F(x) = x², maka ∫₀¹ 2x dx = ...',
+    options: ['2', '1/2', '1', '0'],
+    correct_index: 2,
+    explanation:
+      'Turunan dari x² adalah 2x, jadi F(b) − F(a) = F(1) − F(0) = 1 − 0 = 1. Arahnya penting: batas atas dikurangi batas bawah.',
+  },
+  {
+    id: 'pc11',
+    course_id: 1,
+    concept_id: 'c4',
+    question: 'Berapakah ∫₁² (3x² + 1) dx ?',
+    options: ['9', '7', '6', '8'],
+    correct_index: 3,
+    explanation:
+        'Antiderivatnya F(x) = x³ + x. Lalu F(2) − F(1) = (8 + 2) − (1 + 1) = 10 − 2 = 8. Jangan lupa evaluate kedua batas, bukan hanya batas atas.',
+  },
+  {
+    id: 'pc12',
+    course_id: 1,
+    concept_id: 'c4',
+    question: 'Luas daerah di bawah kurva f(x) = x² dari x = 0 sampai x = 3 adalah ...',
+    options: ['6', '9', '27', '3'],
+    correct_index: 1,
+    explanation:
+      'Luas itu integral definite: F(x) = x³/3, jadi F(3) − F(0) = 27/3 − 0 = 9. Menghitungnya seperti ini jauh lebih aman daripada menjumlahkan luas secara manual.',
+  },
+
+  // -- f1 Gerak Lurus -----------------------------------------------------
+  {
+    id: 'pf1',
+    course_id: 2,
+    concept_id: 'f1',
+    question: 'Benda mulai dari diam dengan percepatan konstan 2 m/s² selama 3 detik. Kecepatan akhirnya ...',
+    options: ['6 m/s', '3 m/s', '9 m/s', '1,5 m/s'],
+    correct_index: 0,
+    explanation:
+      'Gerak dipercepat beraturan: v = v₀ + a·t = 0 + (2)(3) = 6 m/s. Percepatan dikali waktu, bukan dibagi.',
+  },
+  {
+    id: 'pf2',
+    course_id: 2,
+    concept_id: 'f1',
+    question: 'Dengan v₀ = 0, a = 2 m/s², dan t = 3 s, jarak yang ditempuh adalah ...',
+    options: ['6 m', '18 m', '9 m', '4,5 m'],
+    correct_index: 2,
+    explanation:
+      's = v₀·t + ½·a·t² = 0 + ½·(2)(9) = 9 m. Nilai 6 m adalah kecepatan akhirnya, bukan jaraknya.',
+  },
+  {
+    id: 'pf3',
+    course_id: 2,
+    concept_id: 'f1',
+    question: 'Sebuah benda bergerak dengan v = 20 m/s lalu diperlambat a = −4 m/s² selama 2 s. Kecepatan setelahnya ...',
+    options: ['8 m/s', '16 m/s', '28 m/s', '12 m/s'],
+    correct_index: 3,
+    explanation:
+      'Tanda negatif pada percepatan berarti mengurangi kecepatan: v = 20 + (−4)(2) = 20 − 8 = 12 m/s.',
+  },
+
+  // -- f2 Hukum Newton ---------------------------------------------------
+  {
+    id: 'pf4',
+    course_id: 2,
+    concept_id: 'f2',
+    question: 'Gaya resultan 12 N bekerja pada benda bermassa 3 kg. Percepatannya ...',
+    options: ['36 m/s²', '4 m/s²', '9 m/s²', '0,25 m/s²'],
+    correct_index: 1,
+    explanation:
+      'Hukum II Newton: F = m·a, jadi a = F/m = 12/3 = 4 m/s². Gaya dibagi massa, bukan dikali.',
+  },
+  {
+    id: 'pf5',
+    course_id: 2,
+    concept_id: 'f2',
+    question: 'Benda bermassa 4 kg mengalami percepatan 5 m/s². Gaya resultannya ...',
+    options: ['20 N', '0,8 N', '9 N', '1,25 N'],
+    correct_index: 0,
+    explanation:
+      'Dari F = m·a: F = (4)(5) = 20 N. Massa dalam kilogram dikali percepatan dalam m/s² menghasilkan newton.',
+  },
+  {
+    id: 'pf6',
+    course_id: 2,
+    concept_id: 'f2',
+    question: 'Menurut Hukum Newton I, benda yang resultan gaya nol akan ...',
+    options: ['Selalu diam', 'Selalu dipercepat', 'Tetap diam atau bergerak dengan kecepatan konstan', 'Berganti arah setiap saat'],
+    correct_index: 2,
+    explanation:
+      'Kelembaman adalah inersia. Kalau tidak ada gaya resultan, tidak ada yang mengubah keadaan gerak: diam tetap diam, dan bergerak lurus tetap berkecepatan tetap.',
+  },
+
+  // -- f3 Energi Kinetik -------------------------------------------------
+  {
+    id: 'pf7',
+    course_id: 2,
+    concept_id: 'f3',
+    question: 'Energi kinetik benda bermassa 2 kg yang bergerak 3 m/s adalah ...',
+    options: ['6 J', '18 J', '4,5 J', '9 J'],
+    correct_index: 3,
+    explanation:
+      'E_k = ½·m·v² = ½·(2)(9) = 9 J. Perhatikan pangkatnya: v dihitung dua kali, jadi mengubah kecepatan sedikit saja mengubah energi jauh lebih besar.',
+  },
+  {
+    id: 'pf8',
+    course_id: 2,
+    concept_id: 'f3',
+    question: 'Benda bermassa 4 kg punya energi kinetik 200 J. Kecepatannya ...',
+    options: ['5 m/s', '10 m/s', '20 m/s', '7,07 m/s'],
+    correct_index: 1,
+    explanation:
+      'Dari E_k = ½mv²: v² = 2E_k/m = (400)/4 = 100, jadi v = 10 m/s. Akar dari 100 adalah 10, bukan 7,07 (itu akar dari 50).',
+  },
+  {
+    id: 'pf9',
+    course_id: 2,
+    concept_id: 'f3',
+    question: 'Jika kecepatan sebuah benda menjadi dua kali lipat, energi kinetiknya menjadi ...',
+    options: ['4 kali lipat', '2 kali lipat', '8 kali lipat', ' tetap sama'],
+    correct_index: 0,
+    explanation:
+      'Karena v di-kuadratkan, (2v)² = 4v². Jadi energi kinetik jadi empat kali lipat. Inilah sebabnya perlambatan tidak bisa diabaikan di fisika.',
+  },
+];
+
 // ---------------------------------------------------------------- progress
 
 export const mockProgress = {
