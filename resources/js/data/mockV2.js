@@ -310,6 +310,228 @@ export const mockStudyPack = {
   },
 };
 
+/**
+ * Konsep Bab 01 (Limit). Sengaja TIDAK ikut mockCourseConcepts: registry
+ * lintas course itu dipakai Knowledge Gap, Progress, dan Dashboard, jadi
+ * menambah isinya akan mengubah angka "belum diuji" di semua halaman itu.
+ * Konsep di sini hanya milik study pack Bab 01.
+ */
+export const mockLimitConcepts = [
+  {
+    id: 'l1',
+    course_id: 1,
+    name: 'Limit Fungsi',
+    description: 'Nilai yang approached saat x mendekati sebuah titik, baik dari kiri maupun kanan.',
+    mastery: 92,
+    importance: 'high',
+  },
+  {
+    id: 'l2',
+    course_id: 1,
+    name: 'Bentuk Tak Tertentu',
+    description: 'Bentuk 0/0 dan bentuk seperti infinity dikurangi infinity yang harus disederhanakan lebih dulu.',
+    mastery: 85,
+    importance: 'high',
+  },
+  {
+    id: 'l3',
+    course_id: 1,
+    name: 'Kontinuitas',
+    description: 'Syarat fungsi kontinu: nilai fungsi sama dengan limit di titik itu dan limitnya ada.',
+    mastery: 70,
+    importance: 'medium',
+  },
+  {
+    id: 'l4',
+    course_id: 1,
+    name: 'Teorema Squeeze',
+    description: 'Menebak limit dengan menjepit fungsi di antara dua fungsi yang limitnya sama.',
+    mastery: 78,
+    importance: 'high',
+  },
+];
+
+/**
+ * Konsep Bab 02 (Turunan). Sama seperti mockLimitConcepts, tidak masuk
+ * registry lintas course. Prefix d2 dipakai agar tidak bentrok dengan
+ * mockFisikaConcepts (f1-f3) maupun mockConcepts (c1-c4).
+ */
+export const mockTurunanConcepts = [
+  {
+    id: 'd1',
+    course_id: 1,
+    name: 'Aturan Rantai',
+    description: 'Turunan fungsi komposit dihitung dengan mengalikan turunan tiap lapisan fungsi.',
+    mastery: 85,
+    importance: 'high',
+  },
+  {
+    id: 'd2',
+    course_id: 1,
+    name: 'Turunan Implisit',
+    description: 'Menurunkan kedua ruas tanpa harus menyelesaikan y lebih dulu.',
+    mastery: 68,
+    importance: 'high',
+  },
+  {
+    id: 'd3',
+    course_id: 1,
+    name: 'Diferensiasi Higher-Order',
+    description: 'Turunan kedua dan seterusnya, dipakai untuk mencari titik inflection dan uji ekstremum.',
+    mastery: 74,
+    importance: 'medium',
+  },
+  {
+    id: 'd4',
+    course_id: 1,
+    name: 'Turunan Fungsi Invers',
+    description: 'Hubungan turunan Invers dengan turunan fungsi aslinya di titik berbalik.',
+    mastery: 45,
+    importance: 'medium',
+  },
+];
+
+/** Study pack Bab 01. Metadata dokumennya disalin dari mockMaterials id 101. */
+const mockLimitStudyPack = {
+  document: {
+    id: 101,
+    title: 'Bab 01 — Limit dan Kontinuitas',
+    course: { id: 1, name: 'Kalkulus I', color: '#465FFF' },
+    file_type: 'pdf',
+    file_size: 2_411_724,
+    page_count: 42,
+    uploaded_at: '2026-09-20T09:12:00',
+  },
+  summary:
+    'Bab ini membangun definisi limit sebagai alat untuk menggambarkan perilaku fungsi saat x ' +
+    'mendekati suatu titik, termasuk limit satu sisi dan limit di tak hingga. Setelah itu dibahas ' +
+    'bentuk tak tertentu yang wajib disederhanakan, teorema squeeze untuk kasus yang sulit dihitung ' +
+    'langsung, dan syarat kontinuitas sebuah fungsi. Fokus bab ini adalah: memilih teknik limit ' +
+    'yang paling murah sebelum mulai menghitung.',
+  key_points: [
+    'Limit hanya menjelaskan perilaku mendekati titik, bukan nilai fungsi di titik itu.',
+    'Bentuk 0/0 dan bentuk infinity dikurangi infinity harus disederhanakan dulu sebelum limit bisa dihitung.',
+    'Fungsi kontinu kalau limit dua sisinya ada, sama dengan nilai fungsinya di titik tersebut.',
+  ],
+  concepts: mockLimitConcepts,
+  flashcards: [
+    {
+      id: 'lf1',
+      front: 'Apa bedanya limit dan nilai fungsi di sebuah titik?',
+      back: 'Limit hanya menggambarkan apa yang terjadi saat x mendekati titik, sedangkan nilai fungsi di titik itu bisa berbeda.',
+    },
+    {
+      id: 'lf2',
+      front: 'Kapan teorema squeeze dipakai?',
+      back: 'Saat limit langsung sulit dihitung, tapi funkcinya bisa dijepit di antara dua fungsi yang limitnya sudah diketahui.',
+    },
+    {
+      id: 'lf3',
+      front: 'Syarat fungsi kontinu di titik x = a ada berapa?',
+      back: 'Tiga: limit kiri dan kanan sama, limit itu sama dengan f(a), dan fungsinya terdefinisi di a.',
+    },
+  ],
+  quiz: {
+    id: 'q101',
+    total_questions: 8,
+    time_limit_minutes: 12,
+    passing_score: 70,
+    best_score: 90,
+    attempts: 3,
+    covered_concepts: ['l1', 'l2', 'l3', 'l4'],
+  },
+  ask_panda: {
+    scope_note:
+      'Jawaban dibatasi pada isi dokumen ini, dengan dukungan materi lain dari mata kuliah yang sama.',
+    suggested_questions: [
+      'Bagaimana cara memulai menghitung limit 0/0?',
+      'Beri contoh soal yang lebih mudah diselesaikan pakai teorema squeeze.',
+      'Apa akibat dari limit kiri dan kanan tidak sama di sebuah titik?',
+    ],
+    example_answer:
+      'Limit 0/0 selalu disederhanakan lebih dulu, tidak boleh langsung dihitung. Contohnya ' +
+      'lim (x²-4)/(x-2) = 2 bukan 0/0, karena faktor (x+2) bisa dicoret. Setelah itu baru ' +
+      'substitusi langsung. Kalau hasilnya masih rumit, bentuk tak tertentu lain perlu dipisah ' +
+      'dengan mengalikan sekalian bentuk pertama dengan bentuk kedua.',
+  },
+};
+
+/** Study pack Bab 02. Metadata dokumennya disalin dari mockMaterials id 102. */
+const mockTurunanStudyPack = {
+  document: {
+    id: 102,
+    title: 'Bab 02 — Turunan',
+    course: { id: 1, name: 'Kalkulus I', color: '#465FFF' },
+    file_type: 'pdf',
+    file_size: 3_884_032,
+    page_count: 58,
+    uploaded_at: '2026-09-22T14:40:00',
+  },
+  summary:
+    'Bab ini memperkenalkan turunan sebagai laju perubahan sesaat dan turunannya dari definisi ' +
+    'limit selisih. Setelah aturan dasar turunan diperkenalkan, dibahas turunan fungsi ' +
+    'komposit (aturan rantai), turunan implisit, diferensiasi orde kedua, dan turunan fungsi ' +
+    'invers. Fokus bab ini adalah: memilih teknik turunan yang sesuai sebelum menghafal rumus.',
+  key_points: [
+    'Turunan adalah limit selisih, jadi boleh dipakai untuk memderivasi rumus baru.',
+    'Aturan rantai selalu mengalikan turunan setiap lapisan, tidak boleh ada yang terlewat.',
+    'Turunan implisit lebih cepat daripada menyelesaikan y lebih dulu saat y tidak mudah dipisah.',
+  ],
+  concepts: mockTurunanConcepts,
+  flashcards: [
+    {
+      id: 'df1',
+      front: 'Apa yang dimaksud aturan rantai?',
+      back: 'Bila f = g(h(x)), maka f′(x) = g′(h(x)) · h′(x), jadi turunan tiap lapisan dikalikan.',
+    },
+    {
+      id: 'df2',
+      front: 'Kapan turunan implisit lebih praktis?',
+      back: 'Saat y tidak bisa dipisahkan dari x dengan mudah, misalnya y² + x² = 25, sehingga tidak perlu menyelesaikan y.',
+    },
+    {
+      id: 'df3',
+      front: 'Bagaimana rumus turunan fungsi invers?',
+      back: '(f⁻¹)′(a) = 1 / f′(f⁻¹(a)), jadi turunan di titik kebalikan dari argumennya.',
+    },
+  ],
+  quiz: {
+    id: 'q102',
+    total_questions: 10,
+    time_limit_minutes: 15,
+    passing_score: 70,
+    best_score: 80,
+    attempts: 1,
+    covered_concepts: ['d1', 'd2', 'd3', 'd4'],
+  },
+  ask_panda: {
+    scope_note:
+      'Jawaban dibatasi pada isi dokumen ini, dengan dukungan materi lain dari mata kuliah yang sama.',
+    suggested_questions: [
+      'Bedakan turunan implisit dan turunan eksplisit, kapan masing-masing dipakai?',
+      'Turunkan fungsi f(x) = sin(3x²) menggunakan aturan rantai.',
+      'Apa hubungan turunan kedua dengan titik inflection?',
+    ],
+    example_answer:
+      'Turunan f(x) = sin(3x²) memakai aturan rantai dua kali. Lapisan luar sin diturunkan menjadi ' +
+      'cos, dan lapisan dalam 3x² diturunkan menjadi 6x, jadi hasilnya 6x · cos(3x²). Untuk ' +
+      'turunan implisit, turunkan kedua ruas terhadap x lalu perlakukan dy/dx sebagai peubah, ' +
+      'tanpa perlu menyelesaikan y lebih dulu.',
+  },
+};
+
+export const mockStudyPacks = {
+  101: mockLimitStudyPack,
+  102: mockTurunanStudyPack,
+  103: mockStudyPack,
+};
+
+/** Concept id Bab 01, dipakai quiz panel agar nama konsepnya ketemu. */
+export const coveredLimitConceptIds = ['l1', 'l2', 'l3', 'l4'];
+
+/** Concept id Bab 02, dipakai quiz panel agar nama konsepnya ketemu. */
+export const coveredTurunanConceptIds = ['d1', 'd2', 'd3', 'd4'];
+
 // ------------------------------------------------------------------- quiz
 
 /**
@@ -874,6 +1096,31 @@ export const mockPractice = {
       explanation: 'du = 2 dx sehingga 2 dx = du, hasilnya ∫ u³ du = u⁴/4 + C.',
     },
   ],
+};
+
+// ----------------------------------------------------------------- profile
+
+/**
+ * Statistik yang TIDAK bisa dihitung dari mockQuizAttempts.
+ *
+ * Sisa statistik halaman /profile (jumlah quiz, rata-rata skor, penguasaan
+ * per mata kuliah) sengaja TIDAK ditulis di sini. Semuanya dihitung dari
+ * mockQuizAttempts + mockQuestions lewat utils/gap.js, sama seperti halaman
+ * Progress, supaya angka yang sama tidak pernah berbeda di dua halaman.
+ *
+ * Yang tersisa di sini memang tidak ada sumber datanya: quiz_attempts
+ * tidak punya kolom durasi maupun tanggal_mulai, jadi "waktu belajar" dan
+ * "streak" belum punya apa pun untuk dijumlahkan. Begitu tabelnya ada,
+ * dua angka ini ikut hilang dari mock ini.
+ *
+ * Angka 612 menit dan streak 6/11 sengaja dibuat sama dengan mockProgress
+ * supaya kedua halaman tidak terlihat beda padahal masih satu sumber.
+ */
+export const mockProfileActivity = {
+  total_study_minutes: 612,
+  current_streak_days: 6,
+  longest_streak_days: 11,
+  last_active_at: '2026-09-28T08:40:00',
 };
 
 // ------------------------------------------------------- document detail

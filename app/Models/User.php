@@ -12,7 +12,9 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'email', 'password'])]
+// 'avatar' wajib fillable: ProfileAvatarController memakai $user->update(),
+// dan fill() membuang atribut yang tidak fillable tanpa melempar error.
+#[Fillable(['name', 'email', 'password', 'avatar'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {

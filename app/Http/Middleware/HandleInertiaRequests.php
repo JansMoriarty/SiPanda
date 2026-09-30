@@ -26,6 +26,11 @@ class HandleInertiaRequests extends Middleware
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
+                    // Sudah lewat accessor User::avatar(), jadi frontend
+                    // menerima URL siap pakai (atau null). ShellSidebar
+                    // memakainya supaya foto ikut berubah begitu di-upload.
+                    'avatar' => $request->user()->avatar,
+                    'created_at' => $request->user()->created_at?->toDateTimeString(),
                 ] : null,
             ],
         ];

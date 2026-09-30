@@ -16,6 +16,26 @@ Route::middleware('auth')->group(function () {
     Route::get('/ask-panda', [AskPandaController::class, 'index'])->name('ask-panda.index');
     Route::post('/ask-panda', [AskPandaController::class, 'ask'])->name('ask-panda.ask');
     Route::get('/settings', fn() => Inertia::render('Settings/Index'))->name('settings.index');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Profile
+    |--------------------------------------------------------------------------
+    | Halaman ini campur dua sumber data, jadi batasnya ditulis di sini:
+    |
+    | - REAL: identitas (nama/email/foto) diambil dari auth.user yang sudah
+    |   di-share HandleInertiaRequests, dan aksi avatar memakai route di bawah
+    |   yang benar-benar menulis ke storage.
+    | - MOCK: statistik belajar, penguasaan per mata kuliah, dan riwayat
+    |   quiz belum bisa dihitung karena tabel concepts/questions/
+    |   quiz_attempts/attempt_answers belum ada. Angka-angkanya datang dari
+    |   resources/js/data/mockV2.js, bukan dari query DB.
+    |
+    | Closure ini tidak menjalankan query apa pun, jadi tidak ada data yang
+    | bisa bocor. Nanti saat tabelnya ada, ganti dengan controller yang
+    | aggregating lewat course.user_id = auth()->id().
+    */
+    Route::get('/profile', fn() => Inertia::render('Profile/Index'))->name('profile.index');
     Route::post('/profile/avatar', [ProfileAvatarController::class, 'store'])->name('profile.avatar.store');
     Route::delete('/profile/avatar', [ProfileAvatarController::class, 'destroy'])->name('profile.avatar.destroy');
 
@@ -36,7 +56,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/materials', fn() => Inertia::render('Materials/Index'))->name('materials.index');
     Route::get('/progress', fn() => Inertia::render('Progress/Index'))->name('progress');
     Route::get('/documents/{document}', fn($document) => Inertia::render('Materials/Show', ['documentId' => $document]))->name('materials.show');
-    Route::get('/documents/{document}/study-pack', fn() => Inertia::render('Materials/StudyPack'))->name('materials.study-pack');
+    Route::get('/documents/{document}/study-pack', fn($document) => Inertia::render('Materials/StudyPack', ['documentId' => $document]))->name('materials.study-pack');
     Route::get('/documents/{document}/quiz', fn() => Inertia::render('Quiz/Index'))->name('materials.quiz');
     Route::get('/quiz/{attempt}/results', fn() => Inertia::render('Quiz/Results'))->name('quiz.results');
 

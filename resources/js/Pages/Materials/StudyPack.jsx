@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, usePage } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
-import { mockStudyPack } from "@/data/mockV2";
+import { mockStudyPacks } from "@/data/mockV2";
 import { WEAK_THRESHOLD, cx, fileLabel, fileTone, formatDateTime, formatSize, scoreTone } from "@/utils/format";
 
 const TABS = [
@@ -441,11 +441,80 @@ function LockedPanel() {
     );
 }
 
+/**
+ * Ditampilkan kalau dokumen yang dibuka belum punya study pack di mock data.
+ * Ini bukan error: Materials/Index dan Document Detail sama-sama Offer link
+ * Study Pack untuk setiap dokumen yang study_pack.status-nya 'ready', jadi
+ * dokumen ready bisa saja belum punya isi mock. Halaman harus jujur
+ * bilang begitu, bukan diam-diam menampilkan isi bab lain.
+ */
+function EmptyStudyPack({ documentId }) {
+    return (
+        <>
+            <Head title="Study Pack belum tersedia" />
+
+            <div className="mx-auto max-w-[1400px] space-y-6 p-6 sm:p-7">
+                <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                    <Link href="/materials" className="hover:text-slate-600 hover:underline">
+                        Materials
+                    </Link>
+                    <span className="mx-0.5">/</span>
+                    <Link href={`/documents/${documentId}`} className="hover:text-slate-600 hover:underline">
+                        Detail dokumen
+                    </Link>
+                    <span className="mx-0.5">/</span>
+                    <span className="text-slate-800">Study Pack</span>
+                </nav>
+
+                <section className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+                    <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-300">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M19.5 14.25v-2.625A3.375 3.375 0 0016.125 8.25h-1.5A1.125 1.125 0 0013.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                            />
+                        </svg>
+                    </span>
+                    <p className="mt-4 text-sm font-semibold text-slate-700">Isi study pack dokumen ini belum ada</p>
+                    <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-400">
+                        Dokumen ini sudah berstatus siap, tapi isi study pack-nya belum ditulis di data contoh.
+                        Halaman ini sengaja tidak menampilkan isi bab lain supaya tidak mengecoh.
+                    </p>
+                    <div className="mt-5 flex flex-wrap justify-center gap-2">
+                        <Link
+                            href={`/documents/${documentId}`}
+                            className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[11px] font-medium text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50"
+                        >
+                            Detail dokumen
+                        </Link>
+                        <Link
+                            href="/materials"
+                            className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[11px] font-medium text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50"
+                        >
+                            Semua materi
+                        </Link>
+                    </div>
+                </section>
+            </div>
+        </>
+    );
+}
+
 /* ------------------------------------------------------------------- page */
 
 export default function StudyPack() {
     const [active, setActive] = useState("summary");
-    const pack = mockStudyPack;
+    // Document Detail dan Materials/Index bisa mengirim dokumen apa pun ke
+    // URL ini, jadi study pack HARUS ikut id di address bar. Sebelumnya
+    // halaman ini selalu displaying mockStudyPack (Bab 03) apa pun id-nya,
+    // sehingga dokumen lain diam-diam menampilkan isi bab yang salah.
+    const { documentId } = usePage().props;
+    const pack = mockStudyPacks[String(documentId)];
+
+    if (!pack) {
+        return <EmptyStudyPack documentId={documentId} />;
+    }
 
     return (
         <>
