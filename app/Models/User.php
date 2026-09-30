@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -33,5 +35,14 @@ class User extends Authenticatable
     public function courses(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Course::class);
+    }
+
+    protected function avatar(): Attribute
+    {
+        return Attribute::get(function (?string $value) {
+            if (! $value) return null;
+            if (str_starts_with($value, 'http')) return $value;   // dari Google
+            return Storage::disk('public')->url($value);           // hasil upload
+        });
     }
 }

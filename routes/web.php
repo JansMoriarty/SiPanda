@@ -11,8 +11,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
     Route::get('/ask-panda', [AskPandaController::class, 'index'])->name('ask-panda.index');
     Route::post('/ask-panda', [AskPandaController::class, 'ask'])->name('ask-panda.ask');
-    Route::get('/settings', fn () => Inertia::render('Settings/Index'))->name('settings.index');
+    Route::get('/settings', fn() => Inertia::render('Settings/Index'))->name('settings.index');
     Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
+    Route::post('/profile/avatar', [ProfileAvatarController::class, 'store'])->name('profile.avatar.store');
+    Route::delete('/profile/avatar', [ProfileAvatarController::class, 'destroy'])->name('profile.avatar.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

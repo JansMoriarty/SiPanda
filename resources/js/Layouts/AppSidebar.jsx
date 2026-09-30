@@ -1,17 +1,41 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, usePage } from "@inertiajs/react";
+import { createPortal } from "react-dom";
+import { Link, router, usePage } from "@inertiajs/react";
 import { useSidebar } from "@/context/SidebarContext";
+import Avatar from "@/Components/Avatar";
 
 export default function AppSidebar() {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
-  const { url } = usePage();
-  
+  const { url, props } = usePage();
+
+  // Data user yang sedang login (dari HandleInertiaRequests)
+  const user = props.auth?.user;
+  const displayName = user?.name ?? "User";
+
   // State untuk Dropdown User Profile
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
 
+  // State untuk modal konfirmasi logout
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
   const isActive = (path) => url === path;
   const isSidebarVisible = isExpanded || isHovered || isMobileOpen;
+
+  const handleLogout = () => {
+    router.post(
+      route("logout"),
+      {},
+      {
+        onStart: () => setLoggingOut(true),
+        onFinish: () => {
+          setLoggingOut(false);
+          setIsLogoutModalOpen(false);
+        },
+      }
+    );
+  };
 
   // Close dropdown saat klik di luar area profil
   useEffect(() => {
@@ -23,6 +47,16 @@ export default function AppSidebar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Tutup modal logout dengan tombol Esc
+  useEffect(() => {
+    if (!isLogoutModalOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape" && !loggingOut) setIsLogoutModalOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isLogoutModalOpen, loggingOut]);
 
   return (
     <aside
@@ -144,7 +178,7 @@ export default function AppSidebar() {
 
       {/* Bottom Minimalist Profile Card with Pop-up Dropdown */}
       <div className="p-3 border-t border-slate-200/80 relative" ref={profileMenuRef}>
-        
+
         {/* Pop-up Dropdown Menu */}
         {isProfileMenuOpen && isSidebarVisible && (
           <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-2xl shadow-xl border border-slate-200/80 p-1.5 space-y-1 z-50 animate-fade-in-up">
@@ -168,34 +202,32 @@ export default function AppSidebar() {
               Account Settings
             </Link>
             <div className="my-1 border-t border-slate-100"></div>
-            <Link
-              href="/logout"
-              method="post"
-              as="button"
+            <button
+              type="button"
+              onClick={() => {
+                setIsProfileMenuOpen(false);
+                setIsLogoutModalOpen(true);
+              }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
             >
               <svg className="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
               </svg>
               Log Out
-            </Link>
+            </button>
           </div>
         )}
 
         {/* Minimalist Profile Button */}
-        <div 
+        <div
           onClick={() => isSidebarVisible && setIsProfileMenuOpen(!isProfileMenuOpen)}
           className={`flex items-center gap-3 p-2 rounded-2xl hover:bg-slate-50 transition-all cursor-pointer ${
             !isSidebarVisible ? "justify-center p-1 hover:bg-transparent" : ""
           }`}
         >
-          {/* Bulat Profile Avatar */}
+          {/* Bulat Profile Avatar: foto kalau ada, kalau tidak inisial */}
           <div className="relative shrink-0">
-            <img
-              src="https://ui-avatars.com/api/?name=User+Admin&background=465FFF&color=fff"
-              alt="Profile"
-              className="w-9 h-9 rounded-full object-cover shadow-sm"
-            />
+            <Avatar src={user?.avatar} name={displayName} />
             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
           </div>
 
@@ -203,13 +235,13 @@ export default function AppSidebar() {
           {isSidebarVisible && (
             <div className="flex items-center justify-between flex-1 min-w-0">
               <div className="flex flex-col min-w-0">
-                <h4 className="text-xs font-semibold text-slate-900 truncate">User Admin</h4>
-                <span className="text-[10px] font-medium text-emerald-600">Free Plan</span>
+                <h4 className="text-xs font-semibold text-slate-900 truncate">{displayName}</h4>
+                <span className="text-[10px] font-medium text-slate-500 truncate">{user?.email}</span>
               </div>
 
               {/* Three Dots Icon */}
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="p-1 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -219,8 +251,55 @@ export default function AppSidebar() {
             </div>
           )}
         </div>
-
       </div>
+
+      {/* Modal konfirmasi logout (portal ke body supaya overlay full screen) */}
+      {isLogoutModalOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-['Outfit',sans-serif]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-title"
+          >
+            <div
+              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+              onClick={() => !loggingOut && setIsLogoutModalOpen(false)}
+            />
+            <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-500">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                </svg>
+              </div>
+              <h3 id="logout-title" className="mt-4 text-center text-lg font-semibold text-slate-900">
+                Keluar dari akun?
+              </h3>
+              <p className="mt-1.5 text-center text-sm text-slate-500">
+                Kamu harus masuk lagi untuk melanjutkan belajar.
+              </p>
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsLogoutModalOpen(false)}
+                  disabled={loggingOut}
+                  className="h-10 flex-1 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-60"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="h-10 flex-1 rounded-xl bg-rose-600 text-sm font-semibold text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {loggingOut ? "Keluar…" : "Ya, keluar"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </aside>
   );
-} 
+}
