@@ -16,17 +16,20 @@ class DocumentController extends Controller
     public function __construct(
         protected DocumentExtractor $extractor,
         protected GeminiClient $gemini
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
-        $documents = Document::whereHas('course', fn ($q) => $q->where('user_id', $request->user()->id))
+        $documents = Document::whereHas('course', fn($q) => $q->where('user_id', $request->user()->id))
+            ->with('course')
             ->latest()
             ->get();
 
+        $courses = $request->user()->courses()->orderBy('name')->get();
+
         return Inertia::render('Documents/Index', [
             'documents' => $documents,
+            'courses' => $courses,
         ]);
     }
 
