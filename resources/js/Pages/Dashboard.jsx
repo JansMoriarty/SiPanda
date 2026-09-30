@@ -1,29 +1,7 @@
 import { Head, Link } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
 import { mockDashboard, mockCourses } from "@/data/mockV2";
-
-const formatSize = (bytes) => {
-    if (!bytes) return "0 B";
-    const units = ["B", "KB", "MB"];
-    let i = 0;
-    let n = bytes;
-    while (n >= 1024 && i < units.length - 1) {
-        n /= 1024;
-        i++;
-    }
-    return `${n.toFixed(1)} ${units[i]}`;
-};
-
-const scoreTone = (score) => {
-    if (score >= 70) return "text-emerald-600 bg-emerald-50 border-emerald-200/80";
-    if (score >= 50) return "text-amber-600 bg-amber-50 border-amber-200/80";
-    return "text-rose-600 bg-rose-50 border-rose-200/80";
-};
-
-const fileTone = (type) =>
-    type === "pdf"
-        ? "bg-rose-50 border-rose-200/60 text-rose-500"
-        : "bg-amber-50 border-amber-200/60 text-amber-500";
+import { fileTone, formatSize, scoreTone } from "@/utils/format";
 
 const maxMinutes = Math.max(...mockDashboard.weekly_activity.map((d) => d.minutes));
 
