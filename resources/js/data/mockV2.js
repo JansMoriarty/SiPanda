@@ -131,15 +131,9 @@ export const mockDashboard = {
     { day: 'Min', minutes: 8, questions: 10 },
   ],
   continue_learning: [mockMaterials[2], mockMaterials[4], mockMaterials[3]],
-  knowledge_gap_preview: [
-    { concept: 'Integral Tak Sederhana', course: 'Kalkulus I', score: 45, trend: 'down' },
-    { concept: 'Identitas Trigonometri', course: 'Trigonometri', score: 30, trend: 'flat' },
-    { concept: 'Substitusi U', course: 'Kalkulus I', score: 52, trend: 'up' },
-  ],
-  strong_concepts: [
-    { concept: 'Limit Tak Sederhana', course: 'Kalkulus I', score: 90 },
-    { concept: 'Aturan Rantai', course: 'Kalkulus I', score: 80 },
-  ],
+  // knowledge_gap_preview dan strong_concepts TIDAK ada di sini. Keduanya
+  // dihitung dari mockQuizAttempts + mockQuestions oleh utils/gap.js, sama
+  // seperti halaman Progress, supaya dua halaman tidak bisa berbeda angka.
   recent_quizzes: [
     {
       id: 9001,
@@ -181,6 +175,7 @@ export const mockDashboard = {
 export const mockConcepts = [
   {
     id: 'c1',
+    course_id: 1,
     name: 'Integral Tak Sederhana',
     description: 'Menyelesaikan integral tanpa perubahan bentuk fungsi.',
     mastery: 45,
@@ -188,6 +183,7 @@ export const mockConcepts = [
   },
   {
     id: 'c2',
+    course_id: 1,
     name: 'Substitusi U',
     description: 'Mengubah bentuk integral agar variabelnya dapat dipisahkan dari sisanya.',
     mastery: 52,
@@ -195,6 +191,7 @@ export const mockConcepts = [
   },
   {
     id: 'c3',
+    course_id: 1,
     name: 'Integrasi Per Bagian',
     description: 'Untuk hasil kali dua fungsi yang tidak bisa dipisah.',
     mastery: 30,
@@ -202,11 +199,39 @@ export const mockConcepts = [
   },
   {
     id: 'c4',
+    course_id: 1,
     name: 'Teorema Dasar Kalkulus',
     description: 'Menghubungkan luas di bawah kurva dengan nilai antiderivat.',
     mastery: 64,
     importance: 'high',
   },
+];
+
+/** Konsep course 2, dipakai sebagai pembanding saat filter diganti. */
+export const mockFisikaConcepts = [
+  { id: 'f1', course_id: 2, name: 'Gerak Lurus', description: 'Kecepatan, percepatan, dan grafik posisi-waktu.', importance: 'high' },
+  { id: 'f2', course_id: 2, name: 'Hukum Newton', description: 'Gaya, massa, dan percepatan benda.', importance: 'high' },
+  { id: 'f3', course_id: 2, name: 'Energi Kinetik', description: 'Hubungan energi dengan kecepatan dan massa.', importance: 'medium' },
+];
+
+/**
+ * Konsep milik course 1 yang belum masuk Study Pack Bab 03 dan belum
+ * pernah diuji. Sengaja ada supaya Knowledge Gap bisa menampilkan konsep
+ * "belum diuji" alih-alih mengarang angka 0% untuknya.
+ */
+export const mockBelumDiujiConcept = {
+  id: 'c5',
+  course_id: 1,
+  name: 'Penggunaan Tool',
+  description: 'Menyelesaikan soal dengan Leibniz, Maple, atau kalkulator ilmiah.',
+  importance: 'low',
+};
+
+/** Registry konsep lintas course, dasar untuk agregasi Knowledge Gap. */
+export const mockCourseConcepts = [
+  ...mockConcepts,
+  mockBelumDiujiConcept,
+  ...mockFisikaConcepts,
 ];
 
 /** Concept id yang benar-benar diuji oleh mockQuiz, urut. */
@@ -400,20 +425,152 @@ export const mockQuiz = {
 
 // ---------------------------------------------------------- knowledge gap
 
-export const mockKnowledgeGap = {
-  course: { id: 1, name: 'Kalkulus I', color: '#465FFF' },
-  overall_mastery: 61,
-  computed_from: 84,
-  concepts: [
-    { id: 'c1', name: 'Integral Tak Sederhana', score: 45, answered: 12, correct: 5, trend: 'down', needs_practice: true },
-    { id: 'c2', name: 'Substitusi U', score: 52, answered: 10, correct: 5, trend: 'up', needs_practice: true },
-    { id: 'c3', name: 'Integrasi Per Bagian', score: 30, answered: 8, correct: 2, trend: 'down', needs_practice: true },
-    { id: 'c4', name: 'Teorema Dasar Kalkulus', score: 64, answered: 11, correct: 7, trend: 'up', needs_practice: false },
-    { id: 'c5', name: 'Limit Tak Sederhana', score: 90, answered: 15, correct: 14, trend: 'up', needs_practice: false },
-    { id: 'c6', name: 'Aturan Rantai', score: 80, answered: 12, correct: 10, trend: 'flat', needs_practice: false },
-    { id: 'c7', name: 'Turunan Implisit', score: 70, answered: 9, correct: 6, trend: 'flat', needs_practice: false },
-  ],
-};
+/**
+ * Bank soal lintas course, meniru tabel `questions`: satu baris per soal,
+ * denganconcept_id sebagai jembatan ke tabel ` concepts`.
+ *
+ * Baris untuk quiz Bab 03 diturunkan dari mockQuiz supaya id soal dan
+ * konsepnya tidak pernah bisa berbeda dari halaman Quiz. Sisa baris
+ * menggambarkan quiz Bab 01, Bab 02, dan Kinematika yang tidak punya
+ * halaman sendiri di mock ini.
+ */
+export const mockQuestions = [
+  ...mockQuiz.questions.map((q) => ({
+    id: q.id,
+    concept_id: q.concept,
+    quiz_id: mockQuiz.id,
+    document_id: mockQuiz.document_id,
+    course_id: mockQuiz.course.id,
+  })),
+  { id: 'a1', concept_id: 'c1', quiz_id: 'q101', document_id: 101, course_id: 1 },
+  { id: 'a2', concept_id: 'c2', quiz_id: 'q101', document_id: 101, course_id: 1 },
+  { id: 'a3', concept_id: 'c2', quiz_id: 'q101', document_id: 101, course_id: 1 },
+  { id: 'a4', concept_id: 'c1', quiz_id: 'q101', document_id: 101, course_id: 1 },
+  { id: 'a5', concept_id: 'c5', quiz_id: 'q101', document_id: 101, course_id: 1 },
+  { id: 'b1', concept_id: 'c2', quiz_id: 'q102', document_id: 102, course_id: 1 },
+  { id: 'b2', concept_id: 'c4', quiz_id: 'q102', document_id: 102, course_id: 1 },
+  { id: 'b3', concept_id: 'c1', quiz_id: 'q102', document_id: 102, course_id: 1 },
+  { id: 'd1', concept_id: 'f1', quiz_id: 'q104', document_id: 104, course_id: 2 },
+  { id: 'd2', concept_id: 'f2', quiz_id: 'q104', document_id: 104, course_id: 2 },
+  { id: 'd3', concept_id: 'f3', quiz_id: 'q104', document_id: 104, course_id: 2 },
+];
+
+/**
+ * Tabel `quiz_attempts` + `attempt_answers` dalam bentuk mock: tiap attempt
+ * adalah satu percobaan, tiap answers adalah satu baris jawaban yang
+ * mereujuk question_id.
+ *
+ * Dua Percobaan pertama memakai `mock-attempt-1` dan `mock-attempt-2` supaya
+ * id attempt di halaman Quiz (mock-attempt-3) tidak bentrok dengan attempt
+ * yang sudah selesai. Soal `a5` (Penggunaan Tool) sengaja tidak pernah
+ * dijawab supaya ada konsep berstatus "belum diuji", bukan angka 0% karangan.
+ *
+ * Angka koreksi sengaja disusun/manual supaya agregasinya menghasilkan
+ * rentang yang enak dilihat: c3 selalu 0%, c2 di bawah ambang 60%, c1 dan
+ * c4 di atasnya, lalu naik jelas di percobaan terakhir.
+ */
+export const mockQuizAttempts = [
+  {
+    id: 'mock-attempt-1',
+    quiz_id: 'q101',
+    document_id: 101,
+    document_title: 'Bab 01 - Limit dan Kontinuitas',
+    course_id: 1,
+    completed_at: '2026-09-12T20:15:00',
+    answers: [
+      { question_id: 'a1', correct: true },
+      { question_id: 'a2', correct: true },
+      { question_id: 'a3', correct: false },
+      { question_id: 'a4', correct: true },
+    ],
+  },
+  {
+    id: 'mock-attempt-2',
+    quiz_id: 'q103',
+    document_id: 103,
+    document_title: 'Bab 03 - Integral',
+    course_id: 1,
+    completed_at: '2026-09-19T21:02:00',
+    answers: [
+      { question_id: 'q1', correct: true },
+      { question_id: 'q2', correct: false },
+      { question_id: 'q3', correct: false },
+      { question_id: 'q4', correct: true },
+      { question_id: 'q5', correct: false },
+      { question_id: 'q6', correct: false },
+      { question_id: 'q7', correct: false },
+      { question_id: 'q8', correct: false },
+      { question_id: 'q9', correct: true },
+      { question_id: 'q10', correct: false },
+    ],
+  },
+  {
+    id: 'mock-attempt-4',
+    quiz_id: 'q103',
+    document_id: 103,
+    document_title: 'Bab 03 - Integral',
+    course_id: 1,
+    completed_at: '2026-09-26T19:30:00',
+    answers: [
+      { question_id: 'q1', correct: true },
+      { question_id: 'q2', correct: true },
+      { question_id: 'q3', correct: true },
+      { question_id: 'q4', correct: true },
+      { question_id: 'q5', correct: true },
+      { question_id: 'q6', correct: false },
+      { question_id: 'q7', correct: false },
+      { question_id: 'q8', correct: false },
+      { question_id: 'q9', correct: true },
+      { question_id: 'q10', correct: true },
+    ],
+  },
+  {
+    id: 'mock-attempt-5',
+    quiz_id: 'q102',
+    document_id: 102,
+    document_title: 'Bab 02 - Turunan',
+    course_id: 1,
+    completed_at: '2026-09-28T08:40:00',
+    answers: [
+      { question_id: 'b1', correct: true },
+      { question_id: 'b2', correct: true },
+      { question_id: 'b3', correct: false },
+    ],
+  },
+  {
+    id: 'mock-attempt-6',
+    quiz_id: 'q104',
+    document_id: 104,
+    document_title: 'Slide Pertemuan 4 - Kinematika',
+    course_id: 2,
+    completed_at: '2026-09-20T15:25:00',
+    answers: [
+      { question_id: 'd1', correct: true },
+      { question_id: 'd2', correct: false },
+      { question_id: 'd3', correct: true },
+    ],
+  },
+  {
+    id: 'mock-attempt-7',
+    quiz_id: 'q104',
+    document_id: 104,
+    document_title: 'Slide Pertemuan 4 - Kinematika',
+    course_id: 2,
+    completed_at: '2026-09-25T16:10:00',
+    answers: [
+      { question_id: 'd1', correct: true },
+      { question_id: 'd2', correct: true },
+      { question_id: 'd3', correct: false },
+    ],
+  },
+];
+
+/**
+ * Angka knowledge gap TIDAK ditulis di sini. Semua persen dihitung dari
+ * mockQuizAttempts + mockQuestions oleh utils/gap.js, sama seperti query
+ * aslinya nanti: attempt_answers -> questions -> concepts, dibatasi
+ * user_id + course_id.
+ */
 
 // ---------------------------------------------------------------- progress
 

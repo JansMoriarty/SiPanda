@@ -37,6 +37,13 @@ export const formatDateTime = (iso) => {
     return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${hh}:${mm}`;
 };
 
+/**
+ * AmbangConcepts yang dianggap lemah. Satu konstanta dipakai Quiz Results,
+ * Study Pack, dan Knowledge Gap supaya konsep yang sama tidak ditandai
+ * berbeda tergantung halaman tempat student mengetahuinya.
+ */
+export const WEAK_THRESHOLD = 60;
+
 /** Warna badge skor: hijau >= 70, kuning >= 50, merah < 50. */
 export const scoreTone = (score) => {
     if (score === null || score === undefined) return "text-slate-400 bg-slate-50 border-slate-200/80";

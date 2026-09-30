@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Head, Link } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
 import { mockConcepts, mockQuiz } from "@/data/mockV2";
-import { cx, formatDateTime, scoreTone } from "@/utils/format";
+import { WEAK_THRESHOLD, cx, formatDateTime, scoreTone } from "@/utils/format";
 
 const ATTEMPT_KEY = "sipanda.v2.lastAttempt";
 
@@ -118,7 +118,7 @@ export default function Results() {
 
     const passed = result.score >= result.passing_score;
     const wrong = result.total - result.correct;
-    const weak = result.breakdown.filter((b) => b.score < 50);
+    const weak = result.breakdown.filter((b) => b.score < WEAK_THRESHOLD);
 
     return (
         <>
@@ -219,7 +219,7 @@ export default function Results() {
 
                     <div className="space-y-3.5">
                         {result.breakdown.map((b) => {
-                            const isWeak = b.score < 50;
+                            const isWeak = b.score < WEAK_THRESHOLD;
                             return (
                                 <div key={b.concept_id}>
                                     <div className="mb-1.5 flex items-baseline justify-between gap-2">

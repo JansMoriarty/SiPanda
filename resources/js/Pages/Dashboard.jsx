@@ -1,9 +1,12 @@
 import { Head, Link } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
-import { mockDashboard, mockCourses } from "@/data/mockV2";
+import { mockDashboard, mockCourses, mockCourseConcepts, mockQuestions, mockQuizAttempts } from "@/data/mockV2";
+import { buildStrongestConcepts, buildWeakestConcepts } from "@/utils/gap";
 import { fileTone, formatSize, scoreTone } from "@/utils/format";
 
 const maxMinutes = Math.max(...mockDashboard.weekly_activity.map((d) => d.minutes));
+
+const gapData = { attempts: mockQuizAttempts, questions: mockQuestions, concepts: mockCourseConcepts };
 
 function StatCard({ icon, tone, label, value, hint }) {
     return (
@@ -19,8 +22,13 @@ function StatCard({ icon, tone, label, value, hint }) {
 }
 
 export default function Dashboard() {
-    const { greeting_name, study_streak_days, summary, weekly_activity, continue_learning, knowledge_gap_preview, strong_concepts, recent_quizzes } =
+    const { greeting_name, study_streak_days, summary, weekly_activity, continue_learning, recent_quizzes } =
         mockDashboard;
+
+    // Dihitung dari tabel attempt yang sama dengan halaman Progress, supaya
+    // kartu di sini tidak bisa menampilkan angka yang berbeda dengan sana.
+    const knowledge_gap_preview = buildWeakestConcepts({ ...gapData, courses: mockCourses }).slice(0, 3);
+    const strong_concepts = buildStrongestConcepts({ ...gapData, courses: mockCourses });
 
     return (
         <>
@@ -288,15 +296,15 @@ export default function Dashboard() {
 
                             <div className="space-y-3.5">
                                 {knowledge_gap_preview.map((gap) => (
-                                    <div key={gap.concept}>
+                                    <div key={gap.concept_id}>
                                         <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                                            <p className="truncate text-[11px] font-semibold text-slate-700">{gap.concept}</p>
-                                            <span className="shrink-0 text-[11px] font-bold text-rose-600">{gap.score}%</span>
+                                            <p className="truncate text-[11px] font-semibold text-slate-700">{gap.name}</p>
+                                            <span className="shrink-0 text-[11px] font-bold text-rose-600">{gap.mastery}%</span>
                                         </div>
                                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                                            <div className="h-full rounded-full bg-rose-400" style={{ width: `${gap.score}%` }} />
+                                            <div className="h-full rounded-full bg-rose-400" style={{ width: `${gap.mastery}%` }} />
                                         </div>
-                                        <p className="mt-1 text-[10px] text-slate-400">{gap.course}</p>
+                                        <p className="mt-1 text-[10px] text-slate-400">{gap.course_name}</p>
                                     </div>
                                 ))}
                             </div>
@@ -319,17 +327,17 @@ export default function Dashboard() {
 
                             <div className="mt-4 space-y-3">
                                 {strong_concepts.map((c) => (
-                                    <div key={c.concept} className="flex items-center gap-2.5">
+                                    <div key={`${c.course_id}-${c.concept_id}`} className="flex items-center gap-2.5">
                                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                             </svg>
                                         </span>
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate text-[11px] font-semibold text-slate-700">{c.concept}</p>
-                                            <p className="text-[10px] text-slate-400">{c.course}</p>
+                                            <p className="truncate text-[11px] font-semibold text-slate-700">{c.name}</p>
+                                            <p className="text-[10px] text-slate-400">{c.course_name}</p>
                                         </div>
-                                        <span className="shrink-0 text-[11px] font-bold text-emerald-600">{c.score}%</span>
+                                        <span className="shrink-0 text-[11px] font-bold text-emerald-600">{c.mastery}%</span>
                                     </div>
                                 ))}
                             </div>

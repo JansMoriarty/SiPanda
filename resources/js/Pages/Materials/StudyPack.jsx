@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Head, Link } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
 import { mockStudyPack } from "@/data/mockV2";
-import { cx, fileLabel, fileTone, formatDateTime, formatSize, scoreTone } from "@/utils/format";
+import { WEAK_THRESHOLD, cx, fileLabel, fileTone, formatDateTime, formatSize, scoreTone } from "@/utils/format";
 
 const TABS = [
     { id: "summary", label: "Ringkasan" },
@@ -220,7 +220,7 @@ function ConceptsPanel({ pack }) {
 
             <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
                 {ordered.map((c) => {
-                    const weak = c.mastery < 50;
+                    const weak = c.mastery < WEAK_THRESHOLD;
                     const imp = importanceBadge(c.importance);
                     return (
                         <article key={c.id} className="rounded-xl border border-slate-200/80 p-4 transition-colors hover:border-slate-300">
