@@ -246,6 +246,20 @@ export const mockStudyPack = {
     passing_score: 70,
     best_score: 45,
     attempts: 2,
+    covered_concepts: ['c1', 'c2', 'c3', 'c4'],
+  },
+  ask_panda: {
+    scope_note:
+      'Jawaban dibatasi pada isi dokumen ini, dengan dukungan materi lain dari mata kuliah yang sama.',
+    suggested_questions: [
+      'Kapan substitusi u lebih cocok dipakai daripada integrasi per bagian?',
+      'Beri contoh soal integral tak sederhana beserta langkah penyelesaiannya.',
+      'Apa hubungan teorema dasar kalkulus dengan luas di bawah kurva?',
+    ],
+    example_answer:
+      'Substitusi u dipakai ketika penyusun fungsi yang akan diderensalkan bisa dipisahkan dari sisanya, ' +
+      'misalnya pada ∫ 2x·(x²+1)⁵ dx. Integrasi per bagian lebih tepat untuk hasil kali dua fungsi yang ' +
+      'tidak dapat dipisahkan, seperti ∫ x·eˣ dx. Keduanya sering dicoba berurutan bila cara pertama gagal.',
   },
 };
 
