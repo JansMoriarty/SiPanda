@@ -263,8 +263,8 @@ function QuizPanel({ pack }) {
                 <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                         <h2 className="text-sm font-bold text-slate-900">Quiz bab ini</h2>
-                        <span className="rounded-lg border border-amber-200/80 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-600">
-                            MULAI QUIZ — TAHAP BERIKUTNYA
+                        <span className="rounded-lg border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-600">
+                            MOCK — BELUM TERSIMPAN DI SERVER
                         </span>
                     </div>
 
@@ -282,23 +282,21 @@ function QuizPanel({ pack }) {
                         ))}
                     </div>
 
-                    <button
-                        type="button"
-                        disabled
-                        className="mt-4 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 py-3 text-xs font-semibold text-slate-400"
-                        title="Halaman quiz interaktif dibangun pada tahap Quiz"
+                    <Link
+                        href={`/documents/${pack.document.id}/quiz`}
+                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#465FFF] py-3 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-600 active:scale-[0.99]"
                     >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                                d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"
                             />
                         </svg>
                         Mulai Quiz
-                    </button>
+                    </Link>
                     <p className="mt-2 text-center text-[10px] text-slate-400">
-                        Tombol sengaja nonaktif. Halaman kuis interaktif dibangun pada tahap Quiz, bukan di study pack.
+                        Satu soal per layar, langsung dapat penjelasan tiap jawaban. Skor tersimpan per konsep.
                     </p>
                 </section>
 

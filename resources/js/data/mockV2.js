@@ -171,6 +171,47 @@ export const mockDashboard = {
   ],
 };
 
+// --------------------------------------------------------------- concepts
+
+/**
+ * Definisi tunggal konsep untuk Bab 03. Dipakai oleh Study Pack (dengan
+ * mastery) dan oleh Quiz (untuk menandai tiap soal), supaya nama & id
+ * konsep tidak pernah berbeda di dua halaman.
+ */
+export const mockConcepts = [
+  {
+    id: 'c1',
+    name: 'Integral Tak Sederhana',
+    description: 'Menyelesaikan integral tanpa perubahan bentuk fungsi.',
+    mastery: 45,
+    importance: 'high',
+  },
+  {
+    id: 'c2',
+    name: 'Substitusi U',
+    description: 'Mengubah bentuk integral agar variabelnya dapat dipisahkan dari sisanya.',
+    mastery: 52,
+    importance: 'high',
+  },
+  {
+    id: 'c3',
+    name: 'Integrasi Per Bagian',
+    description: 'Untuk hasil kali dua fungsi yang tidak bisa dipisah.',
+    mastery: 30,
+    importance: 'medium',
+  },
+  {
+    id: 'c4',
+    name: 'Teorema Dasar Kalkulus',
+    description: 'Menghubungkan luas di bawah kurva dengan nilai antiderivat.',
+    mastery: 64,
+    importance: 'high',
+  },
+];
+
+/** Concept id yang benar-benar diuji oleh mockQuiz, urut. */
+export const coveredConceptIds = ['c1', 'c2', 'c3', 'c4'];
+
 // ------------------------------------------------------------- study pack
 
 export const mockStudyPack = {
@@ -192,36 +233,7 @@ export const mockStudyPack = {
     'Aturan integral mengikuti aturan turunan secara kebalikan.',
     'Substitusi u-Lafadz dipakai saat penyusun fungsi yang sama dengan turunannya.',
   ],
-  concepts: [
-    {
-      id: 'c1',
-      name: 'Integral Tak Sederhana',
-      description: 'Menyelesaikan integral tanpa perubahan bentuk fungsi.',
-      mastery: 45,
-      importance: 'high',
-    },
-    {
-      id: 'c2',
-      name: 'Substitusi U',
-      description: 'Mengubah bentuk integral agar variabelnya dapat dipisahkan dari sisanya.',
-      mastery: 52,
-      importance: 'high',
-    },
-    {
-      id: 'c3',
-      name: 'Integrasi Per Bagian',
-      description: 'Untuk hasil kali dua fungsi yang tidak bisa dipisah.',
-      mastery: 30,
-      importance: 'medium',
-    },
-    {
-      id: 'c4',
-      name: 'Teorema Dasar Kalkulus',
-      description: 'Menghubungkan luas di bawah kurva dengan nilai antiderivat.',
-      mastery: 64,
-      importance: 'high',
-    },
-  ],
+  concepts: mockConcepts,
   flashcards: [
     {
       id: 'f1',
@@ -246,7 +258,7 @@ export const mockStudyPack = {
     passing_score: 70,
     best_score: 45,
     attempts: 2,
-    covered_concepts: ['c1', 'c2', 'c3', 'c4'],
+    covered_concepts: coveredConceptIds,
   },
   ask_panda: {
     scope_note:
@@ -261,6 +273,129 @@ export const mockStudyPack = {
       'misalnya pada ∫ 2x·(x²+1)⁵ dx. Integrasi per bagian lebih tepat untuk hasil kali dua fungsi yang ' +
       'tidak dapat dipisahkan, seperti ∫ x·eˣ dx. Keduanya sering dicoba berurutan bila cara pertama gagal.',
   },
+};
+
+// ------------------------------------------------------------------- quiz
+
+/**
+ * Mock quiz interaktif. Setiap soal WAJIB punya tag `concept` supaya
+ * jawabannya bisa langsung dirollup menjadi breakdown per konsep di
+ * halaman Hasil Quiz, dan nanti jadi bahan Knowledge Gap.
+ *
+ * Cakupan: c1 x3, c2 x3, c3 x2, c4 x2 = 10 soal.
+ */
+export const mockQuiz = {
+  id: 'q103',
+  document_id: 103,
+  document_title: 'Bab 03 — Integral',
+  course: { id: 1, name: 'Kalkulus I', color: '#465FFF' },
+  total_questions: 10,
+  time_limit_minutes: 15,
+  passing_score: 70,
+  best_score: 45,
+  attempts: 2,
+  questions: [
+    {
+      id: 'q1',
+      concept: 'c1',
+      question: 'Hitung: ∫ (4x³ − 2x) dx',
+      options: ['x⁴ − x² + C', '12x² − 2 + C', '4x³ − 2x + C', 'x⁴/4 − x² + C'],
+      correct_index: 0,
+      explanation:
+        'Integralkan tiap suku terpisah. Pangkat turun satu lalu dibagi pangkat itu: 4x³ → x⁴ dan −2x → −x². Jangan lupa konstanta C.',
+    },
+    {
+      id: 'q2',
+      concept: 'c1',
+      question: 'Manakah hasil dari ∫ (3x² + 2x − 5) dx yang benar?',
+      options: ['x³ + x² − 5x + C', '3x² + 2x − 5 + C', 'x³/3 + x²/2 − 5x + C', '6x + 2 + C'],
+      correct_index: 0,
+      explanation:
+        'Setiap suku diintegralkan terpisah: 3x² → x³, 2x → x², dan −5 → −5x. Hasilnya digabung dalam satu C, bukan C di tiap suku.',
+    },
+    {
+      id: 'q3',
+      concept: 'c1',
+      question: 'Berapakah ∫ 7 dx ?',
+      options: ['7x + C', 'x + C', '7 + C', '7x²/2 + C'],
+      correct_index: 0,
+      explanation:
+        'Konstanta diintegralkan menjadi konstanta dikali variabel. Aturan ini berlaku untuk konstanta apa pun, bukan hanya untuk bilangan bulat.',
+    },
+    {
+      id: 'q4',
+      concept: 'c2',
+      question: 'Dengan u = 2x + 1, bentuk dari ∫ 2(2x + 1)³ dx adalah ...',
+      options: ['u³/3 + C', 'u⁴/4 + C', 'u⁴/8 + C', 'u³ + C'],
+      correct_index: 1,
+      explanation:
+        'du = 2 dx, jadi 2 dx = du. Sisa problemnya jadi ∫ u³ du = u⁴/4 + C. Pangkat turun satu lalu dibagi empat.',
+    },
+    {
+      id: 'q5',
+      concept: 'c2',
+      question: 'Substitusi u = x² + 1 mengubah ∫ 2x·(x² + 1)⁵ dx menjadi ...',
+      options: ['∫ u⁵ du', '∫ u⁶ du', '∫ 5u⁶ du', '∫ x·u⁵ dx'],
+      correct_index: 0,
+      explanation:
+        'du = 2x dx sehingga bagian 2x dx hilang diganti du, dan tinggal u⁵. Catatan: u⁶/6 + C adalah hasil akhirnya, bentuk integralnya masih ∫ u⁵ du.',
+    },
+    {
+      id: 'q6',
+      concept: 'c2',
+      question: 'Kapan substitusi u paling tepat dipakai?',
+      options: [
+        'Ketika turunan dari suatu ungkapan muncul utuh di dalam integral',
+        'Selalu ketika integralnya mengandung akar',
+        'Hanya untuk integral tak tentu',
+        'Ketika hasil akhirnya harus berupa bilangan',
+      ],
+      correct_index: 0,
+      explanation:
+        'Kuncinya cari pola du. Kalau turunan dari sebuah ungkapan sudah ada utuh di integral, ungkapan itu yang dijadikan u.',
+    },
+    {
+      id: 'q7',
+      concept: 'c3',
+      question: 'Formula integrasi per bagian adalah ...',
+      options: ['∫ u dv = uv − ∫ v du', '∫ u dv = uv + ∫ v du', '∫ u dv = v du − uv', '∫ u dv = du · dv'],
+      correct_index: 0,
+      explanation:
+        'Tanda minus berasal dari aturan produk pada turunan: d(uv) = u dv + v du. Kalau tandanya plus, turunannya akan salah.',
+    },
+    {
+      id: 'q8',
+      concept: 'c3',
+      question: 'Untuk ∫ x·eˣ dx, pembagian u dan dv yang tepat adalah ...',
+      options: ['u = x, dv = eˣ dx', 'u = eˣ, dv = x dx', 'u = x·eˣ, dv = dx', 'u = 1, dv = x·eˣ dx'],
+      correct_index: 0,
+      explanation:
+        'Aturan LIATE: pilih yang lebih tinggi pangkatnya jadi u. Karena eˣ sulit diderensalkan, eˣ justru dipilih jadi dv dan x jadi u.',
+    },
+    {
+      id: 'q9',
+      concept: 'c4',
+      question: 'Menurut Teorema Dasar Kalkulus, ∫ dari a ke b atas f(x) dx sama dengan ...',
+      options: [
+        'F(b) − F(a), di mana F adalah antiderivat dari f',
+        'F(a) − F(b)',
+        'F(a) + F(b)',
+        'Turunan dari F(b) − F(a)',
+      ],
+      correct_index: 0,
+      explanation:
+        'Teorema ini menghubungkan integral definite dengan selisih antiderivat. Arahnya penting: batas atas dikurangi batas bawah.',
+    },
+    {
+      id: 'q10',
+      concept: 'c4',
+      question: 'Jika F(x) = x³, a = 0, dan b = 2, maka ∫₀² x³ dx = ...',
+      options: ['8', '6', '4', '2'],
+      correct_index: 0,
+      explanation:
+        'F(2) − F(0) = 2³ − 0³ = 8. Hasil ini juga bisa dicek secara intuitif sebagai luas di bawah kurva x³ dari 0 ke 2.',
+    },
+  ],
 };
 
 // ---------------------------------------------------------- knowledge gap

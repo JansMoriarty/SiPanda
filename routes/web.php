@@ -37,6 +37,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/progress', fn() => Inertia::render('Progress/Index'))->name('progress');
     Route::get('/documents/{document}', fn() => Inertia::render('Materials/Show'))->name('materials.show');
     Route::get('/documents/{document}/study-pack', fn() => Inertia::render('Materials/StudyPack'))->name('materials.study-pack');
+    Route::get('/documents/{document}/quiz', fn() => Inertia::render('Quiz/Index'))->name('materials.quiz');
+    Route::get('/quiz/{attempt}/results', fn() => Inertia::render('Quiz/Results'))->name('quiz.results');
 });
 
 require __DIR__ . '/auth.php';
