@@ -31,6 +31,7 @@ export const mockMaterials = [
     page_count: 42,
     status: 'processed',
     uploaded_at: '2026-09-20T09:12:00',
+    processed_at: '2026-09-20T09:14:00',
     study_pack: { status: 'ready', generated_at: '2026-09-20T09:14:00', progress: 100 },
     last_quiz_score: 90,
   },
@@ -43,6 +44,7 @@ export const mockMaterials = [
     page_count: 58,
     status: 'processed',
     uploaded_at: '2026-09-22T14:40:00',
+    processed_at: '2026-09-22T14:42:00',
     study_pack: { status: 'ready', generated_at: '2026-09-22T14:43:00', progress: 100 },
     last_quiz_score: 80,
   },
@@ -55,6 +57,7 @@ export const mockMaterials = [
     page_count: 34,
     status: 'processed',
     uploaded_at: '2026-09-25T08:05:00',
+    processed_at: '2026-09-25T08:08:00',
     study_pack: { status: 'ready', generated_at: '2026-09-25T08:09:00', progress: 100 },
     last_quiz_score: 45,
   },
@@ -67,6 +70,7 @@ export const mockMaterials = [
     page_count: 26,
     status: 'processed',
     uploaded_at: '2026-09-24T10:30:00',
+    processed_at: '2026-09-24T10:32:00',
     study_pack: { status: 'generating', generated_at: null, progress: 62 },
     last_quiz_score: null,
   },
@@ -79,6 +83,7 @@ export const mockMaterials = [
     page_count: 30,
     status: 'processed',
     uploaded_at: '2026-09-26T16:20:00',
+    processed_at: '2026-09-26T16:22:00',
     study_pack: { status: 'ready', generated_at: '2026-09-26T16:22:00', progress: 100 },
     last_quiz_score: 30,
   },
@@ -104,6 +109,11 @@ export const mockMaterials = [
     status: 'failed',
     uploaded_at: '2026-09-28T13:11:00',
     study_pack: { status: 'failed', generated_at: null, progress: 0 },
+    // Kolom ini dipakai halaman detail untuk menjelaskan kenapa gagal, bukan
+    // cuma menampilkan badge merah. Isinya meniru pesan yang ditulis
+    // DocumentController::processDocument ke kolom error_message.
+    error_message:
+      'Ekstraksi PDF gagal: tidak ada objek teks yang bisa dibaca. File kemungkinan hasil scan tanpa OCR.',
     last_quiz_score: null,
   },
 ];
