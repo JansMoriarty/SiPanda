@@ -9,6 +9,7 @@ use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\MaterialsController;
 use App\Http\Controllers\StudyPackController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AskPandaController;
 use App\Http\Controllers\Auth\ProfileAvatarController;
@@ -18,10 +19,20 @@ use App\Http\Controllers\Admin\OnlineController as AdminOnlineController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use Inertia\Inertia;
 
+/*
+|--------------------------------------------------------------------------
+| Publik
+|--------------------------------------------------------------------------
+| '/' adalah landing page sebelum login. Tamu melihatnya; pengguna yang
+| sudah login langsung diarahkan ke rumahnya (student -> /student,
+| admin -> /admin) oleh LandingController.
+*/
+Route::get('/', [LandingController::class, 'index'])->name('landing');
+
 Route::middleware(['auth', 'student'])->group(function () {
-    // '/' adalah halaman utama V2. Dulu ini halaman "Documents" terpisah (V1),
-    // sekarang disatukan: keduanya merender Materials/Index.
-    Route::get('/', [MaterialsController::class, 'index'])->name('home');
+    // Rumah student V2. Dulu '/' merender Materials/Index; sekarang pindah ke
+    // '/student' karena '/' dipakai landing page publik.
+    Route::get('/student', [MaterialsController::class, 'index'])->name('home');
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
     Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');

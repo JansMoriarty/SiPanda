@@ -55,7 +55,7 @@ class GoogleController extends Controller
         $user->forceFill(['last_login_at' => now()])->save();
 
         // Admin murni area admin, jadi langsung arahkan ke /admin.
-        $home = $user->isAdmin() ? route('admin.dashboard') : '/';
+        $home = $user->isAdmin() ? route('admin.dashboard') : route('home');
 
         return redirect()->intended($home);
     }

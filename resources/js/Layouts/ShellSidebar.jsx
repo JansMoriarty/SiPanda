@@ -28,7 +28,7 @@ const NAV_SECTIONS = [
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
         ),
-        activePattern: (url) => url === "/" || url.startsWith("/materials") || url.startsWith("/documents/"),
+        activePattern: (url) => url === "/" || url.startsWith("/materials") || url.startsWith("/student") || url.startsWith("/documents/"),
       },
     ],
   },
@@ -244,7 +244,7 @@ export default function ShellSidebar() {
     >
       <div className="flex flex-1 flex-col overflow-y-auto no-scrollbar">
         <div className={`flex items-center gap-3 px-6 py-6 ${!isSidebarVisible ? "px-0 lg:justify-center" : ""}`}>
-          <Link href={user?.is_admin ? "/admin" : "/materials"} className="flex items-center gap-3">
+          <Link href={user?.is_admin ? "/admin" : "/student"} className="flex items-center gap-3">
             {isSidebarVisible ? (
               <img
                 src="/images/sipanda-logo.png"

@@ -8,11 +8,11 @@ use Tests\TestCase;
 class ExampleTest extends TestCase
 {
     /**
-     * '/' merender Materials/Index dan dilindungi middleware auth, jadi
-     * tamu memang harus dilempar ke halaman login (302), bukan 200.
+     * Halaman student dilindungi middleware auth, jadi tamu yang mencoba
+     * membukanya dilempar ke halaman login (302), bukan 200.
      */
-    public function test_guest_diarahkan_ke_login(): void
+    public function test_tamu_diarahkan_ke_login_dari_halaman_student(): void
     {
-        $this->get('/')->assertRedirect(route('login'));
+        $this->get('/materials')->assertRedirect(route('login'));
     }
 }
