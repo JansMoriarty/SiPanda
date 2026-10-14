@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Contracts\LlmClient;
 use App\Services\Llm\LlmManager;
 use App\Services\Llm\LlmUsageRecorder;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
     }
 }
