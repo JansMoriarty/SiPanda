@@ -19,7 +19,9 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use Inertia\Inertia;
 
 Route::middleware(['auth', 'student'])->group(function () {
-    Route::get('/', [DocumentController::class, 'index'])->name('documents.index');
+    // '/' adalah halaman utama V2. Dulu ini halaman "Documents" terpisah (V1),
+    // sekarang disatukan: keduanya merender Materials/Index.
+    Route::get('/', [MaterialsController::class, 'index'])->name('home');
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
     Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
@@ -56,7 +58,8 @@ Route::middleware(['auth', 'student'])->group(function () {
     | Query yang menyentuh documents/concepts/questions/attempts WAJIB lewat
     | course.user_id = auth()->id(); documents tidak punya user_id sendiri.
     |
-    | Catatan: '/' tetap documents.index (V1) dan TIDAK digantikan /materials.
+    | Catatan: halaman "Documents" V1 sudah dilebur ke Materials. '/' dan
+    | '/materials' sama-sama merender Materials/Index.
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/materials', [MaterialsController::class, 'index'])->name('materials.index');

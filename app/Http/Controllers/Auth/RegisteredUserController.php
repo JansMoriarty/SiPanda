@@ -38,6 +38,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect()->intended(route('documents.index'));
+        return redirect()->intended(route('home'));
     }
 }

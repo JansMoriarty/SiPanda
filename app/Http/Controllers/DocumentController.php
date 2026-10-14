@@ -7,25 +7,9 @@ use App\Models\Course;
 use App\Models\Document;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
 
 class DocumentController extends Controller
 {
-    public function index(Request $request)
-    {
-        $documents = Document::whereHas('course', fn($q) => $q->where('user_id', $request->user()->id))
-            ->with('course')
-            ->latest()
-            ->get();
-
-        $courses = $request->user()->courses()->orderBy('name')->get();
-
-        return Inertia::render('Documents/Index', [
-            'documents' => $documents,
-            'courses' => $courses,
-        ]);
-    }
-
     public function store(Request $request)
     {
         $request->validate([

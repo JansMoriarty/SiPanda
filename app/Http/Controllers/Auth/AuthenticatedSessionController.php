@@ -30,7 +30,7 @@ class AuthenticatedSessionController extends Controller
         // Admin murni area admin, jadi langsung arahkan ke /admin.
         $home = $request->user()->isAdmin()
             ? route('admin.dashboard')
-            : route('documents.index');
+            : route('home');
 
         return redirect()->intended($home);
     }
