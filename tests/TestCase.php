@@ -12,6 +12,8 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        config(['llm.retry.sleep_ms' => 0]);
+
         Http::preventStrayRequests();
     }
 
