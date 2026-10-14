@@ -88,7 +88,7 @@ class StudyPackController extends Controller
                     'covered_concepts' => $questions->pluck('concept_id')->unique()->values(),
                 ],
                 'ask_panda' => [
-                    'scope_note' => 'Jawaban Ask PANDA diambil dari materi kuliahmu lewat pencarian RAG.',
+                    'scope_note' => 'Pertanyaan dijawab hanya seputar modul ini. Pertanyaan di luar modul tidak akan dijawab.',
                     'suggested_questions' => $concepts
                         ->take(3)
                         ->map(fn ($concept) => "Jelaskan konsep \"{$concept->name}\" pada materi ini.")

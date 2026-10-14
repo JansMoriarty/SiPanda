@@ -23,7 +23,7 @@ class GeminiLlmClient implements LlmClient
         return 'gemini';
     }
 
-    public function generateAnswer(string $question, array $chunks, array $history = []): array
+    public function generateAnswer(string $question, array $chunks, array $history = [], ?string $scopeInstruction = null): array
     {
         $hasContext = !empty($chunks);
 
@@ -53,6 +53,8 @@ ATURAN PENTING: Untuk kasus 4, jawaban HARUS 100% berdasarkan context, tidak bol
 Balas HANYA dalam format JSON valid seperti ini:
 {"answer": "isi jawaban di sini", "grounded": true}
 PROMPT;
+
+        $systemPrompt = $this->withScopeInstruction($systemPrompt, $scopeInstruction);
 
         $contents = [];
         $lastRole = null;
@@ -135,7 +137,7 @@ PROMPT;
         ];
     }
 
-    public function generateStreamAnswer(string $question, array $chunks, array $history, callable $onChunk): void
+    public function generateStreamAnswer(string $question, array $chunks, array $history, callable $onChunk, ?string $scopeInstruction = null): void
     {
         $hasContext = !empty($chunks);
 
@@ -153,6 +155,8 @@ CARA MERESPON & FORMAT TEKS:
 1. Struktur teks jawaban HARUS rapi dan mudah dibaca (gunakan paragraf & bold **teks** untuk poin penting).
 2. Jawab secara langsung, jelas, dan santun berdasarkan konteks materi kuliah.
 PROMPT;
+
+        $systemPrompt = $this->withScopeInstruction($systemPrompt, $scopeInstruction);
 
         $contents = [];
         $lastRole = null;
@@ -303,6 +307,19 @@ PROMPT;
         }
 
         return $decoded;
+    }
+
+    /**
+     * Tambahkan instruksi scope (kunci satu modul) ke system prompt, kalau ada.
+     * Dipakai Ask PANDA dari Study Pack supaya jawaban hanya soal bab itu.
+     */
+    protected function withScopeInstruction(string $systemPrompt, ?string $scopeInstruction): string
+    {
+        $scopeInstruction = trim((string) $scopeInstruction);
+
+        return $scopeInstruction === ''
+            ? $systemPrompt
+            : $systemPrompt . "\n\n" . $scopeInstruction;
     }
 
     /**

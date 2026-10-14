@@ -19,13 +19,13 @@ class LlmManager implements LlmClient
         'gemini' => GeminiLlmClient::class,
     ];
 
-    public function generateAnswer(string $question, array $chunks, array $history = []): array
+    public function generateAnswer(string $question, array $chunks, array $history = [], ?string $scopeInstruction = null): array
     {
         $errors = [];
 
         foreach ($this->providerNames() as $name) {
             try {
-                return $this->client($name)->generateAnswer($question, $chunks, $history);
+                return $this->client($name)->generateAnswer($question, $chunks, $history, $scopeInstruction);
             } catch (\Throwable $e) {
                 $errors[$name] = $e->getMessage();
                 Log::warning("LLM provider [{$name}] gagal generateAnswer", [
@@ -37,13 +37,13 @@ class LlmManager implements LlmClient
         throw new \RuntimeException('Semua provider LLM gagal: ' . json_encode($errors));
     }
 
-    public function generateStreamAnswer(string $question, array $chunks, array $history, callable $onChunk): void
+    public function generateStreamAnswer(string $question, array $chunks, array $history, callable $onChunk, ?string $scopeInstruction = null): void
     {
         $errors = [];
 
         foreach ($this->providerNames() as $name) {
             try {
-                $this->client($name)->generateStreamAnswer($question, $chunks, $history, $onChunk);
+                $this->client($name)->generateStreamAnswer($question, $chunks, $history, $onChunk, $scopeInstruction);
 
                 return;
             } catch (\Throwable $e) {
