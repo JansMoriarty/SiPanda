@@ -102,6 +102,7 @@ export default function Index({ materials = [] }) {
     const [copiedIndex, setCopiedIndex] = useState(null);
     const [activeModule, setActiveModule] = useState(null);
     const [moduleQuery, setModuleQuery] = useState('');
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     // State Toast Notification
     const [toastMessage, setToastMessage] = useState(null);
@@ -113,6 +114,7 @@ export default function Index({ materials = [] }) {
 
     const textareaRef = useRef(null);
     const chatContainerRef = useRef(null);
+    const searchInputRef = useRef(null);
 
     // Filter daftar modul di sidebar berdasarkan kata kunci (judul/matkul).
     const filteredMaterials = useMemo(() => {
@@ -155,6 +157,12 @@ export default function Index({ materials = [] }) {
         }
     }, [question]);
 
+    useEffect(() => {
+        if (isSearchOpen) {
+            searchInputRef.current?.focus();
+        }
+    }, [isSearchOpen]);
+
     function handleNewChat() {
         setMessages([]);
         setQuestion('');
@@ -163,6 +171,11 @@ export default function Index({ materials = [] }) {
 
     function unlockModule() {
         setActiveModule(null);
+    }
+
+    function closeSearch() {
+        setModuleQuery('');
+        setIsSearchOpen(false);
     }
 
     function handleCopy(text, index) {
@@ -803,7 +816,7 @@ export default function Index({ materials = [] }) {
                         : "w-0 p-0 opacity-0 border-l-0"
                         }`}
                 >
-                    <div className="w-60 flex flex-col h-full overflow-y-auto no-scrollbar space-y-6">
+                    <div className="w-60 flex flex-col h-full overflow-y-auto no-scrollbar space-y-5">
 
                         <div className="flex items-center justify-between pt-1">
                             <div className="flex items-center gap-2.5">
@@ -837,23 +850,50 @@ export default function Index({ materials = [] }) {
                                 </svg>
                                 <span>New Chat</span>
                             </button>
-                        </div>
 
-                        <div className="space-y-3">
-                            <div className="relative">
-                                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                            {isSearchOpen ? (
+                                <div className="relative">
+                                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                        </svg>
+                                    </span>
+                                    <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        value={moduleQuery}
+                                        onChange={(e) => setModuleQuery(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Escape') closeSearch();
+                                        }}
+                                        placeholder="Cari modul..."
+                                        className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-9 text-sm text-slate-700 placeholder-slate-400 outline-none transition-colors focus:border-[#465FFF]/50 focus:ring-2 focus:ring-[#465FFF]/10 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder-gray-500"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={closeSearch}
+                                        title="Batalkan pencarian"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:text-gray-500 dark:hover:bg-white/[0.06] dark:hover:text-gray-200"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setIsSearchOpen(true)}
+                                    className="w-full flex items-center gap-3.5 px-2.5 py-2 rounded-xl text-slate-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-colors"
+                                >
+                                    <svg className="w-5 h-5 text-slate-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                                     </svg>
-                                </span>
-                                <input
-                                    type="text"
-                                    value={moduleQuery}
-                                    onChange={(e) => setModuleQuery(e.target.value)}
-                                    placeholder="Cari modul..."
-                                    className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-700 placeholder-slate-400 outline-none transition-colors focus:border-[#465FFF]/50 focus:ring-2 focus:ring-[#465FFF]/10 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder-gray-500"
-                                />
-                            </div>
+                                    <span>Search</span>
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="space-y-2.5">
 
                             <div className="flex items-center justify-between px-1">
                                 <span className="text-[10px] font-semibold tracking-wider text-slate-400 dark:text-gray-500 uppercase">
@@ -873,7 +913,7 @@ export default function Index({ materials = [] }) {
                                     Tidak ada modul yang cocok dengan &ldquo;<span className="font-medium text-slate-500 dark:text-gray-400">{moduleQuery}</span>&rdquo;.
                                 </p>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {groupedMaterials.map((group) => (
                                         <div key={group.course} className="space-y-1">
                                             <p className="truncate px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">
@@ -884,7 +924,7 @@ export default function Index({ materials = [] }) {
                                                     <button
                                                         key={mod.id}
                                                         onClick={() => handleModuleClick(mod)}
-                                                        className={`flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors ${activeModule?.id === mod.id
+                                                        className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors ${activeModule?.id === mod.id
                                                             ? 'bg-[#ECF2FF] dark:bg-brand-500/15'
                                                             : 'hover:bg-slate-100/80 dark:hover:bg-white/[0.06]'
                                                             }`}

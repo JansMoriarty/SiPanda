@@ -29,6 +29,7 @@ Route::middleware(['auth', 'student'])->group(function () {
     Route::get('/ask-panda', [AskPandaController::class, 'index'])->name('ask-panda.index');
     Route::post('/ask-panda', [AskPandaController::class, 'ask'])->name('ask-panda.ask');
     Route::get('/settings', fn() => Inertia::render('Settings/Index'))->name('settings.index');
+    Route::get('/pricing', fn() => Inertia::render('Pricing/Index'))->name('pricing.index');
 
     /*
     |--------------------------------------------------------------------------
