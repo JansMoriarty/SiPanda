@@ -12,9 +12,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AskPandaController;
 use App\Http\Controllers\Auth\ProfileAvatarController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\OnlineController as AdminOnlineController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use Inertia\Inertia;
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'student'])->group(function () {
     Route::get('/', [DocumentController::class, 'index'])->name('documents.index');
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
@@ -70,6 +73,25 @@ Route::middleware('auth')->group(function () {
     | sekadar "tidak ditemukan".
     */
     Route::get('/practice/{course}', [PracticeController::class, 'show'])->name('practice.show');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Admin
+|--------------------------------------------------------------------------
+| Area admin sengaja lintas-user. Dikunci oleh middleware `admin` (based on
+| users.role) di atas middleware `auth`. Jangan pasang route student di sini.
+*/
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
+    Route::patch('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+
+    Route::get('/online', [AdminOnlineController::class, 'index'])->name('online.index');
+    Route::delete('/online/{user}', [AdminOnlineController::class, 'destroy'])->name('online.destroy');
 });
 
 require __DIR__ . '/auth.php';

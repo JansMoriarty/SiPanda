@@ -44,8 +44,19 @@ class GoogleController extends Controller
             }
         }
 
+        if (! $user->is_active) {
+            return redirect()->route('login')
+                ->withErrors(['email' => 'Akun ini dinonaktifkan. Hubungi admin.']);
+        }
+
         Auth::login($user, remember: true);
 
-        return redirect()->intended('/'); // sesuaikan nama route-mu
+        // forceFill: 'last_login_at' tidak fillable.
+        $user->forceFill(['last_login_at' => now()])->save();
+
+        // Admin murni area admin, jadi langsung arahkan ke /admin.
+        $home = $user->isAdmin() ? route('admin.dashboard') : '/';
+
+        return redirect()->intended($home);
     }
 }

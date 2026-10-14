@@ -31,6 +31,11 @@ class HandleInertiaRequests extends Middleware
                     // memakainya supaya foto ikut berubah begitu di-upload.
                     'avatar' => $request->user()->avatar,
                     'created_at' => $request->user()->created_at?->toDateTimeString(),
+                    // Dipakai ShellSidebar untuk menampilkan menu ADMIN hanya
+                    // bagi admin. Ini hanya untuk UI; otorisasi tetap di
+                    // middleware `admin`.
+                    'role' => $request->user()->role,
+                    'is_admin' => $request->user()->isAdmin(),
                 ] : null,
             ],
         ];

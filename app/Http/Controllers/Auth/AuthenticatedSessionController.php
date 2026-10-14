@@ -21,9 +21,18 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        // forceFill: 'last_login_at' tidak fillable. Dipakai halaman admin
+        // sebagai info "terakhir masuk".
+        $request->user()->forceFill(['last_login_at' => now()])->save();
+
         $request->session()->regenerate();
 
-        return redirect()->intended(route('documents.index'));
+        // Admin murni area admin, jadi langsung arahkan ke /admin.
+        $home = $request->user()->isAdmin()
+            ? route('admin.dashboard')
+            : route('documents.index');
+
+        return redirect()->intended($home);
     }
 
     public function destroy(Request $request): RedirectResponse

@@ -64,6 +64,62 @@ const NAV = [
   },
 ];
 
+const ADMIN_NAV = [
+  {
+    key: "admin",
+    label: "Ringkasan",
+    href: "/admin",
+    icon: (
+      <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z" />
+      </svg>
+    ),
+    activePattern: (url) => url === "/admin",
+  },
+  {
+    key: "admin-users",
+    label: "Users",
+    href: "/admin/users",
+    icon: (
+      <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+      </svg>
+    ),
+    activePattern: (url) => url.startsWith("/admin/users"),
+  },
+  {
+    key: "admin-online",
+    label: "Online",
+    href: "/admin/online",
+    icon: (
+      <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.348 14.652a3.75 3.75 0 010-5.304m5.304 0a3.75 3.75 0 010 5.304m-7.425 2.121a6.75 6.75 0 010-9.546m9.546 0a6.75 6.75 0 010 9.546M5.106 18.894c-3.808-3.807-3.808-9.98 0-13.788m13.788 0c3.808 3.807 3.808 9.98 0 13.788M12 12h.008v.008H12V12z" />
+      </svg>
+    ),
+    activePattern: (url) => url.startsWith("/admin/online"),
+  },
+];
+
+// Satu markup untuk item nav biasa & admin supaya gaya tidak menyimpang.
+function NavItem({ item, active, show }) {
+  return (
+    <Link
+      href={item.href}
+      className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
+        active ? "bg-[#ECF2FF] font-semibold text-[#465FFF]" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+      } ${!show ? "justify-center px-0" : "justify-between"}`}
+    >
+      <div className="flex items-center gap-3">
+        {item.icon}
+        {show && <span>{item.label}</span>}
+      </div>
+      {show && item.badge && (
+        <span className="rounded-full bg-[#E8F8F0] px-2 py-0.5 text-[10px] font-bold text-[#10B981]">{item.badge}</span>
+      )}
+    </Link>
+  );
+}
+
 export default function ShellSidebar() {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const { url, props } = usePage();
@@ -120,7 +176,7 @@ export default function ShellSidebar() {
     >
       <div className="flex flex-1 flex-col overflow-y-auto no-scrollbar">
         <div className={`flex items-center gap-3 px-6 py-6 ${!isSidebarVisible ? "px-0 lg:justify-center" : ""}`}>
-          <Link href="/" className="flex items-center gap-3">
+          <Link href={user?.is_admin ? "/admin" : "/"} className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#465FFF] text-white shadow-md shadow-blue-500/20">
               <span className="text-xl font-bold">P</span>
             </div>
@@ -131,38 +187,35 @@ export default function ShellSidebar() {
         </div>
 
         <nav className="space-y-1.5 px-4 py-2">
-          {isSidebarVisible && (
-            <h2 className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">MENU</h2>
+          {user?.is_admin ? (
+            <>
+              {isSidebarVisible && (
+                <h2 className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">ADMIN</h2>
+              )}
+              {ADMIN_NAV.map((item) => (
+                <NavItem key={item.key} item={item} active={item.activePattern(url)} show={isSidebarVisible} />
+              ))}
+            </>
+          ) : (
+            <>
+              {isSidebarVisible && (
+                <h2 className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">MENU</h2>
+              )}
+              {NAV.map((item) => (
+                <NavItem key={item.key} item={item} active={item.activePattern(url)} show={isSidebarVisible} />
+              ))}
+            </>
           )}
-
-          {NAV.map((item) => {
-            const active = item.activePattern(url);
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
-                  active ? "bg-[#ECF2FF] font-semibold text-[#465FFF]" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                } ${!isSidebarVisible ? "justify-center px-0" : "justify-between"}`}
-              >
-                <div className="flex items-center gap-3">
-                  {item.icon}
-                  {isSidebarVisible && <span>{item.label}</span>}
-                </div>
-                {isSidebarVisible && item.badge && (
-                  <span className="rounded-full bg-[#E8F8F0] px-2 py-0.5 text-[10px] font-bold text-[#10B981]">{item.badge}</span>
-                )}
-              </Link>
-            );
-          })}
         </nav>
       </div>
 
       <div className="relative border-t border-slate-200/80 p-3" ref={profileMenuRef}>
         {isProfileMenuOpen && isSidebarVisible && (
           <div className="absolute bottom-full left-3 right-3 z-50 mb-2 animate-fade-in-up space-y-1 rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-xl">
-            <Link
-              href="/profile"
+            {!user?.is_admin && (
+              <>
+                <Link
+                  href="/profile"
               className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 transition-all hover:bg-slate-50 hover:text-slate-900"
             >
               <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -181,6 +234,8 @@ export default function ShellSidebar() {
               Account Settings
             </Link>
             <div className="my-1 border-t border-slate-100" />
+              </>
+            )}
             <button
               type="button"
               onClick={() => {
