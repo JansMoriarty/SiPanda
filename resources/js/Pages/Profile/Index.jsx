@@ -40,24 +40,35 @@ import { cx, formatDate, formatDateTime, scoreTone, WEAK_THRESHOLD } from "@/uti
  * salah.
  */
 
-/** Penanda bagian yang masih mock. Kelasnya sama dengan halaman V2 lain. */
-function MockBadge({ children }) {
+/**
+ * Penanda bagian yang masih mock: badge kecil redup "Contoh" per section.
+ *
+ * Sengaja tidak ada banner kuning besar lagi. Kejujuran batas data dipindah
+ * ke teks kecil di bawah tiap judul section dan ke atribut title ini, jadi
+ * labelnya tetap terbaca tanpa mendominasi halaman.
+ */
+function MockBadge() {
     return (
-        <span className="rounded-lg border border-amber-200/80 bg-amber-50 px-2.5 py-1.5 text-[10px] font-bold text-amber-600">
-            {children}
+        <span
+            title="MOCK — masih data contoh, belum dihitung dari database"
+            className="shrink-0 rounded-md border border-amber-200/80 bg-amber-50/70 px-2 py-0.5 text-[10px] font-medium text-amber-600/80"
+        >
+            Contoh
         </span>
     );
 }
 
-function StatCard({ icon, label, value, hint }) {
+function StatCard({ icon, tone, label, value, hint }) {
     return (
-        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
-            <div className="flex items-center gap-2 text-slate-400">
+        <div className="flex items-start gap-3 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs transition-all hover:border-slate-300">
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${tone}`}>
                 {icon}
-                <span className="text-[11px] font-medium">{label}</span>
             </div>
-            <p className="mt-2 text-xl font-bold tracking-tight text-slate-900">{value}</p>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-slate-400">{hint}</p>
+            <div className="min-w-0">
+                <p className="text-[11px] font-medium text-slate-400">{label}</p>
+                <p className="mt-0.5 text-lg font-bold leading-tight text-slate-900">{value}</p>
+                <p className="mt-0.5 text-[10px] leading-relaxed text-slate-400">{hint}</p>
+            </div>
         </div>
     );
 }
@@ -195,10 +206,32 @@ function IdentityCard({ user }) {
     };
 
     return (
-        <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs sm:p-6">
-            <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-                <div className="relative shrink-0">
-                    <Avatar src={user?.avatar} name={user?.name} className="h-24 w-24" textClass="text-2xl" />
+        <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+            {/*
+              Banner dekoratif: gradient biru primer brand (keluarga #465FFF,
+              sama seperti aside Login), bukan foto, dan sengaja tanpa tombol
+              ganti cover. aria-hidden karena murni hiasan.
+            */}
+            <div
+                aria-hidden="true"
+                className="relative h-32 sm:h-36"
+                style={{ backgroundImage: "linear-gradient(135deg, #5A72FF 0%, #465FFF 55%, #2C3FD1 100%)" }}
+            >
+                <span className="absolute -right-8 -top-12 h-44 w-44 rounded-full bg-white/10" />
+                <span className="absolute bottom-1 left-10 h-20 w-20 rounded-full bg-white/10" />
+            </div>
+
+            <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+                <div className="relative -mt-14 w-fit">
+                    <Avatar
+                        src={user?.avatar}
+                        name={user?.name}
+                        className="h-24 w-24 ring-4 ring-white sm:h-28 sm:w-28"
+                        textClass="text-3xl"
+                        fallbackStyle={{
+                            backgroundImage: "linear-gradient(135deg, #5A72FF 0%, #465FFF 55%, #2C3FD1 100%)",
+                        }}
+                    />
                     {isUploading ? (
                         <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-bold text-slate-500">
                             Mengunggah…
@@ -206,7 +239,7 @@ function IdentityCard({ user }) {
                     ) : null}
                 </div>
 
-                <div className="min-w-0 flex-1">
+                <div className="mt-3 min-w-0">
                     <h1 className="truncate text-xl font-bold tracking-tight text-slate-900">
                         {user?.name ?? "—"}
                     </h1>
@@ -217,59 +250,59 @@ function IdentityCard({ user }) {
                         </p>
                     ) : null}
                 </div>
-            </div>
 
-            {localError || serverError ? (
-                <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50/70 px-3 py-2 text-[11px] font-medium text-rose-700">
-                    {localError ?? serverError}
-                </p>
-            ) : null}
+                {localError || serverError ? (
+                    <p className="mt-4 rounded-lg border border-rose-200 bg-rose-50/70 px-3 py-2 text-[11px] font-medium text-rose-700">
+                        {localError ?? serverError}
+                    </p>
+                ) : null}
 
-            <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-                <input
-                    ref={inputRef}
-                    type="file"
-                    accept={AVATAR_ACCEPT}
-                    onChange={handleFile}
-                    className="hidden"
-                />
-                <button
-                    type="button"
-                    onClick={() => inputRef.current?.click()}
-                    disabled={busy}
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#465FFF] px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M12 16.5V4.5m0 0L7.5 9M12 4.5 16.5 9M4.5 16.5v1.5A2.25 2.25 0 006.75 20.25h10.5A2.25 2.25 0 0019.5 18v-1.5"
-                        />
-                    </svg>
-                    {hasAvatar ? "Ganti foto" : "Unggah foto"}
-                </button>
-
-                {hasAvatar ? (
+                <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        accept={AVATAR_ACCEPT}
+                        onChange={handleFile}
+                        className="hidden"
+                    />
                     <button
                         type="button"
-                        onClick={() => setIsConfirmOpen(true)}
+                        onClick={() => inputRef.current?.click()}
                         disabled={busy}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-60"
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#465FFF] px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                                d="M12 16.5V4.5m0 0L7.5 9M12 4.5 16.5 9M4.5 16.5v1.5A2.25 2.25 0 006.75 20.25h10.5A2.25 2.25 0 0019.5 18v-1.5"
                             />
                         </svg>
-                        Hapus foto
+                        {hasAvatar ? "Ganti foto" : "Unggah foto"}
                     </button>
-                ) : null}
 
-                <p className="text-[10px] leading-relaxed text-slate-400">
-                    JPG, PNG, atau WebP. Maksimal 2 MB.
-                </p>
+                    {hasAvatar ? (
+                        <button
+                            type="button"
+                            onClick={() => setIsConfirmOpen(true)}
+                            disabled={busy}
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-60"
+                        >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                                />
+                            </svg>
+                            Hapus foto
+                        </button>
+                    ) : null}
+
+                    <p className="text-[10px] leading-relaxed text-slate-400">
+                        JPG, PNG, atau WebP. Maksimal 2 MB.
+                    </p>
+                </div>
             </div>
 
             <RemoveAvatarModal
@@ -292,12 +325,12 @@ function IdentityCard({ user }) {
 function StudyStats({ stats }) {
     const icons = {
         time: (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
         ),
         quiz: (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                 <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -306,7 +339,7 @@ function StudyStats({ stats }) {
             </svg>
         ),
         score: (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                 <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -315,7 +348,7 @@ function StudyStats({ stats }) {
             </svg>
         ),
         streak: (
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                 <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -330,32 +363,41 @@ function StudyStats({ stats }) {
 
     return (
         <section>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-bold text-slate-900">Statistik belajar</h2>
-                <MockBadge>MOCK — TABEL QUIZ BELUM ADA</MockBadge>
+            <div className="mb-3">
+                <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-sm font-bold text-slate-900">Statistik belajar</h2>
+                    <MockBadge />
+                </div>
+                <p className="mt-0.5 text-[10px] text-slate-400">
+                    Angka masih data contoh, belum dihitung dari database.
+                </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
                     icon={icons.time}
+                    tone="border-blue-200/60 bg-[#ECF2FF] text-[#465FFF]"
                     label="Waktu belajar"
                     value={`${hours}j ${minutes}m`}
                     hint="Akumulasi seluruh sesi belajar."
                 />
                 <StatCard
                     icon={icons.quiz}
+                    tone="border-emerald-200/60 bg-emerald-50 text-emerald-600"
                     label="Quiz dikerjakan"
                     value={stats.quiz_count}
                     hint={`${stats.attempt_count} percobaan dari ${stats.quiz_count} quiz berbeda.`}
                 />
                 <StatCard
                     icon={icons.score}
+                    tone="border-amber-200/60 bg-amber-50 text-amber-500"
                     label="Rata-rata skor"
                     value={`${stats.average_score}%`}
                     hint="Dihitung dari seluruh jawaban yang dikoreksi, bukan rata-rata per quiz."
                 />
                 <StatCard
                     icon={icons.streak}
+                    tone="border-violet-200/60 bg-violet-50 text-violet-500"
                     label="Streak"
                     value={`${mockProfileActivity.current_streak_days} hari`}
                     hint={`Terpanjang ${mockProfileActivity.longest_streak_days} hari.`}
@@ -370,9 +412,14 @@ function StudyStats({ stats }) {
 function CourseMastery({ summaries }) {
     return (
         <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-bold text-slate-900">Penguasaan per mata kuliah</h2>
-                <MockBadge>MOCK</MockBadge>
+            <div className="mb-4">
+                <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-sm font-bold text-slate-900">Penguasaan per mata kuliah</h2>
+                    <MockBadge />
+                </div>
+                <p className="mt-0.5 text-[10px] text-slate-400">
+                    Angka masih data contoh, belum dihitung dari database.
+                </p>
             </div>
 
             <ul className="space-y-4">
@@ -448,9 +495,14 @@ function QuizHistory({ attempts }) {
 
     return (
         <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-bold text-slate-900">Riwayat quiz</h2>
-                <MockBadge>MOCK — BARISNYA TIDAK BISA DIKLIK</MockBadge>
+            <div className="mb-4">
+                <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-sm font-bold text-slate-900">Riwayat quiz</h2>
+                    <MockBadge />
+                </div>
+                <p className="mt-0.5 text-[10px] text-slate-400">
+                    Baris masih data contoh, belum bisa diklik. Belum dihitung dari database.
+                </p>
             </div>
 
             <ul className="divide-y divide-slate-100">
@@ -542,23 +594,6 @@ export default function Index() {
                 </div>
 
                 <IdentityCard user={user} />
-
-                {/*
-                  Penjelasan batas data ditaruh di level halaman, bukan di tiap
-                  kartu, supaya tidak ada yang mengira seluruh angka di bawah
-                  juga berasal dari database.
-                */}
-                <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 px-4 py-3">
-                    <p className="text-[11px] font-bold text-amber-800">
-                        Sebagian isi halaman ini masih data contoh
-                    </p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-amber-700">
-                        Nama, email, dan foto profil di atas dibaca langsung dari akun yang sedang
-                        login, termasuk saat kamu mengunggah atau menghapus foto. Semua angka di
-                        bawahnya masih data contoh: tabel concepts, questions, dan quiz_attempts
-                        belum ada di database, jadi belum ada yang bisa dihitung dari situ.
-                    </p>
-                </div>
 
                 <StudyStats stats={stats} />
 

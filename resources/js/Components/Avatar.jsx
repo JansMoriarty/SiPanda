@@ -7,7 +7,14 @@ const getInitials = (name = "") => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-export default function Avatar({ src, name, className = "h-9 w-9", textClass = "text-xs" }) {
+export default function Avatar({
+  src,
+  name,
+  className = "h-9 w-9",
+  textClass = "text-xs",
+  fallbackClassName = "bg-[#465FFF]",
+  fallbackStyle,
+}) {
   const [failed, setFailed] = useState(false);
 
   // reset kalau src berubah (misal habis upload foto baru)
@@ -29,7 +36,8 @@ export default function Avatar({ src, name, className = "h-9 w-9", textClass = "
     <span
       role="img"
       aria-label={name}
-      className={`${className} ${textClass} flex shrink-0 select-none items-center justify-center rounded-full bg-[#465FFF] font-semibold text-white shadow-sm`}
+      style={fallbackStyle}
+      className={`${className} ${textClass} flex shrink-0 select-none items-center justify-center rounded-full ${fallbackClassName} font-semibold text-white shadow-sm`}
     >
       {getInitials(name)}
     </span>
