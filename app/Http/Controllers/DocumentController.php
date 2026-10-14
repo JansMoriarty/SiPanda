@@ -2,22 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\ProcessDocumentJob;
 use App\Models\Course;
 use App\Models\Document;
-use App\Models\Chunk;
-use App\Services\DocumentExtractor;
-use App\Services\GeminiClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class DocumentController extends Controller
 {
-    public function __construct(
-        protected DocumentExtractor $extractor,
-        protected GeminiClient $gemini
-    ) {}
-
     public function index(Request $request)
     {
         $documents = Document::whereHas('course', fn($q) => $q->where('user_id', $request->user()->id))
@@ -67,40 +60,9 @@ class DocumentController extends Controller
             'status' => 'uploaded',
         ]);
 
-        $this->processDocument($document);
+        ProcessDocumentJob::dispatch($document);
 
         return redirect()->back();
-    }
-
-    protected function processDocument(Document $document): void
-    {
-        $document->update(['status' => 'processing']);
-
-        try {
-            $path = Storage::path('documents/' . $document->stored_filename);
-
-            $text = $document->file_type === 'pdf'
-                ? $this->extractor->extractPdf($path)
-                : $this->extractor->extractPptx($path);
-
-            $chunks = $this->extractor->chunkText($text);
-
-            foreach ($chunks as $index => $chunk) {
-                $embedding = $this->gemini->embed($chunk['content'], 'RETRIEVAL_DOCUMENT');
-
-                Chunk::create([
-                    'document_id' => $document->id,
-                    'content' => $chunk['content'],
-                    'embedding' => $embedding,
-                    'source_location' => $chunk['source_location'],
-                    'chunk_index' => $index,
-                ]);
-            }
-
-            $document->update(['status' => 'processed', 'processed_at' => now()]);
-        } catch (\Throwable $e) {
-            $document->update(['status' => 'failed', 'error_message' => $e->getMessage()]);
-        }
     }
 
     public function download(Request $request, Document $document)

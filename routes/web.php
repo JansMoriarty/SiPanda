@@ -3,6 +3,13 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\ProgressController;
+use App\Http\Controllers\PracticeController;
+use App\Http\Controllers\MaterialsController;
+use App\Http\Controllers\StudyPackController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AskPandaController;
 use App\Http\Controllers\Auth\ProfileAvatarController;
 use Inertia\Inertia;
@@ -21,55 +28,48 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     | Profile
     |--------------------------------------------------------------------------
-    | Halaman ini campur dua sumber data, jadi batasnya ditulis di sini:
+    | Halaman ini mencampur identitas + statistik, jadi batasnya ditulis di sini:
     |
-    | - REAL: identitas (nama/email/foto) diambil dari auth.user yang sudah
-    |   di-share HandleInertiaRequests, dan aksi avatar memakai route di bawah
-    |   yang benar-benar menulis ke storage.
-    | - MOCK: statistik belajar, penguasaan per mata kuliah, dan riwayat
-    |   quiz belum bisa dihitung karena tabel concepts/questions/
-    |   quiz_attempts/attempt_answers belum ada. Angka-angkanya datang dari
-    |   resources/js/data/mockV2.js, bukan dari query DB.
-    |
-    | Closure ini tidak menjalankan query apa pun, jadi tidak ada data yang
-    | bisa bocor. Nanti saat tabelnya ada, ganti dengan controller yang
-    | aggregating lewat course.user_id = auth()->id().
+    | - Identitas (nama/email/foto) diambil dari auth.user yang sudah di-share
+    |   HandleInertiaRequests, dan aksi avatar memakai route di bawah yang
+    |   benar-benar menulis ke storage.
+    | - Statistik belajar (streak, penguasaan per mata kuliah, riwayat quiz)
+    |   diambil dari controller yang membaca DB lewat course.user_id, memakai
+    |   ProgressData yang sama dengan Progress/Dashboard.
     */
-    Route::get('/profile', fn() => Inertia::render('Profile/Index'))->name('profile.index');
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/avatar', [ProfileAvatarController::class, 'store'])->name('profile.avatar.store');
     Route::delete('/profile/avatar', [ProfileAvatarController::class, 'destroy'])->name('profile.avatar.destroy');
 
     /*
     |--------------------------------------------------------------------------
-    | SiPanda V2 (UI shell — mock data, belum menyentuh DB)
+    | SiPanda V2
     |--------------------------------------------------------------------------
-    | Route di bawah hanya merender halaman dengan data statis supaya UI V2
-    | bisa di-review dulu (prinsip "UI First" di AGENTS.md). Belum ada query
-    | ke documents/chunks/concepts, jadi tidak ada risiko scoping di sini.
+    | Semua halaman V2 (dashboard, materials, study pack, quiz, progress,
+    | practice, profile) sudah tersambung ke controller nyata yang membaca DB.
+    | Tidak ada lagi halaman V2 yang memakai data mock.
+    |
+    | Query yang menyentuh documents/concepts/questions/attempts WAJIB lewat
+    | course.user_id = auth()->id(); documents tidak punya user_id sendiri.
     |
     | Catatan: '/' tetap documents.index (V1) dan TIDAK digantikan /materials.
-    |
-    | TODO V2: ganti closure Inertia::render di bawah dengan controller
-    | sungguhan yang sudah di-scope lewat course.user_id.
     */
-    Route::get('/dashboard', fn() => Inertia::render('Dashboard'))->name('dashboard');
-    Route::get('/materials', fn() => Inertia::render('Materials/Index'))->name('materials.index');
-    Route::get('/progress', fn() => Inertia::render('Progress/Index'))->name('progress');
-    Route::get('/documents/{document}', fn($document) => Inertia::render('Materials/Show', ['documentId' => $document]))->name('materials.show');
-    Route::get('/documents/{document}/study-pack', fn($document) => Inertia::render('Materials/StudyPack', ['documentId' => $document]))->name('materials.study-pack');
-    Route::get('/documents/{document}/quiz', fn() => Inertia::render('Quiz/Index'))->name('materials.quiz');
-    Route::get('/quiz/{attempt}/results', fn() => Inertia::render('Quiz/Results'))->name('quiz.results');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/materials', [MaterialsController::class, 'index'])->name('materials.index');
+    Route::get('/progress', [ProgressController::class, 'index'])->name('progress');
+    Route::get('/documents/{document}', [MaterialsController::class, 'show'])->name('materials.show');
+    Route::post('/documents/{document}/study-pack', [MaterialsController::class, 'generateStudyPack'])->name('materials.study-pack.generate');
+    Route::get('/documents/{document}/study-pack', [StudyPackController::class, 'show'])->name('materials.study-pack');
+    Route::get('/documents/{document}/quiz', [QuizController::class, 'start'])->name('materials.quiz');
+    Route::post('/quiz/{attempt}/submit', [QuizController::class, 'submit'])->name('materials.quiz.submit');
+    Route::get('/quiz/{attempt}/results', [QuizController::class, 'results'])->name('quiz.results');
 
     /*
-    | Personalized Practice disusun dari konsep lemah per course. Closure ini
-    | hanya merender halaman dengan mock, tidak ada query DB, jadi belum
-    | mungkin membocorkan course milik user lain.
-    |
-    | TODO V2: waktu diganti controller, course WAJIB di-scope lewat
-    | course.user_id = auth()->id() dulu. Jangan pakai Course::find()
-    | polos lalu memercayai id dari URL.
+    | Personalized Practice disusun dari konsep lemah per course. Controller
+    | menolak course yang bukan milik user yang sedang login (403), bukan
+    | sekadar "tidak ditemukan".
     */
-    Route::get('/practice/{course}', fn($course) => Inertia::render('Practice/Index', ['courseId' => $course]))->name('practice.show');
+    Route::get('/practice/{course}', [PracticeController::class, 'show'])->name('practice.show');
 });
 
 require __DIR__ . '/auth.php';

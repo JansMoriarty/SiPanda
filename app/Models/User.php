@@ -39,6 +39,11 @@ class User extends Authenticatable
         return $this->hasMany(Course::class);
     }
 
+    public function quizAttempts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(QuizAttempt::class);
+    }
+
     protected function avatar(): Attribute
     {
         return Attribute::get(function (?string $value) {

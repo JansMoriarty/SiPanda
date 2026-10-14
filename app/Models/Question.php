@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Question extends Model
 {
@@ -30,6 +31,11 @@ class Question extends Model
     public function concept(): BelongsTo
     {
         return $this->belongsTo(Concept::class);
+    }
+
+    public function attemptAnswers(): HasMany
+    {
+        return $this->hasMany(AttemptAnswer::class);
     }
 
     public function isCorrect(int $index): bool

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\GeminiClient;
+use App\Contracts\LlmClient;
 use App\Services\RetrievalService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,7 +14,7 @@ class AskPandaController extends Controller
         return Inertia::render('AskPanda/Index');
     }
 
-    public function ask(Request $request, RetrievalService $retrieval, GeminiClient $gemini)
+    public function ask(Request $request, RetrievalService $retrieval, LlmClient $llm)
     {
         $request->validate([
             'question' => 'required|string|max:1000',
@@ -36,13 +36,13 @@ class AskPandaController extends Controller
             ];
         })->values();
 
-        return response()->stream(function () use ($gemini, $question, $chunks, $history, $sources) {
+        return response()->stream(function () use ($llm, $question, $chunks, $history, $sources) {
             echo "data: " . json_encode(['type' => 'sources', 'data' => $sources]) . "\n\n";
             ob_flush();
             flush();
 
             try {
-                $gemini->generateStreamAnswer($question, $chunks, $history, function ($chunkText) {
+                $llm->generateStreamAnswer($question, $chunks, $history, function ($chunkText) {
                     echo "data: " . json_encode(['type' => 'text', 'data' => $chunkText]) . "\n\n";
                     ob_flush();
                     flush();
