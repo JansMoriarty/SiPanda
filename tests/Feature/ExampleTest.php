@@ -8,12 +8,11 @@ use Tests\TestCase;
 class ExampleTest extends TestCase
 {
     /**
-     * A basic test example.
+     * '/' adalah documents.index yang dilindungi middleware auth, jadi
+     * tamu memang harus dilempar ke halaman login (302), bukan 200.
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_guest_diarahkan_ke_login(): void
     {
-        $response = $this->get('/');
-
-        $response->assertStatus(200);
+        $this->get('/')->assertRedirect(route('login'));
     }
 }
