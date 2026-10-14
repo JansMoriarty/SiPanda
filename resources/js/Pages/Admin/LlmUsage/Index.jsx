@@ -22,13 +22,13 @@ function StatCard({ label, value, hint, tone = "default" }) {
             ? "text-rose-600"
             : tone === "warning"
             ? "text-amber-600"
-            : "text-slate-900";
+            : "text-gray-900 dark:text-white";
 
     return (
-        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+        <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-4 shadow-xs">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">{label}</p>
             <p className={`mt-1.5 text-2xl font-bold tabular-nums ${toneClass}`}>{value}</p>
-            {hint && <p className="mt-0.5 text-[11px] text-slate-400">{hint}</p>}
+            {hint && <p className="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500">{hint}</p>}
         </div>
     );
 }
@@ -51,8 +51,8 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
             <div className="mx-auto max-w-[1400px] space-y-6 p-6 sm:p-7">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight text-slate-900">Pemakaian AI</h1>
-                        <p className="text-sm text-slate-500">
+                        <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Pemakaian AI</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             Monitoring token LLM dari panggilan Study Pack & Ask PANDA.
                         </p>
                     </div>
@@ -61,7 +61,7 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                         <select
                             value={filters.feature}
                             onChange={(e) => apply({ feature: e.target.value, page: 1 })}
-                            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#465FFF]"
+                            className="h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-white/[0.03] px-3 text-sm text-gray-700 dark:text-gray-300 outline-none focus:border-brand-500"
                         >
                             <option value="all">Semua fitur</option>
                             <option value="study_pack">Study Pack</option>
@@ -70,7 +70,7 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                         <select
                             value={filters.range}
                             onChange={(e) => apply({ range: e.target.value, page: 1 })}
-                            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#465FFF]"
+                            className="h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-white/[0.03] px-3 text-sm text-gray-700 dark:text-gray-300 outline-none focus:border-brand-500"
                         >
                             <option value="7">7 hari terakhir</option>
                             <option value="30">30 hari terakhir</option>
@@ -93,25 +93,25 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                     />
                 </div>
 
-                <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
+                <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-5 shadow-xs">
                     <div className="mb-4 flex items-center justify-between">
-                        <h2 className="text-sm font-bold text-slate-800">Tren 14 Hari</h2>
-                        <span className="text-[11px] text-slate-400">Total token per hari</span>
+                        <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200">Tren 14 Hari</h2>
+                        <span className="text-[11px] text-gray-400 dark:text-gray-500">Total token per hari</span>
                     </div>
                     <div className="flex h-40 items-end gap-1.5">
                         {daily.map((day) => {
                             const height = Math.round((day.tokens / maxDaily) * 100);
                             return (
                                 <div key={day.date} className="group flex flex-1 flex-col items-center justify-end gap-1">
-                                    <span className="text-[10px] font-medium tabular-nums text-slate-400 opacity-0 transition-opacity group-hover:opacity-100">
+                                    <span className="text-[10px] font-medium tabular-nums text-gray-400 dark:text-gray-500 opacity-0 transition-opacity group-hover:opacity-100">
                                         {num(day.tokens)}
                                     </span>
                                     <div
-                                        className="w-full rounded-t bg-[#465FFF]/80 transition-colors group-hover:bg-[#465FFF]"
+                                        className="w-full rounded-t bg-brand-500/80 transition-colors group-hover:bg-brand-500"
                                         style={{ height: `${Math.max(day.tokens > 0 ? 4 : 0, height)}%` }}
                                         title={`${day.date}: ${num(day.tokens)} token`}
                                     />
-                                    <span className="text-[9px] text-slate-400">
+                                    <span className="text-[9px] text-gray-400 dark:text-gray-500">
                                         {day.date.slice(8)}
                                     </span>
                                 </div>
@@ -121,35 +121,35 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                 </div>
 
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs">
-                        <div className="border-b border-slate-100 px-5 py-3.5">
-                            <h2 className="text-sm font-bold text-slate-800">Per Model</h2>
+                    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] shadow-xs">
+                        <div className="border-b border-gray-100 dark:border-gray-800 px-5 py-3.5">
+                            <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200">Per Model</h2>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
-                                <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-400">
+                                <thead className="bg-gray-50 dark:bg-white/[0.03] text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
                                     <tr>
                                         <th className="px-5 py-3 font-semibold">Model</th>
                                         <th className="px-5 py-3 text-right font-semibold">Panggilan</th>
                                         <th className="px-5 py-3 text-right font-semibold">Token</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                     {by_model.map((row) => (
-                                        <tr key={`${row.provider}:${row.model}`} className="hover:bg-slate-50/60">
+                                        <tr key={`${row.provider}:${row.model}`} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02]">
                                             <td className="px-5 py-3">
-                                                <p className="font-semibold text-slate-700">{row.model}</p>
-                                                <p className="text-[10px] uppercase text-slate-400">{row.provider}</p>
+                                                <p className="font-semibold text-gray-700 dark:text-gray-300">{row.model}</p>
+                                                <p className="text-[10px] uppercase text-gray-400 dark:text-gray-500">{row.provider}</p>
                                             </td>
-                                            <td className="px-5 py-3 text-right tabular-nums text-slate-600">{num(row.calls)}</td>
-                                            <td className="px-5 py-3 text-right font-semibold tabular-nums text-slate-800">
+                                            <td className="px-5 py-3 text-right tabular-nums text-gray-600 dark:text-gray-300">{num(row.calls)}</td>
+                                            <td className="px-5 py-3 text-right font-semibold tabular-nums text-gray-800 dark:text-gray-200">
                                                 {num(row.tokens)}
                                             </td>
                                         </tr>
                                     ))}
                                     {by_model.length === 0 && (
                                         <tr>
-                                            <td colSpan={3} className="px-5 py-10 text-center text-slate-400">
+                                            <td colSpan={3} className="px-5 py-10 text-center text-gray-400 dark:text-gray-500">
                                                 Belum ada data.
                                             </td>
                                         </tr>
@@ -159,34 +159,34 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                         </div>
                     </div>
 
-                    <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs">
-                        <div className="border-b border-slate-100 px-5 py-3.5">
-                            <h2 className="text-sm font-bold text-slate-800">Per Fitur</h2>
+                    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] shadow-xs">
+                        <div className="border-b border-gray-100 dark:border-gray-800 px-5 py-3.5">
+                            <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200">Per Fitur</h2>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
-                                <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-400">
+                                <thead className="bg-gray-50 dark:bg-white/[0.03] text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
                                     <tr>
                                         <th className="px-5 py-3 font-semibold">Fitur</th>
                                         <th className="px-5 py-3 text-right font-semibold">Panggilan</th>
                                         <th className="px-5 py-3 text-right font-semibold">Token</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                     {by_feature.map((row) => (
-                                        <tr key={row.feature} className="hover:bg-slate-50/60">
-                                            <td className="px-5 py-3 font-semibold text-slate-700">
+                                        <tr key={row.feature} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02]">
+                                            <td className="px-5 py-3 font-semibold text-gray-700 dark:text-gray-300">
                                                 {featureLabel(row.feature)}
                                             </td>
-                                            <td className="px-5 py-3 text-right tabular-nums text-slate-600">{num(row.calls)}</td>
-                                            <td className="px-5 py-3 text-right font-semibold tabular-nums text-slate-800">
+                                            <td className="px-5 py-3 text-right tabular-nums text-gray-600 dark:text-gray-300">{num(row.calls)}</td>
+                                            <td className="px-5 py-3 text-right font-semibold tabular-nums text-gray-800 dark:text-gray-200">
                                                 {num(row.tokens)}
                                             </td>
                                         </tr>
                                     ))}
                                     {by_feature.length === 0 && (
                                         <tr>
-                                            <td colSpan={3} className="px-5 py-10 text-center text-slate-400">
+                                            <td colSpan={3} className="px-5 py-10 text-center text-gray-400 dark:text-gray-500">
                                                 Belum ada data.
                                             </td>
                                         </tr>
@@ -197,13 +197,13 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs">
-                    <div className="border-b border-slate-100 px-5 py-3.5">
-                        <h2 className="text-sm font-bold text-slate-800">Panggilan Terbaru</h2>
+                <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] shadow-xs">
+                    <div className="border-b border-gray-100 dark:border-gray-800 px-5 py-3.5">
+                        <h2 className="text-sm font-bold text-gray-800 dark:text-gray-200">Panggilan Terbaru</h2>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
-                            <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-400">
+                            <thead className="bg-gray-50 dark:bg-white/[0.03] text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
                                 <tr>
                                     <th className="px-4 py-3 font-semibold">Waktu</th>
                                     <th className="px-4 py-3 font-semibold">User</th>
@@ -215,19 +215,19 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                                     <th className="px-4 py-3 font-semibold">Status</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                 {recent.data.map((row) => (
-                                    <tr key={row.id} className="hover:bg-slate-50/60">
-                                        <td className="whitespace-nowrap px-4 py-3 text-slate-500">{formatDateTime(row.created_at)}</td>
-                                        <td className="px-4 py-3 text-slate-700">{row.user ?? "—"}</td>
-                                        <td className="px-4 py-3 text-slate-600">{featureLabel(row.feature)}</td>
+                                    <tr key={row.id} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02]">
+                                        <td className="whitespace-nowrap px-4 py-3 text-gray-500 dark:text-gray-400">{formatDateTime(row.created_at)}</td>
+                                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{row.user ?? "—"}</td>
+                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{featureLabel(row.feature)}</td>
                                         <td className="px-4 py-3">
-                                            <p className="text-slate-600">{row.model}</p>
-                                            <p className="text-[10px] uppercase text-slate-400">{row.provider}</p>
+                                            <p className="text-gray-600 dark:text-gray-300">{row.model}</p>
+                                            <p className="text-[10px] uppercase text-gray-400 dark:text-gray-500">{row.provider}</p>
                                         </td>
-                                        <td className="px-4 py-3 text-right tabular-nums text-slate-500">{num(row.prompt_tokens)}</td>
-                                        <td className="px-4 py-3 text-right tabular-nums text-slate-500">{num(row.completion_tokens)}</td>
-                                        <td className="px-4 py-3 text-right font-semibold tabular-nums text-slate-800">
+                                        <td className="px-4 py-3 text-right tabular-nums text-gray-500 dark:text-gray-400">{num(row.prompt_tokens)}</td>
+                                        <td className="px-4 py-3 text-right tabular-nums text-gray-500 dark:text-gray-400">{num(row.completion_tokens)}</td>
+                                        <td className="px-4 py-3 text-right font-semibold tabular-nums text-gray-800 dark:text-gray-200">
                                             {num(row.total_tokens)}
                                         </td>
                                         <td className="px-4 py-3">
@@ -248,7 +248,7 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                                 ))}
                                 {recent.data.length === 0 && (
                                     <tr>
-                                        <td colSpan={8} className="px-4 py-12 text-center text-slate-400">
+                                        <td colSpan={8} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">
                                             Belum ada pemakaian AI tercatat.
                                         </td>
                                     </tr>
@@ -258,7 +258,7 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                     </div>
 
                     {recent.last_page > 1 && (
-                        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+                        <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 px-5 py-3 text-xs text-gray-500 dark:text-gray-400">
                             <span>
                                 Menampilkan {recent.from}–{recent.to} dari {recent.total}
                             </span>
@@ -267,7 +267,7 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                                     type="button"
                                     disabled={recent.current_page <= 1}
                                     onClick={() => apply({ page: recent.current_page - 1 })}
-                                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 font-semibold text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     Sebelumnya
                                 </button>
@@ -278,7 +278,7 @@ export default function AdminLlmUsageIndex({ stats, by_model, by_feature, daily,
                                     type="button"
                                     disabled={recent.current_page >= recent.last_page}
                                     onClick={() => apply({ page: recent.current_page + 1 })}
-                                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 font-semibold text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     Berikutnya
                                 </button>

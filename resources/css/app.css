@@ -1,9 +1,59 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Token desain mengikuti TailAdmin.
+ * Palet `brand` dan skala `gray` diselaraskan dengan TailAdmin supaya
+ * kelas seperti `bg-brand-500` / `dark:bg-gray-900` tampil persis.
+ */
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-25: #f2f7ff;
+  --color-brand-50: #ecf3ff;
+  --color-brand-100: #dde9ff;
+  --color-brand-200: #c2d6ff;
+  --color-brand-300: #9cb9ff;
+  --color-brand-400: #7592ff;
+  --color-brand-500: #465fff;
+  --color-brand-600: #3641f5;
+  --color-brand-700: #2a31d8;
+  --color-brand-800: #252dae;
+  --color-brand-900: #262e90;
+  --color-brand-950: #1b1e4d;
+
+  --color-gray-25: #fcfcfd;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f2f4f7;
+  --color-gray-200: #e4e7ec;
+  --color-gray-300: #d0d5dd;
+  --color-gray-400: #98a2b3;
+  --color-gray-500: #667085;
+  --color-gray-600: #475467;
+  --color-gray-700: #344054;
+  --color-gray-800: #1d2939;
+  --color-gray-900: #101828;
+  --color-gray-950: #0c111d;
+
+  --animate-fade-in-up: fade-in-up 0.3s ease-out;
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
 @layer base {
   body {
-    font-family: 'Outfit', sans-serif;
-    @apply bg-[#F8FAFC] text-slate-800 antialiased;
+    font-family: "Outfit", sans-serif;
+    @apply bg-gray-50 text-gray-800 antialiased dark:bg-gray-900 dark:text-gray-200;
   }
 }
 
@@ -12,11 +62,11 @@
 }
 
 @utility menu-item-active {
-  @apply bg-[#ECF2FF] text-[#465FFF] font-semibold;
+  @apply bg-brand-50 text-brand-500 font-semibold dark:bg-brand-500/[0.12] dark:text-brand-400;
 }
 
 @utility menu-item-inactive {
-  @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+  @apply text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03] dark:hover:text-gray-300;
 }
 
 @utility menu-item-icon-size {
@@ -26,11 +76,11 @@
 }
 
 @utility menu-item-icon-active {
-  @apply text-[#465FFF];
+  @apply text-brand-500 dark:text-brand-400;
 }
 
 @utility menu-item-icon-inactive {
-  @apply text-slate-400;
+  @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
 }
 
 @utility menu-item-text {

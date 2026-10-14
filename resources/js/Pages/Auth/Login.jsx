@@ -272,13 +272,13 @@ export default function Login({ status, canResetPassword = false }) {
     };
 
     const inputBase =
-        'h-11 w-full rounded-xl border bg-white pl-10 text-sm text-slate-800 placeholder:text-slate-400 transition-shadow focus:outline-none focus:ring-4';
-    const inputOk = 'border-slate-200 focus:border-[#465FFF] focus:ring-[#465FFF]/15';
+        'h-11 w-full rounded-xl border bg-white dark:bg-gray-900 pl-10 text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-shadow focus:outline-none focus:ring-4';
+    const inputOk = 'border-slate-200 dark:border-gray-800 focus:border-[#465FFF] focus:ring-[#465FFF]/15';
     const inputErr = 'border-red-300 focus:border-red-500 focus:ring-red-500/15';
 
     return (
         <div
-            className="min-h-screen bg-white"
+            className="min-h-screen bg-white dark:bg-gray-900"
             style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif" }}
         >
             <Head title="Masuk">
@@ -297,8 +297,8 @@ export default function Login({ status, canResetPassword = false }) {
                             </div>
 
                             <div className="mt-10 text-center">
-                                <h1 className="text-[28px] font-semibold tracking-tight text-slate-800">Selamat datang kembali</h1>
-                                <p className="mt-1.5 text-sm text-slate-500">Masuk untuk lanjut belajar.</p>
+                                <h1 className="text-[28px] font-semibold tracking-tight text-slate-800 dark:text-white">Selamat datang kembali</h1>
+                                <p className="mt-1.5 text-sm text-slate-500 dark:text-gray-400">Masuk untuk lanjut belajar.</p>
                             </div>
 
                             {status && (
@@ -311,7 +311,7 @@ export default function Login({ status, canResetPassword = false }) {
                                 <div>
                                     <label htmlFor="email" className="sr-only">Email</label>
                                     <div className="relative">
-                                        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400">
+                                        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400 dark:text-gray-500">
                                             <MailIcon />
                                         </span>
                                         <input
@@ -335,7 +335,7 @@ export default function Login({ status, canResetPassword = false }) {
                                 <div>
                                     <label htmlFor="password" className="sr-only">Kata sandi</label>
                                     <div className="relative">
-                                        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400">
+                                        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400 dark:text-gray-500">
                                             <LockIcon />
                                         </span>
                                         <input
@@ -354,7 +354,7 @@ export default function Login({ status, canResetPassword = false }) {
                                             onClick={() => setShowPassword((v) => !v)}
                                             aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
                                             aria-pressed={showPassword}
-                                            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:text-[#465FFF]"
+                                            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 focus:outline-none focus-visible:text-[#465FFF]"
                                         >
                                             <EyeIcon off={showPassword} />
                                         </button>
@@ -365,13 +365,13 @@ export default function Login({ status, canResetPassword = false }) {
                                 </div>
 
                                 <div className="flex items-center justify-between py-0.5">
-                                    <label className="flex cursor-pointer select-none items-center gap-2.5 text-sm leading-none text-slate-600">
+                                    <label className="flex cursor-pointer select-none items-center gap-2.5 text-sm leading-none text-slate-600 dark:text-gray-300">
                                         <span className="relative flex h-[18px] w-[18px] shrink-0">
                                             <input
                                                 type="checkbox"
                                                 checked={data.remember}
                                                 onChange={(e) => setData('remember', e.target.checked)}
-                                                className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-[6px] border border-slate-300 bg-white transition-colors checked:border-[#465FFF] checked:bg-[#465FFF] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/20"
+                                                className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-[6px] border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 transition-colors checked:border-[#465FFF] checked:bg-[#465FFF] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/20"
                                             />
                                             <svg
                                                 className="pointer-events-none absolute inset-0 m-auto h-3 w-3 text-white opacity-0 peer-checked:opacity-100"
@@ -408,22 +408,22 @@ export default function Login({ status, canResetPassword = false }) {
                                 </button>
                             </form>
 
-                            <div className="my-6 flex items-center gap-3 text-xs text-slate-400">
-                                <span className="h-px flex-1 bg-slate-200" />
+                            <div className="my-6 flex items-center gap-3 text-xs text-slate-400 dark:text-gray-500">
+                                <span className="h-px flex-1 bg-slate-200 dark:bg-gray-800" />
                                 atau lanjutkan dengan
-                                <span className="h-px flex-1 bg-slate-200" />
+                                <span className="h-px flex-1 bg-slate-200 dark:bg-gray-800" />
                             </div>
 
                             {/* OAuth butuh redirect penuh, jadi pakai <a> biasa. Sesuaikan href dengan route Socialite-mu. */}
                             <a
                                 href="/auth/google"
-                                className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/15"
+                                className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-transparent text-sm font-medium text-slate-700 dark:text-gray-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.03] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/15"
                             >
                                 <GoogleIcon />
                                 Lanjutkan dengan Google
                             </a>
 
-                            <p className="mt-6 text-center text-sm text-slate-500">
+                            <p className="mt-6 text-center text-sm text-slate-500 dark:text-gray-400">
                                 Belum punya akun?{' '}
                                 <Link
                                     href={route('register')}
@@ -435,7 +435,7 @@ export default function Login({ status, canResetPassword = false }) {
                         </div>
                     </div>
 
-                    <p className="pt-8 text-center text-xs text-slate-400">
+                    <p className="pt-8 text-center text-xs text-slate-400 dark:text-gray-500">
                         © {new Date().getFullYear()} SiPanda. Hak cipta dilindungi.
                     </p>
                 </main>

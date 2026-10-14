@@ -55,8 +55,8 @@ const Spinner = () => (
 
 /* ---------- Field ---------- */
 const inputBase =
-    'h-11 w-full rounded-xl border bg-white pl-10 text-sm text-slate-800 placeholder:text-slate-400 transition-shadow focus:outline-none focus:ring-4';
-const inputOk = 'border-slate-200 focus:border-[#465FFF] focus:ring-[#465FFF]/15';
+    'h-11 w-full rounded-xl border bg-white dark:bg-gray-900 pl-10 text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-shadow focus:outline-none focus:ring-4';
+const inputOk = 'border-slate-200 dark:border-gray-800 focus:border-[#465FFF] focus:ring-[#465FFF]/15';
 const inputErr = 'border-red-300 focus:border-red-500 focus:ring-red-500/15';
 
 function Field({ id, label, icon, error, trailing, ...props }) {
@@ -64,7 +64,7 @@ function Field({ id, label, icon, error, trailing, ...props }) {
         <div>
             <label htmlFor={id} className="sr-only">{label}</label>
             <div className="relative">
-                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400">{icon}</span>
+                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400 dark:text-gray-500">{icon}</span>
                 <input
                     id={id}
                     aria-invalid={!!error}
@@ -103,14 +103,14 @@ export default function Register() {
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
             aria-pressed={showPassword}
-            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:text-[#465FFF]"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 focus:outline-none focus-visible:text-[#465FFF]"
         >
             <EyeIcon off={showPassword} />
         </button>
     );
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-between bg-white px-6 py-8 sm:px-10" style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif" }}>
+        <div className="flex min-h-screen flex-col items-center justify-between bg-white dark:bg-gray-900 px-6 py-8 sm:px-10" style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif" }}>
             <Head title="Buat akun">
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -126,8 +126,8 @@ export default function Register() {
                 </div>
 
                 <div className="mt-8 text-center">
-                    <h1 className="text-[28px] font-semibold tracking-tight text-slate-800">Buat akun baru</h1>
-                    <p className="mt-1.5 text-sm text-slate-500">Daftar untuk mulai belajar dari materimu.</p>
+                    <h1 className="text-[28px] font-semibold tracking-tight text-slate-800 dark:text-white">Buat akun baru</h1>
+                    <p className="mt-1.5 text-sm text-slate-500 dark:text-gray-400">Daftar untuk mulai belajar dari materimu.</p>
                 </div>
 
                 <form onSubmit={submit} className="mt-7 space-y-4" noValidate>
@@ -188,21 +188,21 @@ export default function Register() {
                     </button>
                 </form>
 
-                <div className="my-6 flex items-center gap-3 text-xs text-slate-400">
-                    <span className="h-px flex-1 bg-slate-200" />
+                <div className="my-6 flex items-center gap-3 text-xs text-slate-400 dark:text-gray-500">
+                    <span className="h-px flex-1 bg-slate-200 dark:bg-gray-800" />
                     atau daftar dengan
-                    <span className="h-px flex-1 bg-slate-200" />
+                    <span className="h-px flex-1 bg-slate-200 dark:bg-gray-800" />
                 </div>
 
                 <a
                     href="/auth/google"
-                    className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/15"
+                    className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-transparent text-sm font-medium text-slate-700 dark:text-gray-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.03] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/15"
                 >
                     <GoogleIcon />
                     Daftar dengan Google
                 </a>
 
-                <p className="mt-6 text-center text-sm text-slate-500">
+                <p className="mt-6 text-center text-sm text-slate-500 dark:text-gray-400">
                     Sudah punya akun?{' '}
                     <Link
                         href={route('login')}
@@ -213,7 +213,7 @@ export default function Register() {
                 </p>
             </main>
 
-            <p className="pt-8 text-center text-xs text-slate-400">
+            <p className="pt-8 text-center text-xs text-slate-400 dark:text-gray-500">
                 © {new Date().getFullYear()} SiPanda. Hak cipta dilindungi.
             </p>
         </div>

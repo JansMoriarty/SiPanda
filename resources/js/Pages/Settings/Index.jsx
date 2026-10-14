@@ -39,13 +39,13 @@ function PlannedSetting({ title, note }) {
     return (
         <li className="flex items-start justify-between gap-4 py-3.5">
             <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-700">{title}</p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{note}</p>
+                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{title}</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">{note}</p>
             </div>
             <span
                 aria-disabled="true"
                 title="Belum ada route dan belum ada tempat untuk menyimpan setelan ini."
-                className="shrink-0 cursor-not-allowed rounded-lg border border-dashed border-slate-300 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-400"
+                className="shrink-0 cursor-not-allowed rounded-lg border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-white/[0.03] px-2.5 py-1 text-[10px] font-bold text-gray-400 dark:text-gray-500"
             >
                 BELUM ADA
             </span>
@@ -60,30 +60,30 @@ export default function Index() {
 
             <div className="mx-auto max-w-[1400px] space-y-6 p-6 sm:p-7">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
-                    <p className="mt-1.5 text-xs text-slate-500">
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h1>
+                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                         Pengaturan akun dan preferensi belajarmu.
                     </p>
                 </div>
 
-                <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
+                <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-5 shadow-xs">
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                        <h2 className="text-sm font-bold text-slate-900">Belum ada pengaturan aktif</h2>
+                        <h2 className="text-sm font-bold text-gray-900 dark:text-white">Belum ada pengaturan aktif</h2>
                         <span className="rounded-lg border border-amber-200/80 bg-amber-50 px-2.5 py-1.5 text-[10px] font-bold text-amber-600">
                             HALAMAN KOSONG
                         </span>
                     </div>
 
-                    <p className="text-[11px] leading-relaxed text-slate-500">
+                    <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
                         Identitas akun dan foto profil ada di halaman{" "}
-                        <a href="/profile" className="font-semibold text-[#465FFF] hover:underline">
+                        <a href="/profile" className="font-semibold text-brand-500 dark:text-brand-400 hover:underline">
                             Profile
                         </a>
                         . Untuk pengaturan lain, belum ada yang bisa disimpan di server, jadi
                         halaman ini sengaja tidak memuat form yang kelihatan berfungsi.
                     </p>
 
-                    <ul className="mt-4 divide-y divide-slate-100 border-t border-slate-100">
+                    <ul className="mt-4 divide-y divide-gray-100 dark:divide-gray-800 border-t border-gray-100 dark:border-gray-800">
                         {PLANNED_SETTINGS.map((setting) => (
                             <PlannedSetting key={setting.title} {...setting} />
                         ))}

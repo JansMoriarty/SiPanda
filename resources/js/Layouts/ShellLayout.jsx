@@ -20,18 +20,18 @@ function InnerShell({ children }) {
   const isSidebarVisible = isExpanded || isHovered;
 
   return (
-    <div className="flex h-screen min-h-screen overflow-hidden bg-[#F8FAFC] font-['Outfit',sans-serif] text-slate-800">
+    <div className="flex h-screen min-h-screen overflow-hidden bg-gray-50 font-['Outfit',sans-serif] text-gray-800 dark:bg-gray-900 dark:text-gray-200">
       <ShellSidebar />
       <Backdrop />
 
       <div
         className={`flex h-screen flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out ${
-          isSidebarVisible ? "lg:pl-[270px]" : "lg:pl-[90px]"
+          isSidebarVisible ? "lg:pl-[290px]" : "lg:pl-[90px]"
         }`}
       >
         <ShellTopbar />
 
-        <main className="flex-1 overflow-y-auto bg-[#F8FAFC] no-scrollbar">
+        <main className="flex-1 overflow-y-auto bg-gray-50 no-scrollbar dark:bg-gray-900">
           {children}
         </main>
       </div>

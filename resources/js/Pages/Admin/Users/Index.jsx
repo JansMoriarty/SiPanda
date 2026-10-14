@@ -8,7 +8,7 @@ function RoleBadge({ role }) {
     return (
         <span
             className={`rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                admin ? "border-[#465FFF]/20 bg-[#ECF2FF] text-[#465FFF]" : "border-slate-200 bg-slate-50 text-slate-500"
+                admin ? "border-brand-500/20 bg-brand-50 dark:bg-brand-500/15 text-brand-500 dark:text-brand-400" : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-white/[0.03] text-gray-500 dark:text-gray-400"
             }`}
         >
             {role}
@@ -63,8 +63,8 @@ export default function AdminUsersIndex({ users, filters, counts }) {
             <div className="mx-auto max-w-[1400px] space-y-6 p-6 sm:p-7">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight text-slate-900">Manajemen User</h1>
-                        <p className="text-sm text-slate-500">
+                        <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Manajemen User</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             {counts.total} user · {counts.admins} admin · {counts.inactive} nonaktif
                         </p>
                     </div>
@@ -76,12 +76,12 @@ export default function AdminUsersIndex({ users, filters, counts }) {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Cari nama atau email…"
-                        className="h-10 w-full max-w-xs rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-700 outline-none transition-colors focus:border-[#465FFF] focus:ring-2 focus:ring-[#465FFF]/20"
+                        className="h-10 w-full max-w-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-white/[0.03] px-3.5 text-sm text-gray-700 dark:text-gray-300 outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
                     />
                     <select
                         value={filters.role}
                         onChange={(e) => apply({ role: e.target.value, page: 1 })}
-                        className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#465FFF]"
+                        className="h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-white/[0.03] px-3 text-sm text-gray-700 dark:text-gray-300 outline-none focus:border-brand-500"
                     >
                         <option value="all">Semua role</option>
                         <option value="student">Student</option>
@@ -90,7 +90,7 @@ export default function AdminUsersIndex({ users, filters, counts }) {
                     <select
                         value={filters.status}
                         onChange={(e) => apply({ status: e.target.value, page: 1 })}
-                        className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-[#465FFF]"
+                        className="h-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-white/[0.03] px-3 text-sm text-gray-700 dark:text-gray-300 outline-none focus:border-brand-500"
                     >
                         <option value="all">Semua status</option>
                         <option value="active">Aktif</option>
@@ -98,10 +98,10 @@ export default function AdminUsersIndex({ users, filters, counts }) {
                     </select>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs">
+                <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] shadow-xs">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
-                            <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-400">
+                            <thead className="bg-gray-50 dark:bg-white/[0.03] text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
                                 <tr>
                                     <th className="px-4 py-3 font-semibold">User</th>
                                     <th className="px-4 py-3 font-semibold">Role</th>
@@ -112,29 +112,29 @@ export default function AdminUsersIndex({ users, filters, counts }) {
                                     <th className="px-4 py-3" />
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                 {users.data.map((user) => (
-                                    <tr key={user.id} className="hover:bg-slate-50/60">
+                                    <tr key={user.id} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02]">
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2">
                                                 {user.is_online && <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" title="Online" />}
                                                 <div className="min-w-0">
-                                                    <Link href={`/admin/users/${user.id}`} className="truncate font-semibold text-slate-700 hover:text-[#465FFF]">
+                                                    <Link href={`/admin/users/${user.id}`} className="truncate font-semibold text-gray-700 dark:text-gray-300 hover:text-brand-500 dark:hover:text-brand-400">
                                                         {user.name}
                                                     </Link>
-                                                    <p className="truncate text-[10px] text-slate-400">{user.email}</p>
+                                                    <p className="truncate text-[10px] text-gray-400 dark:text-gray-500">{user.email}</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-3"><RoleBadge role={user.role} /></td>
                                         <td className="px-4 py-3"><ActiveBadge active={user.is_active} /></td>
-                                        <td className="px-4 py-3 text-slate-600">{user.courses_count}</td>
-                                        <td className="px-4 py-3 text-slate-600">{user.quiz_attempts_count}</td>
-                                        <td className="px-4 py-3 text-slate-500">
+                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{user.courses_count}</td>
+                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{user.quiz_attempts_count}</td>
+                                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                                             {user.last_login_at ? formatDateTime(user.last_login_at) : "Belum pernah"}
                                         </td>
                                         <td className="px-4 py-3 text-right">
-                                            <Link href={`/admin/users/${user.id}`} className="font-semibold text-[#465FFF] hover:underline">
+                                            <Link href={`/admin/users/${user.id}`} className="font-semibold text-brand-500 dark:text-brand-400 hover:underline">
                                                 Detail
                                             </Link>
                                         </td>
@@ -142,7 +142,7 @@ export default function AdminUsersIndex({ users, filters, counts }) {
                                 ))}
                                 {users.data.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                                        <td colSpan={7} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">
                                             Tidak ada user yang cocok.
                                         </td>
                                     </tr>
@@ -152,7 +152,7 @@ export default function AdminUsersIndex({ users, filters, counts }) {
                     </div>
 
                     {users.last_page > 1 && (
-                        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3 text-[11px] text-slate-500">
+                        <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 px-4 py-3 text-[11px] text-gray-500 dark:text-gray-400">
                             <span>
                                 Menampilkan {users.from}–{users.to} dari {users.total}
                             </span>
@@ -161,7 +161,7 @@ export default function AdminUsersIndex({ users, filters, counts }) {
                                     type="button"
                                     disabled={users.current_page <= 1}
                                     onClick={() => apply({ page: users.current_page - 1 })}
-                                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 font-medium text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     Sebelumnya
                                 </button>
@@ -172,7 +172,7 @@ export default function AdminUsersIndex({ users, filters, counts }) {
                                     type="button"
                                     disabled={users.current_page >= users.last_page}
                                     onClick={() => apply({ page: users.current_page + 1 })}
-                                    className="rounded-lg border border-slate-200 px-3 py-1.5 font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 font-medium text-gray-600 dark:text-gray-300 transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.03] disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     Berikutnya
                                 </button>

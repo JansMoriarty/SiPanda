@@ -25,7 +25,7 @@ const NAV = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
       </svg>
     ),
-    activePattern: (url) => url.startsWith("/materials") || url.startsWith("/documents/"),
+    activePattern: (url) => url === "/" || url.startsWith("/materials") || url.startsWith("/documents/"),
   },
   {
     key: "ask-panda",
@@ -117,7 +117,9 @@ function NavItem({ item, active, show }) {
     <Link
       href={item.href}
       className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
-        active ? "bg-[#ECF2FF] font-semibold text-[#465FFF]" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+        active
+          ? "bg-brand-50 font-semibold text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400"
+          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
       } ${!show ? "justify-center px-0" : "justify-between"}`}
     >
       <div className="flex items-center gap-3">
@@ -125,7 +127,7 @@ function NavItem({ item, active, show }) {
         {show && <span>{item.label}</span>}
       </div>
       {show && item.badge && (
-        <span className="rounded-full bg-[#E8F8F0] px-2 py-0.5 text-[10px] font-bold text-[#10B981]">{item.badge}</span>
+        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">{item.badge}</span>
       )}
     </Link>
   );
@@ -179,20 +181,29 @@ export default function ShellSidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 flex h-screen flex-col justify-between border-r border-slate-200/80 bg-white font-['Outfit',sans-serif] text-slate-600 transition-all duration-300 ease-in-out ${
-        isSidebarVisible ? "w-[270px]" : "w-[90px]"
+      className={`fixed left-0 top-0 z-50 flex h-screen flex-col justify-between border-r border-gray-200 bg-white font-['Outfit',sans-serif] text-gray-600 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 ${
+        isSidebarVisible ? "w-[290px]" : "w-[90px]"
       } ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex flex-1 flex-col overflow-y-auto no-scrollbar">
         <div className={`flex items-center gap-3 px-6 py-6 ${!isSidebarVisible ? "px-0 lg:justify-center" : ""}`}>
-          <Link href={user?.is_admin ? "/admin" : "/"} className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#465FFF] text-white shadow-md shadow-blue-500/20">
-              <span className="text-xl font-bold">P</span>
-            </div>
-            {isSidebarVisible && (
-              <span className="whitespace-nowrap text-xl font-bold tracking-tight text-slate-900">SiPanda</span>
+          <Link href={user?.is_admin ? "/admin" : "/materials"} className="flex items-center gap-3">
+            {isSidebarVisible ? (
+              <img
+                src="/images/sipanda-logo.png"
+                alt="SiPanda"
+                className="h-8 w-auto dark:brightness-0 dark:invert"
+              />
+            ) : (
+              <div className="h-9 w-9 shrink-0 overflow-hidden">
+                <img
+                  src="/images/sipanda-logo.png"
+                  alt="SiPanda"
+                  className="h-9 w-auto max-w-none dark:brightness-0 dark:invert"
+                />
+              </div>
             )}
           </Link>
         </div>
@@ -201,7 +212,7 @@ export default function ShellSidebar() {
           {user?.is_admin ? (
             <>
               {isSidebarVisible && (
-                <h2 className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">ADMIN</h2>
+                <h2 className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">ADMIN</h2>
               )}
               {ADMIN_NAV.map((item) => (
                 <NavItem key={item.key} item={item} active={item.activePattern(url)} show={isSidebarVisible} />
@@ -210,7 +221,7 @@ export default function ShellSidebar() {
           ) : (
             <>
               {isSidebarVisible && (
-                <h2 className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">MENU</h2>
+                <h2 className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">MENU</h2>
               )}
               {NAV.map((item) => (
                 <NavItem key={item.key} item={item} active={item.activePattern(url)} show={isSidebarVisible} />
@@ -220,31 +231,31 @@ export default function ShellSidebar() {
         </nav>
       </div>
 
-      <div className="relative border-t border-slate-200/80 p-3" ref={profileMenuRef}>
+      <div className="relative border-t border-gray-200 p-3 dark:border-gray-800" ref={profileMenuRef}>
         {isProfileMenuOpen && isSidebarVisible && (
-          <div className="absolute bottom-full left-3 right-3 z-50 mb-2 animate-fade-in-up space-y-1 rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-xl">
+          <div className="absolute bottom-full left-3 right-3 z-50 mb-2 animate-fade-in-up space-y-1 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-gray-800 dark:bg-gray-900">
             {!user?.is_admin && (
               <>
                 <Link
                   href="/profile"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 transition-all hover:bg-slate-50 hover:text-slate-900"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
             >
-              <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
               </svg>
               View Profile
             </Link>
             <Link
               href="/settings"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-600 transition-all hover:bg-slate-50 hover:text-slate-900"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
             >
-              <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               Account Settings
             </Link>
-            <div className="my-1 border-t border-slate-100" />
+            <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
               </>
             )}
             <button
@@ -253,7 +264,7 @@ export default function ShellSidebar() {
                 setIsProfileMenuOpen(false);
                 setIsLogoutModalOpen(true);
               }}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-rose-600 transition-all hover:bg-rose-50"
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-rose-600 transition-all hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"
             >
               <svg className="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
@@ -265,21 +276,21 @@ export default function ShellSidebar() {
 
         <div
           onClick={() => isSidebarVisible && setIsProfileMenuOpen(!isProfileMenuOpen)}
-          className={`flex cursor-pointer items-center gap-3 rounded-2xl p-2 transition-all hover:bg-slate-50 ${
-            !isSidebarVisible ? "justify-center p-1 hover:bg-transparent" : ""
+          className={`flex cursor-pointer items-center gap-3 rounded-2xl p-2 transition-all hover:bg-gray-50 dark:hover:bg-white/[0.03] ${
+            !isSidebarVisible ? "justify-center p-1 hover:bg-transparent dark:hover:bg-transparent" : ""
           }`}
         >
           <div className="relative shrink-0">
             <Avatar src={user?.avatar} name={displayName} />
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 dark:border-gray-900" />
           </div>
           {isSidebarVisible && (
             <div className="flex min-w-0 flex-1 items-center justify-between">
               <div className="flex min-w-0 flex-col">
-                <h4 className="truncate text-xs font-semibold text-slate-900">{displayName}</h4>
-                <span className="truncate text-[10px] font-medium text-slate-500">{user?.email}</span>
+                <h4 className="truncate text-xs font-semibold text-gray-900 dark:text-white">{displayName}</h4>
+                <span className="truncate text-[10px] font-medium text-gray-500 dark:text-gray-400">{user?.email}</span>
               </div>
-              <button type="button" className="rounded-lg p-1 text-slate-400 transition-colors hover:text-slate-600">
+              <button type="button" className="rounded-lg p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
                 </svg>
@@ -301,22 +312,22 @@ export default function ShellSidebar() {
               className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
               onClick={() => !loggingOut && setIsLogoutModalOpen(false)}
             />
-            <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-500">
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
                 </svg>
               </div>
-              <h3 id="logout-title" className="mt-4 text-center text-lg font-semibold text-slate-900">
+              <h3 id="logout-title" className="mt-4 text-center text-lg font-semibold text-gray-900 dark:text-white">
                 Keluar dari akun?
               </h3>
-              <p className="mt-1.5 text-center text-sm text-slate-500">Kamu harus masuk lagi untuk melanjutkan belajar.</p>
+              <p className="mt-1.5 text-center text-sm text-gray-500 dark:text-gray-400">Kamu harus masuk lagi untuk melanjutkan belajar.</p>
               <div className="mt-6 flex gap-3">
                 <button
                   type="button"
                   onClick={() => setIsLogoutModalOpen(false)}
                   disabled={loggingOut}
-                  className="h-10 flex-1 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-60"
+                  className="h-10 flex-1 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]"
                 >
                   Batal
                 </button>

@@ -46,19 +46,19 @@ export const WEAK_THRESHOLD = 60;
 
 /** Warna badge skor: hijau >= 70, kuning >= 50, merah < 50. */
 export const scoreTone = (score) => {
-    if (score === null || score === undefined) return "text-slate-400 bg-slate-50 border-slate-200/80";
-    if (score >= 70) return "text-emerald-600 bg-emerald-50 border-emerald-200/80";
-    if (score >= 50) return "text-amber-600 bg-amber-50 border-amber-200/80";
-    return "text-rose-600 bg-rose-50 border-rose-200/80";
+    if (score === null || score === undefined) return "text-gray-400 bg-gray-50 border-gray-200 dark:text-gray-500 dark:bg-white/[0.03] dark:border-gray-700";
+    if (score >= 70) return "text-emerald-600 bg-emerald-50 border-emerald-200/80 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20";
+    if (score >= 50) return "text-amber-600 bg-amber-50 border-amber-200/80 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20";
+    return "text-rose-600 bg-rose-50 border-rose-200/80 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20";
 };
 
 /** Warna ikon berkas menurut ekstensi. */
 export const fileTone = (type) =>
     type === "pdf"
-        ? "bg-rose-50 border-rose-200/60 text-rose-500"
+        ? "bg-rose-50 border-rose-200/60 text-rose-500 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400"
         : type === "pptx"
-        ? "bg-amber-50 border-amber-200/60 text-amber-500"
-        : "bg-slate-50 border-slate-200/60 text-slate-500";
+        ? "bg-amber-50 border-amber-200/60 text-amber-500 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400"
+        : "bg-gray-50 border-gray-200/60 text-gray-500 dark:bg-white/[0.03] dark:border-gray-700 dark:text-gray-400";
 
 export const fileLabel = (type) => (type === "pdf" ? "PDF" : type === "pptx" ? "PPT" : (type || "FILE").toUpperCase());
 
@@ -67,19 +67,19 @@ export const packBadge = (studyPack) => {
     const progress = studyPack?.progress ?? 0;
     switch (studyPack?.status) {
         case "ready":
-            return { label: "Study pack siap", className: "text-emerald-600 bg-emerald-50 border-emerald-200/80", showProgress: false };
+            return { label: "Study pack siap", className: "text-emerald-600 bg-emerald-50 border-emerald-200/80 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20", showProgress: false };
         case "generating":
             return {
                 label: Number.isFinite(progress) ? `Membuat study pack ${progress}%` : "Membuat study pack",
-                className: "text-[#465FFF] bg-[#ECF2FF] border-blue-200/80",
+                className: "text-brand-500 bg-brand-50 border-brand-200 dark:text-brand-400 dark:bg-brand-500/10 dark:border-brand-500/20",
                 showProgress: true,
             };
         case "queued":
-            return { label: "Antrean", className: "text-slate-500 bg-slate-50 border-slate-200/80", showProgress: false };
+            return { label: "Antrean", className: "text-gray-500 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-white/[0.03] dark:border-gray-700", showProgress: false };
         case "failed":
-            return { label: "Gagal dibuat", className: "text-rose-600 bg-rose-50 border-rose-200/80", showProgress: false };
+            return { label: "Gagal dibuat", className: "text-rose-600 bg-rose-50 border-rose-200/80 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20", showProgress: false };
         default:
-            return { label: "Belum diproses", className: "text-slate-400 bg-slate-50 border-slate-200/80", showProgress: false };
+            return { label: "Belum diproses", className: "text-gray-400 bg-gray-50 border-gray-200 dark:text-gray-500 dark:bg-white/[0.03] dark:border-gray-700", showProgress: false };
     }
 };
 
@@ -87,12 +87,12 @@ export const packBadge = (studyPack) => {
 export const docStatusBadge = (status) => {
     switch (status) {
         case "processed":
-            return { label: "Teks terekstraksi", className: "text-emerald-600 bg-emerald-50 border-emerald-200/80" };
+            return { label: "Teks terekstraksi", className: "text-emerald-600 bg-emerald-50 border-emerald-200/80 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20" };
         case "processing":
-            return { label: "Memproses", className: "text-[#465FFF] bg-[#ECF2FF] border-blue-200/80" };
+            return { label: "Memproses", className: "text-brand-500 bg-brand-50 border-brand-200 dark:text-brand-400 dark:bg-brand-500/10 dark:border-brand-500/20" };
         case "failed":
-            return { label: "Gagal diproses", className: "text-rose-600 bg-rose-50 border-rose-200/80" };
+            return { label: "Gagal diproses", className: "text-rose-600 bg-rose-50 border-rose-200/80 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20" };
         default:
-            return { label: status, className: "text-slate-400 bg-slate-50 border-slate-200/80" };
+            return { label: status, className: "text-gray-400 bg-gray-50 border-gray-200 dark:text-gray-500 dark:bg-white/[0.03] dark:border-gray-700" };
     }
 };

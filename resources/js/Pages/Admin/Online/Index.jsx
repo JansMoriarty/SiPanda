@@ -62,17 +62,17 @@ export default function AdminOnlineIndex({ users, window_minutes }) {
             <div className="mx-auto max-w-[1400px] space-y-6 p-6 sm:p-7">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight text-slate-900">User Online</h1>
-                        <p className="text-sm text-slate-500">
+                        <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">User Online</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                             {users.length} user aktif dalam {window_minutes} menit terakhir. Daftar diperbarui tiap 5 detik.
                         </p>
                     </div>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs">
+                <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] shadow-xs">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
-                            <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-400">
+                            <thead className="bg-gray-50 dark:bg-white/[0.03] text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
                                 <tr>
                                     <th className="px-4 py-3 font-semibold">User</th>
                                     <th className="px-4 py-3 font-semibold">Perangkat</th>
@@ -82,31 +82,31 @@ export default function AdminOnlineIndex({ users, window_minutes }) {
                                     <th className="px-4 py-3" />
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                 {users.map((user) => {
                                     const isSelf = auth?.user?.id === user.id;
                                     return (
-                                        <tr key={user.id} className="hover:bg-slate-50/60">
+                                        <tr key={user.id} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.02]">
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
                                                     <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" title="Online" />
                                                     <div className="min-w-0">
-                                                        <p className="truncate font-semibold text-slate-700">
+                                                        <p className="truncate font-semibold text-gray-700 dark:text-gray-300">
                                                             {user.name}
-                                                            {isSelf && <span className="ml-1.5 text-[10px] font-normal text-slate-400">(kamu)</span>}
+                                                            {isSelf && <span className="ml-1.5 text-[10px] font-normal text-gray-400 dark:text-gray-500">(kamu)</span>}
                                                         </p>
-                                                        <p className="truncate text-[10px] text-slate-400">{user.email}</p>
+                                                        <p className="truncate text-[10px] text-gray-400 dark:text-gray-500">{user.email}</p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-slate-500" title={user.user_agent ?? ""}>
+                                            <td className="px-4 py-3 text-gray-500 dark:text-gray-400" title={user.user_agent ?? ""}>
                                                 {deviceLabel(user.user_agent)}
                                             </td>
-                                            <td className="px-4 py-3 font-mono text-[11px] text-slate-500">{user.ip_address}</td>
-                                            <td className="px-4 py-3 text-slate-600">{user.sessions}</td>
-                                            <td className="px-4 py-3 text-slate-500">
+                                            <td className="px-4 py-3 font-mono text-[11px] text-gray-500 dark:text-gray-400">{user.ip_address}</td>
+                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{user.sessions}</td>
+                                            <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                                                 <p>{minutesAgo(user.last_activity)}</p>
-                                                <p className="text-[10px] text-slate-400">{formatDateTime(user.last_activity)}</p>
+                                                <p className="text-[10px] text-gray-400 dark:text-gray-500">{formatDateTime(user.last_activity)}</p>
                                             </td>
                                             <td className="px-4 py-3 text-right">
                                                 <button
@@ -123,7 +123,7 @@ export default function AdminOnlineIndex({ users, window_minutes }) {
                                 })}
                                 {users.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
+                                        <td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">
                                             Tidak ada user online saat ini.
                                         </td>
                                     </tr>
