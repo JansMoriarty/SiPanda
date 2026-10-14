@@ -102,6 +102,8 @@ PROMPT;
             ]
         );
 
+        $this->recordUsage($response, $response->failed() ? $response->body() : null);
+
         if ($response->failed()) {
             throw new \RuntimeException('Gemini Generate API error: ' . $response->body());
         }
@@ -190,6 +192,7 @@ PROMPT;
 
         $buffer = '';
         $hasReceivedText = false;
+        $usageMetadata = null;
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -197,7 +200,7 @@ PROMPT;
             CURLOPT_POSTFIELDS => json_encode($payload),
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_RETURNTRANSFER => false,
-            CURLOPT_WRITEFUNCTION => function ($ch, $data) use ($onChunk, &$buffer, &$hasReceivedText) {
+            CURLOPT_WRITEFUNCTION => function ($ch, $data) use ($onChunk, &$buffer, &$hasReceivedText, &$usageMetadata) {
                 $buffer .= $data;
                 $lines = explode("\n", $buffer);
                 $buffer = array_pop($lines);
@@ -209,6 +212,10 @@ PROMPT;
                     if (str_starts_with($line, 'data: ')) {
                         $jsonStr = substr($line, 6);
                         $json = json_decode($jsonStr, true);
+
+                        if (isset($json['usageMetadata'])) {
+                            $usageMetadata = $json['usageMetadata'];
+                        }
 
                         $text = $json['candidates'][0]['content']['parts'][0]['text'] ?? null;
                         if ($text !== null && $text !== '') {
@@ -231,6 +238,14 @@ PROMPT;
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErr = curl_error($ch);
         curl_close($ch);
+
+        $this->usageRecorder()->record(
+            $this->name(),
+            $this->model,
+            $usageMetadata,
+            $hasReceivedText,
+            $hasReceivedText ? null : ($curlErr ?: 'Stream Gemini gagal (HTTP ' . $httpCode . ')'),
+        );
 
         if (!$hasReceivedText) {
             if ($curlErr) {
@@ -269,6 +284,8 @@ PROMPT;
             $payload
         );
 
+        $this->recordUsage($response, $response->failed() ? $response->body() : null);
+
         if ($response->failed()) {
             throw new \RuntimeException('Gemini Generate API error: ' . $response->body());
         }
@@ -286,6 +303,26 @@ PROMPT;
         }
 
         return $decoded;
+    }
+
+    /**
+     * Catat pemakaian token dari usageMetadata untuk response non-streaming.
+     * Non-fatal: kalau gagal mencatat, pemanggilan LLM tetap lanjut.
+     */
+    protected function recordUsage(\Illuminate\Http\Client\Response $response, ?string $error = null): void
+    {
+        $this->usageRecorder()->record(
+            $this->name(),
+            $this->model,
+            $response->json('usageMetadata') ?: null,
+            $response->successful(),
+            $error,
+        );
+    }
+
+    protected function usageRecorder(): LlmUsageRecorder
+    {
+        return app(LlmUsageRecorder::class);
     }
 
     /**

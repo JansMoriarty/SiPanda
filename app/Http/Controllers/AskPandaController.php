@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\LlmClient;
+use App\Models\LlmUsage;
+use App\Services\Llm\LlmUsageRecorder;
 use App\Services\RetrievalService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,6 +25,7 @@ class AskPandaController extends Controller
 
         $question = $request->input('question');
         $history = $request->input('history', []);
+        $userId = $request->user()->id;
 
         $chunks = $retrieval->search($question, $request->user()->id);
 
@@ -36,17 +39,21 @@ class AskPandaController extends Controller
             ];
         })->values();
 
-        return response()->stream(function () use ($llm, $question, $chunks, $history, $sources) {
+        return response()->stream(function () use ($llm, $question, $chunks, $history, $sources, $userId) {
             echo "data: " . json_encode(['type' => 'sources', 'data' => $sources]) . "\n\n";
             ob_flush();
             flush();
 
             try {
-                $llm->generateStreamAnswer($question, $chunks, $history, function ($chunkText) {
-                    echo "data: " . json_encode(['type' => 'text', 'data' => $chunkText]) . "\n\n";
-                    ob_flush();
-                    flush();
-                });
+                app(LlmUsageRecorder::class)->run(
+                    $userId,
+                    LlmUsage::FEATURE_ASK_PANDA,
+                    fn () => $llm->generateStreamAnswer($question, $chunks, $history, function ($chunkText) {
+                        echo "data: " . json_encode(['type' => 'text', 'data' => $chunkText]) . "\n\n";
+                        ob_flush();
+                        flush();
+                    }),
+                );
             } catch (\Throwable $e) {
                 $isRateLimit = $e->getCode() === 429;
 

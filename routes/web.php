@@ -13,6 +13,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AskPandaController;
 use App\Http\Controllers\Auth\ProfileAvatarController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\LlmUsageController as AdminLlmUsageController;
 use App\Http\Controllers\Admin\OnlineController as AdminOnlineController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use Inertia\Inertia;
@@ -92,6 +93,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     Route::get('/online', [AdminOnlineController::class, 'index'])->name('online.index');
     Route::delete('/online/{user}', [AdminOnlineController::class, 'destroy'])->name('online.destroy');
+
+    Route::get('/llm-usage', [AdminLlmUsageController::class, 'index'])->name('llm-usage.index');
 });
 
 require __DIR__ . '/auth.php';

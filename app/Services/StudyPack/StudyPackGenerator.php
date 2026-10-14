@@ -5,7 +5,9 @@ namespace App\Services\StudyPack;
 use App\Contracts\LlmClient;
 use App\Models\Concept;
 use App\Models\Document;
+use App\Models\LlmUsage;
 use App\Models\Question;
+use App\Services\Llm\LlmUsageRecorder;
 use Illuminate\Support\Collection;
 
 /**
@@ -18,9 +20,23 @@ use Illuminate\Support\Collection;
  */
 class StudyPackGenerator
 {
-    public function __construct(protected LlmClient $llm) {}
+    public function __construct(protected LlmClient $llm, protected LlmUsageRecorder $usage) {}
 
     public function generate(Document $document): void
+    {
+        // Kepemilikan dokumen lewat course (documents tidak punya user_id),
+        // supaya pemakaian token bisa diatribusikan ke mahasiswa pemiliknya.
+        $ownerId = $document->course()->value('user_id');
+
+        $this->usage->run(
+            is_numeric($ownerId) ? (int) $ownerId : null,
+            LlmUsage::FEATURE_STUDY_PACK,
+            fn () => $this->generateWithLlm($document),
+            $document->id,
+        );
+    }
+
+    protected function generateWithLlm(Document $document): void
     {
         $document->update(['study_pack_status' => 'generating', 'error_message' => null]);
 
