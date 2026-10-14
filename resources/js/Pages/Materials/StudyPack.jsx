@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Head, Link, usePage } from "@inertiajs/react";
+import { Head, Link } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
-import { mockStudyPacks } from "@/data/mockV2";
+import useRefreshWhile from "@/hooks/useRefreshWhile";
 import { WEAK_THRESHOLD, cx, fileLabel, fileTone, formatDateTime, formatSize, scoreTone } from "@/utils/format";
 
 const TABS = [
@@ -141,13 +141,20 @@ function SummaryPanel({ pack }) {
             <div className="space-y-6 xl:col-span-2">
                 <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
                     <h2 className="text-sm font-bold text-slate-900">Ringkasan bab</h2>
-                    <p className="mt-3 text-xs leading-relaxed text-slate-600">{pack.summary}</p>
+                    <p className="mt-3 text-xs leading-relaxed text-slate-600">
+                        {pack.summary ?? "Ringkasan belum tersedia untuk dokumen ini."}
+                    </p>
                 </section>
 
                 <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
                     <h2 className="text-sm font-bold text-slate-900">Poin penting</h2>
                     <p className="mt-0.5 text-[11px] text-slate-400">Hal yang paling sering terlewat saat mengerjakan soal</p>
                     <ul className="mt-4 space-y-2.5">
+                        {pack.key_points.length === 0 && (
+                            <li className="rounded-lg border border-dashed border-slate-200 p-3 text-[11px] text-slate-400">
+                                Belum ada poin penting yang disimpan untuk dokumen ini.
+                            </li>
+                        )}
                         {pack.key_points.map((point, i) => (
                             <li key={point} className="flex gap-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3">
                                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#ECF2FF] text-[10px] font-bold text-[#465FFF]">
@@ -203,7 +210,9 @@ function SummaryPanel({ pack }) {
 }
 
 function ConceptsPanel({ pack }) {
-    const ordered = [...pack.concepts].sort((a, b) => a.mastery - b.mastery);
+    // Konsep belum diuji (mastery null) diletakkan paling akhir, bukan
+    // dianggap 0% — kalau null di-coerce jadi 0 dia akan salah tampil "lemah".
+    const ordered = [...pack.concepts].sort((a, b) => (a.mastery ?? 101) - (b.mastery ?? 101));
     return (
         <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
@@ -220,7 +229,8 @@ function ConceptsPanel({ pack }) {
 
             <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
                 {ordered.map((c) => {
-                    const weak = c.mastery < WEAK_THRESHOLD;
+                    const untested = c.mastery === null || c.mastery === undefined;
+                    const weak = !untested && c.mastery < WEAK_THRESHOLD;
                     const imp = importanceBadge(c.importance);
                     return (
                         <article key={c.id} className="rounded-xl border border-slate-200/80 p-4 transition-colors hover:border-slate-300">
@@ -235,12 +245,19 @@ function ConceptsPanel({ pack }) {
                             <div className="mt-3.5">
                                 <div className="mb-1.5 flex items-center justify-between">
                                     <span className="text-[10px] font-medium text-slate-400">Penguasaan</span>
-                                    <span className={cx("text-[11px] font-bold", weak ? "text-rose-600" : "text-emerald-600")}>{c.mastery}%</span>
+                                    <span
+                                        className={cx(
+                                            "text-[11px] font-bold",
+                                            untested ? "text-slate-400" : weak ? "text-rose-600" : "text-emerald-600"
+                                        )}
+                                    >
+                                        {untested ? "Belum diuji" : `${c.mastery}%`}
+                                    </span>
                                 </div>
                                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                                     <div
                                         className={cx("h-full rounded-full", weak ? "bg-rose-400" : c.mastery < 70 ? "bg-amber-400" : "bg-emerald-500")}
-                                        style={{ width: `${c.mastery}%` }}
+                                        style={{ width: `${untested ? 0 : c.mastery}%` }}
                                     />
                                 </div>
                                 {weak && (
@@ -257,14 +274,16 @@ function ConceptsPanel({ pack }) {
 
 function QuizPanel({ pack }) {
     const q = pack.quiz;
+    const hasAttempts = q.attempts > 0 && q.best_score !== null && q.best_score !== undefined;
+    const passed = hasAttempts && q.best_score >= q.passing_score;
     return (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <div className="space-y-6 xl:col-span-2">
                 <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                         <h2 className="text-sm font-bold text-slate-900">Quiz bab ini</h2>
-                        <span className="rounded-lg border border-emerald-200/80 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-600">
-                            MOCK — BELUM TERSIMPAN DI SERVER
+                        <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold text-slate-500">
+                            {q.total_questions} soal tersimpan
                         </span>
                     </div>
 
@@ -320,20 +339,31 @@ function QuizPanel({ pack }) {
             <div className="space-y-6">
                 <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
                     <h2 className="text-sm font-bold text-slate-900">Riwayat percobaan</h2>
-                    <div className="mt-4 flex items-center gap-3.5">
-                        <span className={cx("rounded-xl border px-3 py-2 text-lg font-bold", scoreTone(q.best_score))}>
-                            {q.best_score}%
-                        </span>
-                        <div>
-                            <p className="text-[11px] font-semibold text-slate-700">Skor terbaik</p>
-                            <p className="text-[10px] text-slate-400">
-                                {q.attempts} percobaan · belum lulus (min. {q.passing_score}%)
-                            </p>
-                        </div>
-                    </div>
-                    <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div className="h-full rounded-full bg-rose-400" style={{ width: `${q.best_score}%` }} />
-                    </div>
+                    {hasAttempts ? (
+                        <>
+                            <div className="mt-4 flex items-center gap-3.5">
+                                <span className={cx("rounded-xl border px-3 py-2 text-lg font-bold", scoreTone(q.best_score))}>
+                                    {q.best_score}%
+                                </span>
+                                <div>
+                                    <p className="text-[11px] font-semibold text-slate-700">Skor terbaik</p>
+                                    <p className="text-[10px] text-slate-400">
+                                        {q.attempts} percobaan · {passed ? "lulus" : "belum lulus"} (min. {q.passing_score}%)
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                                <div
+                                    className={cx("h-full rounded-full", passed ? "bg-emerald-500" : "bg-rose-400")}
+                                    style={{ width: `${q.best_score}%` }}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <p className="mt-4 rounded-lg border border-dashed border-slate-200 p-3 text-[11px] leading-relaxed text-slate-400">
+                            Belum ada percobaan. Skor terbaik akan muncul di sini setelah kamu menyelesaikan quiz.
+                        </p>
+                    )}
                     <p className="mt-3 text-[10px] leading-relaxed text-slate-400">
                         Setiap jawaban dicatat per konsep, jadi Knowledge Gap bisa menunjuk topik yang paling lemah.
                     </p>
@@ -349,52 +379,43 @@ function AskPanel({ pack }) {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <div className="space-y-6 xl:col-span-2">
                 <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                            <h2 className="text-sm font-bold text-slate-900">Tanya isi bab ini</h2>
-                            <p className="mt-0.5 text-[11px] text-slate-400">{ask.scope_note}</p>
-                        </div>
-                        <span className="rounded-lg border border-amber-200/80 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-600">
-                            MOCK — BELUM MENGIRIM KONTEKS
-                        </span>
+                    <div className="mb-4">
+                        <h2 className="text-sm font-bold text-slate-900">Tanya isi bab ini</h2>
+                        <p className="mt-0.5 text-[11px] text-slate-400">{ask.scope_note}</p>
                     </div>
 
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-                        <div className="flex items-center gap-2">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#465FFF] text-white">
-                                <span className="text-[9px] font-bold">P</span>
-                            </span>
-                            <p className="text-[11px] font-semibold text-slate-700">Contoh jawaban PANDA</p>
-                        </div>
-                        <p className="mt-2.5 text-[11px] leading-relaxed text-slate-600">{ask.example_answer}</p>
-                    </div>
-
-                    <p className="mt-4 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                         Pertanyaan yang bisa dicoba
                     </p>
-                    <div className="space-y-1.5">
-                        {ask.suggested_questions.map((q) => (
-                            <div
-                                key={q}
-                                className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5"
-                            >
-                                <svg
-                                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
+                    {ask.suggested_questions.length === 0 ? (
+                        <p className="rounded-lg border border-dashed border-slate-200 p-3 text-[11px] text-slate-400">
+                            Belum ada konsep yang bisa dijadikan contoh pertanyaan.
+                        </p>
+                    ) : (
+                        <div className="space-y-1.5">
+                            {ask.suggested_questions.map((q) => (
+                                <div
+                                    key={q}
+                                    className="flex items-start gap-2.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5"
                                 >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
-                                    />
-                                </svg>
-                                <p className="text-[11px] leading-relaxed text-slate-600">{q}</p>
-                            </div>
-                        ))}
-                    </div>
+                                    <svg
+                                        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"
+                                        />
+                                    </svg>
+                                    <p className="text-[11px] leading-relaxed text-slate-600">{q}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </section>
             </div>
 
@@ -442,11 +463,9 @@ function LockedPanel() {
 }
 
 /**
- * Ditampilkan kalau dokumen yang dibuka belum punya study pack di mock data.
- * Ini bukan error: Materials/Index dan Document Detail sama-sama Offer link
- * Study Pack untuk setiap dokumen yang study_pack.status-nya 'ready', jadi
- * dokumen ready bisa saja belum punya isi mock. Halaman harus jujur
- * bilang begitu, bukan diam-diam menampilkan isi bab lain.
+ * Ditampilkan kalau dokumen yang dibuka belum punya study pack (status bukan
+ * 'ready', atau isi summary/konsep/soal semuanya kosong). Ini bukan error:
+ * halaman harus jujur bilang begitu, bukan diam-diam menampilkan isi bab lain.
  */
 function EmptyStudyPack({ documentId }) {
     return (
@@ -478,8 +497,8 @@ function EmptyStudyPack({ documentId }) {
                     </span>
                     <p className="mt-4 text-sm font-semibold text-slate-700">Isi study pack dokumen ini belum ada</p>
                     <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-400">
-                        Dokumen ini sudah berstatus siap, tapi isi study pack-nya belum ditulis di data contoh.
-                        Halaman ini sengaja tidak menampilkan isi bab lain supaya tidak mengecoh.
+                        Dokumen ini belum punya ringkasan, konsep, atau soal yang tersimpan. Coba buat ulang
+                        study pack dari halaman detail dokumen, lalu buka lagi halaman ini.
                     </p>
                     <div className="mt-5 flex flex-wrap justify-center gap-2">
                         <Link
@@ -503,17 +522,29 @@ function EmptyStudyPack({ documentId }) {
 
 /* ------------------------------------------------------------------- page */
 
-export default function StudyPack() {
+export default function StudyPack({ pack }) {
     const [active, setActive] = useState("summary");
-    // Document Detail dan Materials/Index bisa mengirim dokumen apa pun ke
-    // URL ini, jadi study pack HARUS ikut id di address bar. Sebelumnya
-    // halaman ini selalu displaying mockStudyPack (Bab 03) apa pun id-nya,
-    // sehingga dokumen lain diam-diam menampilkan isi bab yang salah.
-    const { documentId } = usePage().props;
-    const pack = mockStudyPacks[String(documentId)];
 
-    if (!pack) {
-        return <EmptyStudyPack documentId={documentId} />;
+    // Halaman ini bisa dibuka saat study pack masih dibuat di queue. Selama itu,
+    // refresh props `pack` berkala supaya isinya muncul tanpa reload manual.
+    const pending =
+        !!pack?.document &&
+        (["uploaded", "processing"].includes(pack.document.status) ||
+            ["queued", "generating"].includes(pack.document.study_pack?.status));
+    useRefreshWhile(pending, { only: ["pack"] });
+
+    // StudyPackController selalu mengirim `pack`, tapi isinya bisa kosong
+    // kalau dokumen belum selesai di-generate. Halaman harus jujur soal itu,
+    // bukan menampilkan isi bab lain.
+    const hasContent =
+        pack &&
+        (pack.summary ||
+            (pack.key_points?.length ?? 0) > 0 ||
+            (pack.concepts?.length ?? 0) > 0 ||
+            (pack.quiz?.total_questions ?? 0) > 0);
+
+    if (!hasContent) {
+        return <EmptyStudyPack documentId={pack?.document?.id} />;
     }
 
     return (

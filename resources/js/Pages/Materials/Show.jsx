@@ -1,6 +1,7 @@
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
-import { mockMaterials } from "@/data/mockV2";
+import { useState } from "react";
+import useRefreshWhile from "@/hooks/useRefreshWhile";
 import { cx, docStatusBadge, fileLabel, fileTone, formatDateTime, formatSize, packBadge } from "@/utils/format";
 
 /**
@@ -8,23 +9,17 @@ import { cx, docStatusBadge, fileLabel, fileTone, formatDateTime, formatSize, pa
  *
  * Batas halaman ini dengan Study Pack sengaja dijaga. Study Pack menjawab
  * "apa isi babnya", halaman ini menjawab "filednya sedang dalam keadaan
- * apa dan apa yang bisa saya lakukan". Karena itu header dokumen yang sudah
- * ada di Study Pack TIDAK diulang di sini.
- * PENTANGAN SOAL AKSI (download / hapus / buat ulang):
- * Data halaman ini masih mock, sementara route aslinya nyata:
- *   - GET    /documents/{id}/download  -> DocumentController::download
- *   - DELETE /documents/{id}           -> DocumentController::destroy
- * `destroy` menghapus file di storage lalu cascade menghapus chunks. Route
- * itu hanya menolak dokumen milik user LAIN (authorizeOwnership); dokumen
- * milik user yang sedang login tetap bisa terhapus. Jadi tombol di bawah
- * sengaja dirender sebagai elemen pasif tanpa href dan tanpa onClick.
- * Jangan pernah sambungkan ke router.delete()/href sampai halaman ini pakai data DB.
+ * apa dan apa yang bisa saya lakukan".
+ *
+ * Data datang dari MaterialsController::show yang sudah di-scope lewat
+ * course.user_id, jadi aksi download/hapus/buat ulang di bawah aman:
+ * route tujuannya memakai pemeriksaan kepemilikan yang sama.
  */
 
 /* ------------------------------------------------------------ pipeline */
 
 /**
- * Tahapan persis mengikuti status yang ditulis DocumentController::processDocument:
+ * Tahapan persis mengikuti status yang ditulis ProcessDocumentJob:
  * 'uploaded' -> 'processing' (ekstraksi teks + chunking + embedding) -> 'processed',
  * atau 'failed' kalau ada exception. Tahapan ini bukan sekadar dekorasi: kalau
  * `status` bertambah nanti, tahap yang belum dikenal tetap tampil apa adanya.
@@ -131,12 +126,15 @@ function PipelinePanel({ doc }) {
                 <div className="mt-3">
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                         <div
-                            className="h-full rounded-full bg-[#465FFF]"
-                            style={{ width: `${doc.study_pack.progress}%` }}
+                            className={cx("h-full rounded-full bg-[#465FFF]", Number.isFinite(doc.study_pack.progress) ? "" : "animate-pulse")}
+                            style={{ width: Number.isFinite(doc.study_pack.progress) ? `${doc.study_pack.progress}%` : "100%" }}
                         />
                     </div>
                     <p className="mt-1.5 text-[10px] text-slate-400">
-                        {doc.study_pack.progress}% selesai. Halaman ini boleh ditutup, prosesnya jalan sendiri.
+                        {Number.isFinite(doc.study_pack.progress)
+                            ? `${doc.study_pack.progress}% selesai.`
+                            : "Sedang berjalan."}{" "}
+                        Halaman ini boleh ditutup, prosesnya jalan sendiri.
                     </p>
                 </div>
             ) : null}
@@ -162,35 +160,32 @@ function PipelinePanel({ doc }) {
 
 /* --------------------------------------------------------------- actions */
 
-/**
- * Elemen aksi sengaja PASIF: bukan <a> dan bukan <button> dengan onClick.
- * Lihat catatan panjang di atas file ini soal kenapa route hapus asli
- * tidak boleh disentuh dari halaman yang datanya masih mock.
- */
-function InertAction({ children, hint }) {
-    return (
-        <span
-            title={hint}
-            aria-disabled="true"
-            className="flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-center text-[11px] font-semibold text-slate-400"
-        >
-            {children}
-        </span>
-    );
-}
-
 function ActionsPanel({ doc }) {
+    const [confirming, setConfirming] = useState(false);
+    const [working, setWorking] = useState(false);
+
     const packReady = doc.study_pack?.status === "ready";
-    const canRetry = doc.status === "failed" || doc.study_pack?.status === "failed";
+    const canGenerate = !packReady && doc.status === "processed";
+    const canDelete = doc.status !== "processing";
+
+    const regenerate = () => {
+        setWorking(true);
+        router.post(`/documents/${doc.id}/study-pack`, {}, { preserveScroll: true, onFinish: () => setWorking(false) });
+    };
+
+    const remove = () => {
+        setWorking(true);
+        router.delete(`/documents/${doc.id}`, {
+            onFinish: () => {
+                setWorking(false);
+                setConfirming(false);
+            },
+        });
+    };
 
     return (
         <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-bold text-slate-900">Aksi</h2>
-                <span className="rounded-lg border border-amber-200/80 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-600">
-                    BELUM TERHUBUNG
-                </span>
-            </div>
+            <h2 className="mb-4 text-sm font-bold text-slate-900">Aksi</h2>
 
             {packReady ? (
                 <Link
@@ -199,11 +194,7 @@ function ActionsPanel({ doc }) {
                 >
                     Buka Study Pack
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M8.25 4.5l7.5 7.5-7.5 7.5"
-                        />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                     </svg>
                 </Link>
             ) : (
@@ -213,12 +204,19 @@ function ActionsPanel({ doc }) {
                         ? "Progresnya masih jalan."
                         : doc.study_pack?.status === "queued"
                           ? "Gilirannya belum sampai."
-                          : "Pembuatannya gagal."}
+                          : doc.study_pack?.status === "failed"
+                            ? "Pembuatannya gagal, coba buat ulang."
+                            : doc.status === "processed"
+                              ? "Belum dibuat."
+                              : "Menunggu teks selesai diekstrak."}
                 </p>
             )}
 
             <div className="mt-3 space-y-2">
-                <InertAction hint="Route download sudah ada, tapi halaman ini masih pakai data mock sehingga file yang diunduh bukan file yang sedang ditampilkan.">
+                <a
+                    href={`/documents/${doc.id}/download`}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-[11px] font-semibold text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50"
+                >
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path
                             strokeLinecap="round"
@@ -227,10 +225,15 @@ function ActionsPanel({ doc }) {
                         />
                     </svg>
                     Download file asli
-                </InertAction>
+                </a>
 
-                {canRetry ? (
-                    <InertAction hint="Belum ada route untuk membuat ulang study pack. Nanti ini memanggil pipeline yang sama dengan upload, jadi tidak expedited.">
+                {canGenerate ? (
+                    <button
+                        type="button"
+                        onClick={regenerate}
+                        disabled={working}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white py-2.5 text-[11px] font-semibold text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path
                                 strokeLinecap="round"
@@ -238,27 +241,54 @@ function ActionsPanel({ doc }) {
                                 d="M16.023 9.348h4.992V4.356M3.02 19.644v-4.992h4.992m9.338-9.318a6.75 6.75 0 013.18 5.511m-3.18-5.511a6.75 6.75 0 00-10.914 4.503M6.342 19.644a6.75 6.75 0 0010.913-4.503"
                             />
                         </svg>
-                        Buat ulang study pack
-                    </InertAction>
+                        {working ? "Memproses…" : "Buat ulang study pack"}
+                    </button>
                 ) : null}
 
-                <InertAction hint="Route hapus dokumen sudah ada dan benar-benar menghapus file beserta chunks-nya, jadi tidak dipasang di halaman yang datanya masih mock.">
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                        />
-                    </svg>
-                    Hapus dokumen
-                </InertAction>
+                {canDelete ? (
+                    confirming ? (
+                        <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-3">
+                            <p className="text-[11px] font-semibold text-rose-700">Hapus dokumen ini beserta chunks-nya?</p>
+                            <div className="mt-2 flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setConfirming(false)}
+                                    className="flex-1 rounded-lg border border-slate-200 bg-white py-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={remove}
+                                    disabled={working}
+                                    className="flex-1 rounded-lg bg-rose-600 py-2 text-[11px] font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                                >
+                                    {working ? "Menghapus…" : "Ya, hapus"}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setConfirming(true)}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white py-2.5 text-[11px] font-semibold text-rose-600 transition-all hover:bg-rose-50"
+                        >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                                />
+                            </svg>
+                            Hapus dokumen
+                        </button>
+                    )
+                ) : (
+                    <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 text-[10px] leading-relaxed text-slate-400">
+                        Dokumen sedang diproses, jadi belum bisa dihapus.
+                    </p>
+                )}
             </div>
-
-            <p className="mt-3 border-t border-slate-100 pt-3 text-[10px] leading-relaxed text-slate-400">
-                Tombol di atas sengaja tidak bisa diklik. Halaman ini masih menampilkan data contoh, sementara
-                aksi download dan hapus dokumen sungguhan milikmu. Nanti keduanya baru bisa dipakai
-                pas halaman ini mengambil data dari database.
-            </p>
         </section>
     );
 }
@@ -282,9 +312,15 @@ function DocumentNotFound() {
     );
 }
 
-export default function Show({ documentId }) {
-    const id = Number(documentId);
-    const doc = mockMaterials.find((d) => d.id === id);
+export default function Show({ document: doc }) {
+    // Status ingest & study pack berubah di server (queue), bukan di browser.
+    // Selagi masih diproses, refresh props dokumen berkala; begitu selesai,
+    // polling berhenti sendiri.
+    const pending =
+        !!doc &&
+        (["uploaded", "processing"].includes(doc.status) ||
+            ["queued", "generating"].includes(doc.study_pack?.status));
+    useRefreshWhile(pending, { only: ["document"] });
 
     if (!doc) {
         return (
@@ -333,9 +369,6 @@ export default function Show({ documentId }) {
                             <span>Diunggah {formatDateTime(doc.uploaded_at)}</span>
                         </p>
                     </div>
-                    <span className="shrink-0 rounded-lg border border-amber-200/80 bg-amber-50 px-2.5 py-1.5 text-[10px] font-bold text-amber-600">
-                        MOCK — BELUM ADA DATA DOKUMEN NYATA
-                    </span>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

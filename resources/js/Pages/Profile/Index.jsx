@@ -1,62 +1,28 @@
 import { useRef, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Head, router, usePage } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
 import Avatar from "@/Components/Avatar";
-import {
-  mockCourseConcepts,
-  mockCourses,
-  mockProfileActivity,
-  mockQuestions,
-  mockQuizAttempts,
-} from "@/data/mockV2";
 import { buildCourseGapSummaries, masteryOf } from "@/utils/gap";
 import { cx, formatDate, formatDateTime, scoreTone, WEAK_THRESHOLD } from "@/utils/format";
 
 /**
  * Profile: identitas akun + ringkasan hasil belajar.
  *
- * HALAMAN INI CAMPUR DUA SUMBER DATA, jadi batasnya tidak boleh dikaburkan:
+ * Dua sumber data, keduanya nyata:
  *
- * BAGIAN REAL (tersambung ke backend sungguhan)
+ * IDENTITAS
  *   Nama, email, tanggal gabung, dan foto profil diambil dari `auth.user`
- *   yang di-share HandleInertiaRequests, jadi selalu milik user yang sedang
- *   login. Aksi foto memakai route nyata:
+ *   yang di-share HandleInertiaRequests. Aksi foto memakai route nyata:
  *     POST   /profile/avatar -> ProfileAvatarController@store
  *     DELETE /profile/avatar -> ProfileAvatarController@destroy
  *
- * BAGIAN MOCK (tidak boleh diklik)
- *   Statistik belajar, penguasaan per mata kuliah, dan riwayat quiz
- *   membutuhkan tabel concepts / questions / quiz_attempts / attempt_answers
- *   yang belum ada. Semuanya dihitung dari mockV2.js, bukan dari query DB.
- *   Tidak ada satu pun elemen mock di file ini yang memakai href, onClick,
- *   atau router.*. Nanti saat tabelnya ada, hanya sumber datanya yang perlu
- *   diganti, bukan markupnya.
- *
- * JANGAN mengubah tombol mock menjadi Link tanpa mengganti sumber datanya
- * lebih dulu. Route /quiz/{attempt}/results dan /practice/{course} sudah ada
- * dan keduanya hanya merender closure yang mengabaikan parameternya, jadi
- * tautan ke sana akan terlihat "jalan" padahal menampilkan halaman yang
- * salah.
+ * STATISTIK BELAJAR
+ *   Streak, penguasaan per mata kuliah, dan riwayat quiz datang dari
+ *   ProfileController lewat ProgressData yang sama dengan halaman Progress
+ *   dan Dashboard, jadi angkanya tidak mungkin berbeda. Persentase tetap
+ *   dihitung di resources/js/utils/gap.js.
  */
-
-/**
- * Penanda bagian yang masih mock: badge kecil redup "Contoh" per section.
- *
- * Sengaja tidak ada banner kuning besar lagi. Kejujuran batas data dipindah
- * ke teks kecil di bawah tiap judul section dan ke atribut title ini, jadi
- * labelnya tetap terbaca tanpa mendominasi halaman.
- */
-function MockBadge() {
-    return (
-        <span
-            title="MOCK — masih data contoh, belum dihitung dari database"
-            className="shrink-0 rounded-md border border-amber-200/80 bg-amber-50/70 px-2 py-0.5 text-[10px] font-medium text-amber-600/80"
-        >
-            Contoh
-        </span>
-    );
-}
 
 function StatCard({ icon, tone, label, value, hint }) {
     return (
@@ -315,18 +281,21 @@ function IdentityCard({ user }) {
     );
 }
 
-/* --------------------------------------------------- statistics (MOCK) */
+/* ------------------------------------------------------- statistics */
 
 /**
- * Empat angka ringkasan. Dua dihitung dari mockQuizAttempts (jumlah quiz dan
- * rata-rata skor), dua sisanya (waktu belajar, streak) tidak punya sumber
- * data dan datang dari mockProfileActivity.
+ * Empat angka ringkasan, semua dihitung dari attempt milik user. "Soal
+ * dijawab" menggantikan "waktu belajar" karena aplikasi tidak melacak durasi.
  */
 function StudyStats({ stats }) {
     const icons = {
-        time: (
+        soal: (
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
             </svg>
         ),
         quiz: (
@@ -358,28 +327,19 @@ function StudyStats({ stats }) {
         ),
     };
 
-    const hours = Math.floor(stats.study_minutes / 60);
-    const minutes = stats.study_minutes % 60;
-
     return (
         <section>
             <div className="mb-3">
-                <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-sm font-bold text-slate-900">Statistik belajar</h2>
-                    <MockBadge />
-                </div>
-                <p className="mt-0.5 text-[10px] text-slate-400">
-                    Angka masih data contoh, belum dihitung dari database.
-                </p>
+                <h2 className="text-sm font-bold text-slate-900">Statistik belajar</h2>
             </div>
 
             <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
-                    icon={icons.time}
+                    icon={icons.soal}
                     tone="border-blue-200/60 bg-[#ECF2FF] text-[#465FFF]"
-                    label="Waktu belajar"
-                    value={`${hours}j ${minutes}m`}
-                    hint="Akumulasi seluruh sesi belajar."
+                    label="Soal dijawab"
+                    value={stats.answered}
+                    hint={`${stats.correct} jawaban benar dari ${stats.attempt_count} percobaan.`}
                 />
                 <StatCard
                     icon={icons.quiz}
@@ -399,27 +359,21 @@ function StudyStats({ stats }) {
                     icon={icons.streak}
                     tone="border-violet-200/60 bg-violet-50 text-violet-500"
                     label="Streak"
-                    value={`${mockProfileActivity.current_streak_days} hari`}
-                    hint={`Terpanjang ${mockProfileActivity.longest_streak_days} hari.`}
+                    value={`${stats.streak_current} hari`}
+                    hint={`Terpanjang ${stats.streak_longest} hari.`}
                 />
             </div>
         </section>
     );
 }
 
-/* ------------------------------------------------- course mastery (MOCK) */
+/* ----------------------------------------------------- course mastery */
 
 function CourseMastery({ summaries }) {
     return (
         <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
             <div className="mb-4">
-                <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-sm font-bold text-slate-900">Penguasaan per mata kuliah</h2>
-                    <MockBadge />
-                </div>
-                <p className="mt-0.5 text-[10px] text-slate-400">
-                    Angka masih data contoh, belum dihitung dari database.
-                </p>
+                <h2 className="text-sm font-bold text-slate-900">Penguasaan per mata kuliah</h2>
             </div>
 
             <ul className="space-y-4">
@@ -473,68 +427,66 @@ function CourseMastery({ summaries }) {
     );
 }
 
-/* ------------------------------------------------- quiz history (MOCK) */
+/* -------------------------------------------------------- quiz history */
 
 /**
- * Riwayat quiz, disederhanakan jadi daftar baris berisi skor per percobaan.
- *
- * Barisnya SENGAJA bukan <Link>. Route /quiz/{attempt}/results sudah ada,
- * tapi id di mock ini (mock-attempt-1 dan sejenisnya) bukan id sungguhan,
- * dan closure route itu mengabaikan parameternya. Tautannya akan terbuka
- * ke halaman hasil quiz milik dokumen lain, jadi baris non-interaktif
- * lebih jujur daripada tautan yang kelihatan benar.
+ * Riwayat quiz: skor per percobaan. Tiap baris menaut ke halaman hasil quiz
+ * yang sesungguhnya (route nyata), karena attempt-nya sudah tersimpan di
+ * server.
  */
-function QuizHistory({ attempts }) {
+function QuizHistory({ attempts, courses }) {
+    const courseName = (id) => courses.find((c) => c.id === id)?.name ?? "—";
+
     const rows = [...attempts]
         .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))
         .map((attempt) => {
             const answered = attempt.answers?.length ?? 0;
             const correct = attempt.answers?.filter((a) => a.correct).length ?? 0;
-            return { ...attempt, answered, score: masteryOf(correct, answered) };
+            return { ...attempt, answered, correct, score: masteryOf(correct, answered) };
         });
 
     return (
         <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
             <div className="mb-4">
-                <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-sm font-bold text-slate-900">Riwayat quiz</h2>
-                    <MockBadge />
-                </div>
-                <p className="mt-0.5 text-[10px] text-slate-400">
-                    Baris masih data contoh, belum bisa diklik. Belum dihitung dari database.
-                </p>
+                <h2 className="text-sm font-bold text-slate-900">Riwayat quiz</h2>
             </div>
 
-            <ul className="divide-y divide-slate-100">
-                {rows.map((row) => (
-                    <li
-                        key={row.id}
-                        className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 py-3"
-                    >
-                        <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold text-slate-700">
-                                {row.document_title}
-                            </p>
-                            <p className="mt-0.5 text-[10px] text-slate-400">
-                                {mockCourses.find((c) => c.id === row.course_id)?.name ?? "—"} ·{" "}
-                                {formatDateTime(row.completed_at)}
-                            </p>
-                        </div>
-                        <span
-                            className={cx(
-                                "shrink-0 rounded-lg border px-2 py-0.5 text-[11px] font-bold",
-                                scoreTone(row.score)
-                            )}
-                        >
-                            {row.score}%
-                        </span>
-                    </li>
-                ))}
-            </ul>
+            {rows.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-slate-200 p-3 text-[11px] leading-relaxed text-slate-400">
+                    Belum ada quiz yang selesai. Riwayat akan muncul setelah kamu menyelesaikan quiz pertama.
+                </p>
+            ) : (
+                <ul className="divide-y divide-slate-100">
+                    {rows.map((row) => (
+                        <li key={row.id}>
+                            <Link
+                                href={`/quiz/${row.id}/results`}
+                                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 rounded-lg py-3 transition-colors hover:bg-slate-50/60"
+                            >
+                                <div className="min-w-0">
+                                    <p className="truncate text-xs font-semibold text-slate-700">
+                                        {row.document_title}
+                                    </p>
+                                    <p className="mt-0.5 text-[10px] text-slate-400">
+                                        {courseName(row.course_id)} · {formatDateTime(row.completed_at)}
+                                    </p>
+                                </div>
+                                <span
+                                    className={cx(
+                                        "shrink-0 rounded-lg border px-2 py-0.5 text-[11px] font-bold",
+                                        scoreTone(row.score)
+                                    )}
+                                >
+                                    {row.correct}/{row.answered} · {row.score}%
+                                </span>
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            )}
 
             <p className="mt-3 border-t border-slate-100 pt-3 text-[10px] leading-relaxed text-slate-400">
-                Riwayat ini masih diringkas jadi skor per percobaan. Belum ada tombol untuk membuka
-                rincian jawaban atau mengulang quiz, karena jawaban attempt belum disimpan di server.
+                Klik baris untuk membuka rincian jawaban per soal.
             </p>
         </section>
     );
@@ -543,9 +495,9 @@ function QuizHistory({ attempts }) {
 /* ------------------------------------------------------------------ page */
 
 /**
- * Angka dihitung di sini, bukan ditulis langsung di mock, supaya halaman ini
- * dan halaman Progress tidak mungkin menampilkan angka yang berbeda. Sumber
- * tunggalnya tetap mockQuizAttempts + mockQuestions, sama seperti Progress.
+ * Angka dihitung di sini dari attempt nyata, supaya halaman ini dan halaman
+ * Progress tidak mungkin menampilkan angka yang berbeda. Sumber tunggalnya
+ * adalah array `attempts` dari ProgressData, sama seperti Progress.
  */
 function buildProfileStats(attempts) {
     let correct = 0;
@@ -561,7 +513,6 @@ function buildProfileStats(attempts) {
     }
 
     return {
-        study_minutes: mockProfileActivity.total_study_minutes,
         attempt_count: attempts.length,
         quiz_count: quizIds.size,
         answered,
@@ -570,16 +521,16 @@ function buildProfileStats(attempts) {
     };
 }
 
-export default function Index() {
+export default function Index({ gap, streak }) {
     const user = usePage().props.auth?.user;
 
-    const stats = buildProfileStats(mockQuizAttempts);
-    const summaries = buildCourseGapSummaries({
-        courses: mockCourses,
-        attempts: mockQuizAttempts,
-        questions: mockQuestions,
-        concepts: mockCourseConcepts,
-    });
+    const stats = {
+        ...buildProfileStats(gap.attempts),
+        streak_current: streak?.current ?? 0,
+        streak_longest: streak?.longest ?? 0,
+    };
+
+    const summaries = buildCourseGapSummaries(gap);
 
     return (
         <>
@@ -599,7 +550,7 @@ export default function Index() {
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     <CourseMastery summaries={summaries} />
-                    <QuizHistory attempts={mockQuizAttempts} />
+                    <QuizHistory attempts={gap.attempts} courses={gap.courses} />
                 </div>
             </div>
         </>

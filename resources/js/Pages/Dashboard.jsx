@@ -1,12 +1,7 @@
 import { Head, Link } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
-import { mockDashboard, mockCourses, mockCourseConcepts, mockQuestions, mockQuizAttempts } from "@/data/mockV2";
 import { buildStrongestConcepts, buildWeakestConcepts } from "@/utils/gap";
 import { fileTone, formatSize, scoreTone } from "@/utils/format";
-
-const maxMinutes = Math.max(...mockDashboard.weekly_activity.map((d) => d.minutes));
-
-const gapData = { attempts: mockQuizAttempts, questions: mockQuestions, concepts: mockCourseConcepts };
 
 function StatCard({ icon, tone, label, value, hint }) {
     return (
@@ -21,14 +16,15 @@ function StatCard({ icon, tone, label, value, hint }) {
     );
 }
 
-export default function Dashboard() {
-    const { greeting_name, study_streak_days, summary, weekly_activity, continue_learning, recent_quizzes } =
-        mockDashboard;
+export default function Dashboard({ greeting_name, study_streak_days, stats, weekly_activity, continue_learning, recent_quizzes, gap }) {
+    // Grafik aktivitas memakai jumlah soal yang dijawab per hari (durasi
+    // belajar tidak dilacak oleh aplikasi).
+    const maxQuestions = Math.max(0, ...weekly_activity.map((d) => d.questions));
 
     // Dihitung dari tabel attempt yang sama dengan halaman Progress, supaya
     // kartu di sini tidak bisa menampilkan angka yang berbeda dengan sana.
-    const knowledge_gap_preview = buildWeakestConcepts({ ...gapData, courses: mockCourses }).slice(0, 3);
-    const strong_concepts = buildStrongestConcepts({ ...gapData, courses: mockCourses });
+    const knowledge_gap_preview = buildWeakestConcepts(gap).slice(0, 3);
+    const strong_concepts = buildStrongestConcepts(gap);
 
     return (
         <>
@@ -45,8 +41,8 @@ export default function Dashboard() {
                             Halo, {greeting_name} 👋
                         </h1>
                         <p className="mt-1 text-xs text-slate-500">
-                            Kamu belajar <span className="font-semibold text-[#465FFF]">{summary.study_minutes_this_week} menit</span>{" "}
-                            minggu ini dan menjawab {summary.questions_answered} soal.
+                            Kamu menjawab <span className="font-semibold text-[#465FFF]">{stats.questions_this_week} soal</span>{" "}
+                            minggu ini.
                         </p>
                     </div>
 
@@ -74,8 +70,8 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
                     <StatCard
                         label="Materi"
-                        value={summary.total_materials}
-                        hint={`${summary.study_packs_ready} study pack siap`}
+                        value={stats.total_materials}
+                        hint={`${stats.study_packs_ready} study pack siap`}
                         tone="border-blue-200/60 bg-[#ECF2FF] text-[#465FFF]"
                         icon={
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -85,8 +81,8 @@ export default function Dashboard() {
                     />
                     <StatCard
                         label="Quiz dikerjakan"
-                        value={summary.quizzes_taken}
-                        hint="2 minggu terakhir"
+                        value={stats.quizzes_taken}
+                        hint="total selesai"
                         tone="border-emerald-200/60 bg-emerald-50 text-emerald-600"
                         icon={
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -96,8 +92,8 @@ export default function Dashboard() {
                     />
                     <StatCard
                         label="Rata-rata skor"
-                        value={`${summary.average_score}%`}
-                        hint="Target UAS 75%"
+                        value={stats.average_score === null ? "—" : `${stats.average_score}%`}
+                        hint={`Target ${stats.passing_score}%`}
                         tone="border-amber-200/60 bg-amber-50 text-amber-500"
                         icon={
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -107,8 +103,8 @@ export default function Dashboard() {
                     />
                     <StatCard
                         label="Mata kuliah"
-                        value={mockCourses.length}
-                        hint={`${mockCourses.reduce((s, c) => s + c.documents_count, 0)} materi aktif`}
+                        value={gap.courses.length}
+                        hint={`${stats.total_materials} materi`}
                         tone="border-violet-200/60 bg-violet-50 text-violet-500"
                         icon={
                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -126,27 +122,27 @@ export default function Dashboard() {
                             <div className="mb-5 flex items-center justify-between">
                                 <div>
                                     <h2 className="text-sm font-bold text-slate-900">Aktivitas minggu ini</h2>
-                                    <p className="mt-0.5 text-[11px] text-slate-400">Menit belajar per hari</p>
+                                    <p className="mt-0.5 text-[11px] text-slate-400">Soal dijawab per hari</p>
                                 </div>
                                 <span className="rounded-lg bg-[#ECF2FF] px-2.5 py-1 text-[11px] font-semibold text-[#465FFF]">
-                                    {summary.study_minutes_this_week} menit
+                                    {stats.questions_this_week} soal
                                 </span>
                             </div>
 
                             <div className="flex h-36 items-end justify-between gap-2">
                                 {weekly_activity.map((day) => {
-                                    const heightPct = maxMinutes > 0 ? (day.minutes / maxMinutes) * 100 : 0;
-                                    const isToday = day.day === "Rab";
+                                    const heightPct = maxQuestions > 0 ? (day.questions / maxQuestions) * 100 : 0;
+                                    const isToday = day.is_today;
                                     return (
-                                        <div key={day.day} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
-                                            <span className="text-[10px] font-semibold text-slate-400">{day.minutes}</span>
+                                        <div key={day.date} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
+                                            <span className="text-[10px] font-semibold text-slate-400">{day.questions}</span>
                                             <div className="flex w-full flex-1 items-end">
                                                 <div
                                                     className={`w-full rounded-t-lg transition-all ${
                                                         isToday ? "bg-[#465FFF]" : "bg-slate-200 hover:bg-slate-300"
                                                     }`}
                                                     style={{ height: `${Math.max(heightPct, 4)}%` }}
-                                                    title={`${day.minutes} menit · ${day.questions} soal`}
+                                                    title={`${day.questions} soal dijawab`}
                                                 />
                                             </div>
                                             <span className={`text-[10px] font-medium ${isToday ? "text-[#465FFF]" : "text-slate-400"}`}>
@@ -206,7 +202,11 @@ export default function Dashboard() {
                                             </span>
                                         ) : (
                                             <span className="shrink-0 rounded-lg border border-blue-200/80 bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-[#465FFF]">
-                                                {doc.study_pack.progress > 0 ? `Diproses ${doc.study_pack.progress}%` : "Belum diproses"}
+                                                {doc.study_pack.status === "ready"
+                                                    ? "Siap"
+                                                    : doc.study_pack.status === "generating"
+                                                    ? "Diproses"
+                                                    : "Belum diproses"}
                                             </span>
                                         )}
 
@@ -253,21 +253,28 @@ export default function Dashboard() {
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <span className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold ${scoreTone(quiz.score)}`}>
-                                                            {quiz.score}/{quiz.total * 10}
+                                                            {quiz.score}%
                                                         </span>
+                                                        <p className="mt-0.5 text-[10px] text-slate-400">
+                                                            {quiz.correct}/{quiz.total} benar
+                                                        </p>
                                                     </td>
                                                     <td className="hidden px-4 py-3 md:table-cell">
                                                         <div className="flex flex-wrap gap-1">
-                                                            {quiz.weak_concepts.map((c) => (
-                                                                <span key={c} className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] text-rose-600">
-                                                                    {c}
-                                                                </span>
-                                                            ))}
+                                                            {quiz.weak_concepts.length === 0 ? (
+                                                                <span className="text-[10px] text-slate-400">—</span>
+                                                            ) : (
+                                                                quiz.weak_concepts.map((c) => (
+                                                                    <span key={c} className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] text-rose-600">
+                                                                        {c}
+                                                                    </span>
+                                                                ))
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
                                                         <Link
-                                                            href="/progress"
+                                                            href={quiz.results_url}
                                                             className="text-[11px] font-semibold text-[#465FFF] hover:underline"
                                                         >
                                                             Review

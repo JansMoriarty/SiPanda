@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, useForm } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
-import { mockCourses, mockMaterials } from "@/data/mockV2";
+import useRefreshWhile from "@/hooks/useRefreshWhile";
 import { cx, docStatusBadge, fileLabel, fileTone, formatDate, formatSize, packBadge, scoreTone } from "@/utils/format";
 
 const STATUS_FILTERS = [
@@ -20,6 +20,10 @@ const SORTS = [
 const isProcessing = (doc) =>
     doc.status === "processing" || doc.study_pack.status === "generating" || doc.study_pack.status === "queued";
 const isFailed = (doc) => doc.status === "failed" || doc.study_pack.status === "failed";
+
+// "uploaded" = sudah masuk antrean tapi worker belum mengambilnya. Tetap dihitung
+// pending supaya UI ikut ter-refresh sampai status benar-benar tuntas.
+const isPending = (doc) => doc.status === "uploaded" || isProcessing(doc);
 
 function FileIcon({ doc, size = "md" }) {
     const dim = size === "lg" ? "h-12 w-12" : "h-10 w-10";
@@ -46,14 +50,24 @@ function FileTypeChip({ type }) {
 }
 
 function ProgressBar({ value }) {
+    // `value` boleh null: status "generating" tidak punya persen tersimpan,
+    // jadi ditampilkan sebagai proses berjalan tanpa angka karangan.
+    const known = Number.isFinite(value);
     return (
         <div className="mt-3">
             <div className="mb-1 flex items-center justify-between">
                 <span className="text-[10px] font-medium text-slate-400">Kemajuan study pack</span>
-                <span className="text-[10px] font-bold text-[#465FFF]">{value}%</span>
+                {known ? (
+                    <span className="text-[10px] font-bold text-[#465FFF]">{value}%</span>
+                ) : (
+                    <span className="text-[10px] font-bold text-[#465FFF]">Sedang berjalan…</span>
+                )}
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-[#465FFF]" style={{ width: `${value}%` }} />
+                <div
+                    className={cx("h-full rounded-full bg-[#465FFF]", known ? "" : "animate-pulse")}
+                    style={{ width: known ? `${value}%` : "100%" }}
+                />
             </div>
         </div>
     );
@@ -223,7 +237,24 @@ function EmptyState({ onReset }) {
     );
 }
 
-function UploadPanel({ onClose }) {
+function UploadPanel({ courses, onClose }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        file: null,
+        course_id: courses[0]?.id ?? "",
+    });
+
+    const submit = (e) => {
+        e.preventDefault();
+        post("/documents", {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                reset("file");
+                onClose();
+            },
+        });
+    };
+
     return (
         <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
             <div className="mb-4 flex items-center justify-between">
@@ -233,47 +264,90 @@ function UploadPanel({ onClose }) {
                         PDF atau PPT. Teks akan diekstrak otomatis, lalu study pack dibuat dari isinya.
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="rounded-lg border border-amber-200/80 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-600">
-                        UI SAJA — BELUM TERHUBUNG
-                    </span>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Tutup panel unggah"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600"
-                    >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/50 px-6 py-10 text-center transition-colors hover:border-[#465FFF] hover:bg-[#ECF2FF]/40">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#465FFF] shadow-xs">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
-                        />
-                    </svg>
-                </span>
-                <p className="mt-3.5 text-xs font-semibold text-slate-700">Tarik file ke sini, atau klik untuk memilih</p>
-                <p className="mt-1 text-[11px] text-slate-400">Maksimal 25 MB per file</p>
                 <button
                     type="button"
-                    className="mt-4 rounded-lg bg-[#465FFF] px-3.5 py-2 text-[11px] font-semibold text-white shadow-xs transition-all hover:bg-blue-600 active:scale-95"
+                    onClick={onClose}
+                    aria-label="Tutup panel unggah"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-600"
                 >
-                    Pilih file
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                 </button>
             </div>
+
+            {courses.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/60 p-4 text-center">
+                    <p className="text-[11px] font-semibold text-amber-700">Belum ada mata kuliah</p>
+                    <p className="mt-1 text-[11px] text-amber-700/80">
+                        Materi harus punya mata kuliah. Buat mata kuliah dulu di halaman berkas.
+                    </p>
+                    <Link
+                        href="/"
+                        className="mt-3 inline-flex items-center justify-center rounded-lg bg-[#465FFF] px-3.5 py-2 text-[11px] font-semibold text-white shadow-xs transition-all hover:bg-blue-600"
+                    >
+                        Buka halaman berkas
+                    </Link>
+                </div>
+            ) : (
+                <form onSubmit={submit} className="space-y-4">
+                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/50 px-6 py-10 text-center transition-colors hover:border-[#465FFF] hover:bg-[#ECF2FF]/40">
+                        <input
+                            type="file"
+                            accept=".pdf,.pptx"
+                            className="hidden"
+                            onChange={(e) => setData("file", e.target.files?.[0] ?? null)}
+                        />
+                        <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white text-[#465FFF] shadow-xs">
+                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                                />
+                            </svg>
+                        </span>
+                        <p className="mt-3.5 text-xs font-semibold text-slate-700">
+                            {data.file ? data.file.name : "Tarik file ke sini, atau klik untuk memilih"}
+                        </p>
+                        <p className="mt-1 text-[11px] text-slate-400">PDF atau PPTX, maksimal 20 MB per file</p>
+                    </label>
+                    {errors.file && <p className="text-[11px] font-medium text-rose-600">{errors.file}</p>}
+
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <div className="flex-1">
+                            <label htmlFor="course_id" className="block text-[10px] font-medium text-slate-400">
+                                Mata kuliah
+                            </label>
+                            <select
+                                id="course_id"
+                                value={data.course_id}
+                                onChange={(e) => setData("course_id", e.target.value)}
+                                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-[#465FFF] focus:ring-2 focus:ring-[#465FFF]/15"
+                            >
+                                {courses.map((course) => (
+                                    <option key={course.id} value={course.id}>
+                                        {course.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.course_id && <p className="mt-1 text-[11px] font-medium text-rose-600">{errors.course_id}</p>}
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={processing || !data.file || !data.course_id}
+                            className="shrink-0 rounded-xl bg-[#465FFF] px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
+                        >
+                            {processing ? "Mengunggah…" : "Unggah materi"}
+                        </button>
+                    </div>
+                </form>
+            )}
         </section>
     );
 }
 
-export default function Index() {
+export default function Index({ materials = [], courses = [] }) {
     const [query, setQuery] = useState("");
     const [courseId, setCourseId] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
@@ -283,17 +357,22 @@ export default function Index() {
 
     const counts = useMemo(
         () => ({
-            total: mockMaterials.length,
-            ready: mockMaterials.filter((d) => d.study_pack.status === "ready").length,
-            processing: mockMaterials.filter(isProcessing).length,
-            failed: mockMaterials.filter(isFailed).length,
+            total: materials.length,
+            ready: materials.filter((d) => d.study_pack.status === "ready").length,
+            processing: materials.filter(isProcessing).length,
+            failed: materials.filter(isFailed).length,
         }),
-        []
+        [materials]
     );
+
+    // Ingest & study pack jalan di queue (server), jadi props bisa basi. Selagi
+    // masih ada yang diproses, refresh daftar berkala tanpa reset filter user.
+    const anyPending = useMemo(() => materials.some(isPending), [materials]);
+    useRefreshWhile(anyPending, { only: ["materials"] });
 
     const results = useMemo(() => {
         const q = query.trim().toLowerCase();
-        const filtered = mockMaterials.filter((doc) => {
+        const filtered = materials.filter((doc) => {
             const matchesQuery =
                 !q ||
                 doc.title.toLowerCase().includes(q) ||
@@ -318,7 +397,7 @@ export default function Index() {
                 return bv - av;
             });
         return sorted;
-    }, [query, courseId, statusFilter, sort]);
+    }, [materials, query, courseId, statusFilter, sort]);
 
     const resetFilters = () => {
         setQuery("");
@@ -342,7 +421,7 @@ export default function Index() {
                         </p>
                         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Materi Kuliah</h1>
                         <p className="mt-1 text-xs text-slate-500">
-                            <span className="font-semibold text-[#465FFF]">{counts.total} materi</span> dari {mockCourses.length} mata
+                            <span className="font-semibold text-[#465FFF]">{counts.total} materi</span> dari {courses.length} mata
                             kuliah. Setiap materi diolah menjadi study pack berisi ringkasan, konsep, flashcard, dan quiz.
                         </p>
                     </div>
@@ -359,7 +438,7 @@ export default function Index() {
                     </button>
                 </div>
 
-                {showUpload && <UploadPanel onClose={() => setShowUpload(false)} />}
+                {showUpload && <UploadPanel courses={courses} onClose={() => setShowUpload(false)} />}
 
                 {/* --------------------------------------------------------- stat strip */}
                 <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
@@ -458,7 +537,7 @@ export default function Index() {
                         >
                             Semua mata kuliah
                         </button>
-                        {mockCourses.map((c) => (
+                        {courses.map((c) => (
                             <button
                                 key={c.id}
                                 type="button"

@@ -2,9 +2,8 @@ import { WEAK_THRESHOLD } from "@/utils/format";
 
 /**
  * Knowledge Gap dihitung per mata kuliah, bukan dijumlahkan dari semua
- * dokumen milik user. Bentuk data mock di mockV2.js sengaja meniru tabel
- * yang sudah diputuskan supaya query aslinya tinggal diimplementasikan di
- * lapisan yang sama:
+ * dokumen milik user. PHP mengirim data mentah (attempt_answers -> questions ->
+ * concepts) dan perhitungan di JS ini jadi satu-satunya sumber kebenaran:
  *
  *   attempt_answers
  *     JOIN questions ON questions.id = attempt_answers.question_id

@@ -2,17 +2,10 @@ import { useMemo } from "react";
 import { Head, Link } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
 import QuizRunner from "@/Components/QuizRunner";
-import { mockCourseConcepts, mockCourses, mockPracticeQuestions, mockQuestions, mockQuizAttempts } from "@/data/mockV2";
 import { buildPracticeResult, buildPracticeSession } from "@/utils/practice";
 import { WEAK_THRESHOLD, cx, formatDateTime, scoreTone } from "@/utils/format";
 
 const PRACTICE_KEY = "sipanda.v2.practiceAttempt";
-
-/**
- * Sumber angka practice: objek yang sama dengan halaman Progress. Bank soal
- * latihan sengaja terpisah dari `mockQuestions` (registry Knowledge Gap).
- */
-const gapData = { attempts: mockQuizAttempts, questions: mockQuestions, concepts: mockCourseConcepts };
 
 const conceptName = (id, question) => question?.concept_name ?? id;
 
@@ -35,10 +28,8 @@ function NoWeakConcepts({ course }) {
 }
 
 /**
- * Id course yang tidak dikenal. Route ini masih closure tanpa query DB, jadi
- * sekarang hanya mungkin lewat URL yang diketik manual. Backend nanti harus
- * menolak course yang bukan milik user yang sedang login, bukan sekadar
- * "tidak ditemukan".
+ * Id course yang tidak dikenal. Controller sudah menolak course milik user
+ * lain dengan 403, jadi panel ini praktis hanya muncul kalau props kosong.
  */
 function CourseNotFound() {
     return (
@@ -81,9 +72,6 @@ function PracticeHeader({ session }) {
                 </p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2">
-                <span className="rounded-lg border border-amber-200/80 bg-amber-50 px-2.5 py-1.5 text-[10px] font-bold text-amber-600">
-                    MOCK — SOAL DARI BANK LATIHAN
-                </span>
                 <Link
                     href="/progress"
                     className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-medium text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50"
@@ -126,8 +114,8 @@ function FocusList({ session }) {
             </ul>
             {session.missing_concepts.length > 0 && (
                 <p className="mt-2.5 rounded-lg border border-dashed border-amber-300 bg-amber-50/60 p-2.5 text-[10px] text-amber-700">
-                    Belum ada soal latihan untuk: {session.missing_concepts.map((c) => c.name).join(", ")}. Bank soal
-                    mock ini belum lengkap untuk konsep itu.
+                    Belum ada soal latihan untuk: {session.missing_concepts.map((c) => c.name).join(", ")}. Buat
+                    soal itu lewat Study Pack materi terkait.
                 </p>
             )}
         </section>
@@ -222,13 +210,15 @@ function PracticeResult({ result, session }) {
     );
 }
 
-export default function Index({ courseId }) {
-    const id = Number(courseId ?? mockCourses[0].id);
+export default function Index({ courseId, courses = [], attempts = [], questions = [], concepts = [] }) {
+    const id = Number(courseId);
 
     const session = useMemo(() => {
-        const course = mockCourses.find((c) => c.id === id);
-        return buildPracticeSession({ course, ...gapData, bank: mockPracticeQuestions });
-    }, [id]);
+        const course = courses.find((c) => c.id === id);
+        // Bank latihan memakai soal yang sama dengan Knowledge Gap. Attempt
+        // latihan tidak disimpan, jadi angka Progress tidak ikut berubah.
+        return buildPracticeSession({ course, attempts, questions, concepts, bank: questions });
+    }, [id, courses, attempts, questions, concepts]);
 
     const onFinish = useMemo(
         () => (finalAnswers) => {

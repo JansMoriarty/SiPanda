@@ -1,58 +1,6 @@
-import { useEffect, useState } from "react";
 import { Head, Link } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
-import { mockConcepts, mockQuiz } from "@/data/mockV2";
-import { WEAK_THRESHOLD, cx, formatDateTime, scoreTone } from "@/utils/format";
-
-const ATTEMPT_KEY = "sipanda.v2.lastAttempt";
-
-/**
- * Hasil contoh, dipakai kalau halaman Hasil dibuka langsung tanpa pernah
- * menyelesaikan quiz. Dipilih supaya angkanya konsisten: 6 dari 10 soal,
- * dengan satu konsep bernilai 0% supaya kondisi "perlu latihan" terlihat.
- */
-const FALLBACK_CORRECT = ["q1", "q3", "q4", "q5", "q6", "q9"];
-
-const buildFallback = () => {
-    const answers = mockQuiz.questions.map((q) => {
-        const correct = FALLBACK_CORRECT.includes(q.id);
-        return {
-            question_id: q.id,
-            concept: q.concept,
-            chosen: correct ? q.correct_index : (q.correct_index + 1) % q.options.length,
-            correct,
-        };
-    });
-    const total = answers.length;
-    const correct = answers.filter((a) => a.correct).length;
-    const byConcept = {};
-    for (const a of answers) {
-        byConcept[a.concept] = byConcept[a.concept] || { total: 0, correct: 0 };
-        byConcept[a.concept].total += 1;
-        if (a.correct) byConcept[a.concept].correct += 1;
-    }
-    return {
-        attempt_id: "contoh",
-        document_id: mockQuiz.document_id,
-        document_title: mockQuiz.document_title,
-        course: mockQuiz.course,
-        total,
-        correct,
-        score: Math.round((correct / total) * 100),
-        passing_score: mockQuiz.passing_score,
-        completed_at: null,
-        answers,
-        breakdown: Object.entries(byConcept)
-            .map(([concept_id, v]) => ({
-                concept_id,
-                name: mockConcepts.find((c) => c.id === concept_id)?.name ?? concept_id,
-                total: v.total,
-                correct: v.correct,
-                score: Math.round((v.correct / v.total) * 100),
-            }))
-            .sort((a, b) => a.score - b.score),
-    };
-};
+import { WEAK_THRESHOLD, cx, formatDateTime } from "@/utils/format";
 
 function ScoreRing({ score }) {
     const r = 52;
@@ -82,40 +30,11 @@ function ScoreRing({ score }) {
     );
 }
 
-export default function Results() {
-    const [result, setResult] = useState(null);
-    const [fromStorage, setFromStorage] = useState(false);
-
-    useEffect(() => {
-        try {
-            const raw = sessionStorage.getItem(ATTEMPT_KEY);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (parsed && Array.isArray(parsed.answers) && parsed.answers.length) {
-                    setResult(parsed);
-                    setFromStorage(true);
-                    return;
-                }
-            }
-        } catch {
-            // abaikan, pakai fallback
-        }
-        setResult(buildFallback());
-    }, []);
-
-    if (!result) {
-        return (
-            <>
-                <Head title="Hasil Quiz — SiPanda" />
-                <div className="mx-auto max-w-3xl p-6 sm:p-7">
-                    <div className="rounded-xl border border-slate-200/80 bg-white p-10 text-center text-xs text-slate-400">
-                        Menyusun hasil...
-                    </div>
-                </div>
-            </>
-        );
-    }
-
+/**
+ * Hasil quiz dari QuizController@results. Skor & breakdown dihitung di server
+ * dari attempt_answers, jadi halaman ini murni menampilkan data yang dikirim.
+ */
+export default function Results({ result }) {
     const passed = result.score >= result.passing_score;
     const wrong = result.total - result.correct;
     const weak = result.breakdown.filter((b) => b.score < WEAK_THRESHOLD);
@@ -150,16 +69,6 @@ export default function Results() {
                         )}
                     </p>
                 </div>
-
-                {!fromStorage && (
-                    <div className="rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3">
-                        <p className="text-[11px] font-semibold text-amber-700">Ini hasil contoh, bukan hasil kerjamu</p>
-                        <p className="mt-0.5 text-[10px] leading-relaxed text-amber-600">
-                            Halaman ini dibuka tanpa melalui quiz, jadi datanya dari fallback. Kerjakan quiz untuk melihat
-                            hasil yang benar-benar dihitung dari jawabanmu.
-                        </p>
-                    </div>
-                )}
 
                 {/* score */}
                 <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
@@ -287,9 +196,7 @@ export default function Results() {
                 </div>
 
                 <p className="text-center text-[10px] leading-relaxed text-slate-400">
-                    {fromStorage
-                        ? "Hasil ini dihitung di browser dan disimpan sementara di tab ini. Nanti disimpan di server bersama attempt."
-                        : "Fallback mock, bukan hasil kerjamu."}
+                    Hasil ini dihitung dari jawabanmu dan tersimpan bersama attempt di server.
                 </p>
             </div>
         </>

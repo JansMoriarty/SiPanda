@@ -1,11 +1,8 @@
 import { useMemo, useState } from "react";
 import { Head, Link } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
-import { mockCourseConcepts, mockCourses, mockQuestions, mockQuizAttempts } from "@/data/mockV2";
 import { WEAK_THRESHOLD, cx, formatDateTime, scoreTone } from "@/utils/format";
 import { buildCourseGap, buildCourseGapSummaries, masteryOf } from "@/utils/gap";
-
-const gapData = { attempts: mockQuizAttempts, questions: mockQuestions, concepts: mockCourseConcepts };
 
 const IMPORTANCE_LABEL = { high: "Penting", medium: "Menengah", low: "Tambahan" };
 
@@ -169,9 +166,6 @@ function PracticeCard({ gap }) {
         <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-bold text-slate-900">Latihan personalisasi</h2>
-                <span className="rounded-lg border border-amber-200/80 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-600">
-                    MOCK — DARI KONSEP LEMAH
-                </span>
             </div>
 
             {weak.length > 0 ? (
@@ -260,16 +254,40 @@ function AttemptHistory({ attempts, courseId }) {
     );
 }
 
-export default function Index() {
-    const [courseId, setCourseId] = useState(mockCourses[0].id);
+export default function Index({ courses = [], attempts = [], questions = [], concepts = [] }) {
+    const gapData = useMemo(() => ({ attempts, questions, concepts }), [attempts, questions, concepts]);
+    const [courseId, setCourseId] = useState(courses[0]?.id);
 
     const summaries = useMemo(
-        () => buildCourseGapSummaries({ ...gapData, courses: mockCourses }),
-        []
+        () => buildCourseGapSummaries({ ...gapData, courses }),
+        [gapData, courses]
     );
-    const course = useMemo(() => mockCourses.find((c) => c.id === courseId), [courseId]);
-    const gap = useMemo(() => buildCourseGap({ ...gapData, course }), [course]);
+    const course = useMemo(() => courses.find((c) => c.id === courseId), [courses, courseId]);
+    const gap = useMemo(() => buildCourseGap({ ...gapData, course }), [gapData, course]);
     const tested = gap.concepts.filter((c) => !c.untested);
+
+    if (!course) {
+        return (
+            <>
+                <Head title="Progress" />
+                <div className="mx-auto max-w-[1400px] p-6 sm:p-7">
+                    <section className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
+                        <h1 className="text-sm font-bold text-slate-900">Belum ada mata kuliah</h1>
+                        <p className="mx-auto mt-1 max-w-md text-xs text-slate-400">
+                            Knowledge gap muncul setelah kamu punya mata kuliah dan menyelesaikan quiz.
+                            Unggah materi dulu, lalu kerjakan quiznya.
+                        </p>
+                        <Link
+                            href="/materials"
+                            className="mt-4 inline-flex items-center justify-center rounded-xl bg-[#465FFF] px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all hover:bg-blue-600"
+                        >
+                            Buka materials
+                        </Link>
+                    </section>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
@@ -287,9 +305,6 @@ export default function Index() {
                             <span>Knowledge gap dari {gap.quiz_count} quiz, {gap.attempt_count} percobaan</span>
                         </p>
                     </div>
-                    <span className="shrink-0 rounded-lg border border-amber-200/80 bg-amber-50 px-2.5 py-1.5 text-[10px] font-bold text-amber-600">
-                        MOCK — DIAGREGASI DARI ATTEMPT CONTOH
-                    </span>
                 </div>
 
                 <CourseFilter summaries={summaries} selectedId={courseId} onSelect={setCourseId} />
@@ -350,16 +365,16 @@ export default function Index() {
                                     </div>
 
                                     <p className="mt-4 border-t border-slate-100 pt-3 text-[10px] leading-relaxed text-slate-400">
-                                        Angka di halaman ini dihitung dari data latihan mock, bukan dari quiz yang
-                                        baru saja kamu kerjakan. Belum ada attempt yang tersimpan di server, jadi
-                                        memuat ulang halaman tidak akan mengambil hasil terbaru.
+                                        Angka di halaman ini dijumlahkan dari setiap jawaban yang tersimpan di
+                                        quiz yang sudah kamu selesaikan. Selesaikan quiz baru, lalu buka halaman ini
+                                        lagi untuk melihat perubahannya.
                                     </p>
                                 </section>
                             </div>
 
                             <div className="space-y-6">
                                 <PracticeCard gap={gap} />
-                                <AttemptHistory attempts={mockQuizAttempts} courseId={courseId} />
+                                <AttemptHistory attempts={attempts} courseId={courseId} />
                             </div>
                         </div>
                     </>

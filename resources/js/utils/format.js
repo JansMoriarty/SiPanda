@@ -69,7 +69,11 @@ export const packBadge = (studyPack) => {
         case "ready":
             return { label: "Study pack siap", className: "text-emerald-600 bg-emerald-50 border-emerald-200/80", showProgress: false };
         case "generating":
-            return { label: `Membuat study pack ${progress}%`, className: "text-[#465FFF] bg-[#ECF2FF] border-blue-200/80", showProgress: true };
+            return {
+                label: Number.isFinite(progress) ? `Membuat study pack ${progress}%` : "Membuat study pack",
+                className: "text-[#465FFF] bg-[#ECF2FF] border-blue-200/80",
+                showProgress: true,
+            };
         case "queued":
             return { label: "Antrean", className: "text-slate-500 bg-slate-50 border-slate-200/80", showProgress: false };
         case "failed":
