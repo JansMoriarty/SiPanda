@@ -19,6 +19,7 @@ return [
         'max_concepts' => (int) env('STUDY_PACK_MAX_CONCEPTS', 8),
         'questions_per_concept' => (int) env('STUDY_PACK_QUESTIONS_PER_CONCEPT', 2),
         'options_count' => (int) env('STUDY_PACK_OPTIONS_COUNT', 4),
+        'flashcards_per_concept' => (int) env('STUDY_PACK_FLASHCARDS_PER_CONCEPT', 3),
     ],
 
     'quiz' => [

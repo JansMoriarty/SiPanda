@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\FlashcardReviewController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\ProgressController;
 use App\Http\Controllers\PracticeController;
@@ -79,6 +80,7 @@ Route::middleware(['auth', 'student'])->group(function () {
     Route::get('/documents/{document}', [MaterialsController::class, 'show'])->name('materials.show');
     Route::post('/documents/{document}/study-pack', [MaterialsController::class, 'generateStudyPack'])->name('materials.study-pack.generate');
     Route::get('/documents/{document}/study-pack', [StudyPackController::class, 'show'])->name('materials.study-pack');
+    Route::post('/flashcards/{flashcard}/review', [FlashcardReviewController::class, 'store'])->name('flashcards.review');
     Route::get('/documents/{document}/quiz', [QuizController::class, 'start'])->name('materials.quiz');
     Route::post('/quiz/{attempt}/submit', [QuizController::class, 'submit'])->name('materials.quiz.submit');
     Route::get('/quiz/{attempt}/results', [QuizController::class, 'results'])->name('quiz.results');

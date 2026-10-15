@@ -6,6 +6,8 @@ use App\Models\AttemptAnswer;
 use App\Models\Concept;
 use App\Models\Course;
 use App\Models\Document;
+use App\Models\Flashcard;
+use App\Models\FlashcardReview;
 use App\Models\Question;
 use App\Models\QuizAttempt;
 use App\Models\User;
@@ -109,7 +111,57 @@ class StudyPackPageTest extends TestCase
                 ->where('pack.summary', 'Ringkasan bab.')
                 ->has('pack.key_points', 2)
                 ->where('pack.key_points.1', 'Poin dua')
+                ->has('pack.flashcards', 0)
                 ->where('pack.quiz.total_questions', 0));
+    }
+
+    public function test_flashcards_dikirim_dengan_status_review_user(): void
+    {
+        [$user, $document] = $this->document('a');
+        $concept = $this->concept($document, 'Limit', 1);
+
+        $card = Flashcard::create([
+            'document_id' => $document->id,
+            'concept_id' => $concept->id,
+            'front' => 'Apa itu limit?',
+            'back' => 'Nilai yang didekati.',
+            'sort_order' => 0,
+        ]);
+
+        FlashcardReview::create([
+            'user_id' => $user->id,
+            'flashcard_id' => $card->id,
+            'known' => true,
+            'reviewed_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('materials.study-pack', $document))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('pack.flashcards', 1)
+                ->where('pack.flashcards.0.front', 'Apa itu limit?')
+                ->where('pack.flashcards.0.concept_name', 'Limit')
+                ->where('pack.flashcards.0.known', true));
+    }
+
+    public function test_flashcard_belum_ditinjau_dikirim_null(): void
+    {
+        [$user, $document] = $this->document('a');
+        $concept = $this->concept($document, 'Limit', 1);
+
+        Flashcard::create([
+            'document_id' => $document->id,
+            'concept_id' => $concept->id,
+            'front' => 'f',
+            'back' => 'b',
+            'sort_order' => 0,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('materials.study-pack', $document))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('pack.flashcards', 1)
+                ->where('pack.flashcards.0.known', null));
     }
 
     public function test_penguasaan_konsep_dihitung_dari_attempt_selesai(): void

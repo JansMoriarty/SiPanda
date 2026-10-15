@@ -60,6 +60,11 @@ class User extends Authenticatable
         return $this->hasMany(QuizAttempt::class);
     }
 
+    public function flashcardReviews(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(FlashcardReview::class);
+    }
+
     protected function avatar(): Attribute
     {
         return Attribute::get(function (?string $value) {

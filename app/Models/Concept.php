@@ -29,4 +29,9 @@ class Concept extends Model
     {
         return $this->hasMany(Question::class);
     }
+
+    public function flashcards(): HasMany
+    {
+        return $this->hasMany(Flashcard::class)->orderBy('sort_order');
+    }
 }

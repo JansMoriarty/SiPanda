@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
 import useRefreshWhile from "@/hooks/useRefreshWhile";
 import { WEAK_THRESHOLD, cx, fileLabel, fileTone, formatDateTime, formatSize, scoreTone } from "@/utils/format";
@@ -8,9 +8,9 @@ import { renderMarkdown } from "@/utils/markdown";
 const TABS = [
     { id: "summary", label: "Ringkasan" },
     { id: "concepts", label: "Konsep Kunci" },
+    { id: "flashcards", label: "Flashcards" },
     { id: "quiz", label: "Quiz" },
     { id: "ask", label: "Ask PANDA" },
-    { id: "flashcards", label: "Flashcards", comingSoon: true, badge: "Segera" },
 ];
 
 const importanceBadge = (importance) =>
@@ -175,8 +175,8 @@ function SummaryPanel({ pack }) {
                         {[
                             { label: "Ringkasan", value: "1 bagian", done: true },
                             { label: "Konsep kunci", value: `${pack.concepts.length} konsep`, done: true },
+                            { label: "Flashcards", value: `${pack.flashcards.length} kartu`, done: pack.flashcards.length > 0 },
                             { label: "Quiz", value: `${pack.quiz.total_questions} soal`, done: true },
-                            { label: "Flashcards", value: `${pack.flashcards.length} kartu`, done: false },
                         ].map((row) => (
                             <div key={row.label} className="flex items-center gap-2.5">
                                 <span
@@ -710,23 +710,218 @@ function AskPanel({ pack }) {
     );
 }
 
-function LockedPanel() {
+function FlashcardsPanel({ pack }) {
+    const [cards, setCards] = useState(pack.flashcards);
+    const [order, setOrder] = useState(() => pack.flashcards.map((_, i) => i));
+    const [index, setIndex] = useState(0);
+    const [flipped, setFlipped] = useState(false);
+
+    // Study pack bisa digenerate ulang saat halaman terbuka; sinkronkan ulang
+    // kartu tanpa mengubah apa pun kalau isinya sama.
+    useEffect(() => {
+        setCards(pack.flashcards);
+        setOrder(pack.flashcards.map((_, i) => i));
+        setIndex(0);
+        setFlipped(false);
+    }, [pack.flashcards]);
+
+    const total = cards.length;
+    const knownCount = cards.filter((c) => c.known === true).length;
+    const card = total > 0 ? cards[order[index]] : null;
+
+    function go(delta) {
+        if (total === 0) return;
+        setIndex((prev) => (prev + delta + total) % total);
+        setFlipped(false);
+    }
+
+    function shuffle() {
+        setOrder((prev) => {
+            const next = [...prev];
+            for (let i = next.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [next[i], next[j]] = [next[j], next[i]];
+            }
+            return next;
+        });
+        setIndex(0);
+        setFlipped(false);
+    }
+
+    function mark(known) {
+        if (!card) return;
+        const id = card.id;
+        setCards((prev) => prev.map((c) => (c.id === id ? { ...c, known } : c)));
+        // only: [] -> tidak perlu reload props; kartu sudah diperbarui lokal.
+        router.post(`/flashcards/${id}/review`, { known }, { preserveScroll: true, preserveState: true, only: [] });
+    }
+
+    // Panah kiri/kanan untuk pindah kartu, spasi untuk membalik.
+    useEffect(() => {
+        function onKey(e) {
+            if (e.key === "ArrowRight") {
+                e.preventDefault();
+                go(1);
+            } else if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                go(-1);
+            } else if (e.key === " " || e.key === "Enter") {
+                e.preventDefault();
+                setFlipped((f) => !f);
+            }
+        }
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [total]);
+
+    if (total === 0) {
+        return (
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center dark:border-gray-700 dark:bg-white/[0.03]">
+                <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-300 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-600">
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25A2.25 2.25 0 018.25 10.5H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6A2.25 2.25 0 0115.75 3.75H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                    </svg>
+                </span>
+                <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Belum ada kartu belajar</p>
+                <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-gray-400 dark:text-gray-500">
+                    Kartu dibuat otomatis bersama study pack. Coba buat ulang study pack dari halaman detail dokumen
+                    kalau dokumen ini dibuat sebelum fitur flashcards ada.
+                </p>
+            </div>
+        );
+    }
+
+    const imp = importanceBadge(card.importance);
+    const knownTone =
+        card.known === true
+            ? { label: "Sudah dikuasai", className: "text-emerald-600 border-emerald-200 bg-emerald-50 dark:text-emerald-400 dark:border-emerald-500/30 dark:bg-emerald-500/10" }
+            : card.known === false
+            ? { label: "Perlu diulang", className: "text-amber-600 border-amber-200 bg-amber-50 dark:text-amber-400 dark:border-amber-500/30 dark:bg-amber-500/10" }
+            : { label: "Belum ditinjau", className: "text-gray-500 border-gray-200 bg-gray-50 dark:text-gray-400 dark:border-gray-700 dark:bg-white/[0.03]" };
+
     return (
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-16 text-center dark:border-gray-700 dark:bg-white/[0.03]">
-            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-300 dark:border-gray-700 dark:bg-white/[0.03] dark:text-gray-600">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-                    />
-                </svg>
-            </span>
-            <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Flashcards belum tersedia</p>
-            <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-gray-400 dark:text-gray-500">
-                Fitur ini ada di roadmap tetapi dijadwalkan setelah Knowledge Gap dan Personalized Practice,
-                jadi tab-nya dikunci saja supaya posisinya tidak berubah-ubah nanti.
-            </p>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div className="space-y-4 xl:col-span-2">
+                <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h2 className="text-sm font-bold text-gray-900 dark:text-white">Kartu belajar</h2>
+                            <p className="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500">
+                                Klik kartu untuk melihat jawaban. Tandai kartu yang sudah kamu kuasai.
+                            </p>
+                        </div>
+                        <span className="rounded-lg bg-gray-50 px-2.5 py-1 text-[10px] font-semibold text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
+                            {index + 1} / {total}
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setFlipped((f) => !f)}
+                        className="flex min-h-[240px] w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/60 px-6 py-10 text-center transition-colors hover:border-brand-500/40 dark:border-gray-700 dark:bg-white/[0.02] dark:hover:border-brand-500/40"
+                    >
+                        <span className="mb-3 flex flex-wrap items-center justify-center gap-1.5">
+                            <span className={cx("rounded-md border px-1.5 py-0.5 text-[9px] font-bold", imp.className)}>{imp.label}</span>
+                            <span className={cx("rounded-md border px-1.5 py-0.5 text-[9px] font-bold", knownTone.className)}>{knownTone.label}</span>
+                            {card.concept_name && (
+                                <span className="rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[9px] font-semibold text-gray-500 dark:border-gray-700 dark:bg-transparent dark:text-gray-400">
+                                    {card.concept_name}
+                                </span>
+                            )}
+                        </span>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                            {flipped ? "Jawaban" : "Pertanyaan"}
+                        </p>
+                        <p className="mt-2 text-base font-semibold leading-relaxed text-gray-800 dark:text-gray-100">
+                            {flipped ? card.back : card.front}
+                        </p>
+                        <p className="mt-4 text-[10px] text-gray-400 dark:text-gray-500">
+                            {flipped ? "Klik untuk kembali ke pertanyaan" : "Klik untuk melihat jawaban"}
+                        </p>
+                    </button>
+
+                    <div className="mt-4 flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => go(-1)}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-white/[0.03]"
+                            aria-label="Kartu sebelumnya"
+                        >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => mark(false)}
+                            className={cx(
+                                "flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2.5 text-[11px] font-semibold transition-colors",
+                                card.known === false
+                                    ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                                    : "border-gray-200 bg-white text-gray-600 hover:border-amber-300 hover:text-amber-600 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:border-amber-500/40 dark:hover:text-amber-400"
+                            )}
+                        >
+                            Perlu diulang
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => mark(true)}
+                            className={cx(
+                                "flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2.5 text-[11px] font-semibold transition-colors",
+                                card.known === true
+                                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400"
+                                    : "border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:text-emerald-600 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:border-emerald-500/40 dark:hover:text-emerald-400"
+                            )}
+                        >
+                            Sudah paham
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => go(1)}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition-colors hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-white/[0.03]"
+                            aria-label="Kartu berikutnya"
+                        >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <div className="space-y-6">
+                <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <h2 className="text-sm font-bold text-gray-900 dark:text-white">Progres kartu</h2>
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                        Kartu yang ditandai "sudah paham" dihitung di sini.
+                    </p>
+                    <div className="mt-4 flex items-center gap-3.5">
+                        <span className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-lg font-bold text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400">
+                            {knownCount}
+                        </span>
+                        <div>
+                            <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">Dikuasai</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500">dari {total} kartu</p>
+                        </div>
+                    </div>
+                    <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                        <div className="h-full rounded-full bg-emerald-500" style={{ width: `${total > 0 ? (knownCount / total) * 100 : 0}%` }} />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={shuffle}
+                        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-semibold text-gray-600 transition-all hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-white/[0.03]"
+                    >
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+                        </svg>
+                        Acak urutan
+                    </button>
+                    <p className="mt-3 text-[10px] leading-relaxed text-gray-400 dark:text-gray-500">
+                        Tip: gunakan panah kiri/kanan untuk pindah kartu dan spasi untuk membalik.
+                    </p>
+                </section>
+            </div>
         </div>
     );
 }
@@ -798,6 +993,7 @@ export default function StudyPack({ pack }) {
         (pack.summary ||
             (pack.key_points?.length ?? 0) > 0 ||
             (pack.concepts?.length ?? 0) > 0 ||
+            (pack.flashcards?.length ?? 0) > 0 ||
             (pack.quiz?.total_questions ?? 0) > 0);
 
     if (!hasContent) {
@@ -816,9 +1012,9 @@ export default function StudyPack({ pack }) {
                 <Panel id={active}>
                     {active === "summary" && <SummaryPanel pack={pack} />}
                     {active === "concepts" && <ConceptsPanel pack={pack} />}
+                    {active === "flashcards" && <FlashcardsPanel pack={pack} />}
                     {active === "quiz" && <QuizPanel pack={pack} />}
                     {active === "ask" && <AskPanel pack={pack} />}
-                    {active === "flashcards" && <LockedPanel />}
                 </Panel>
             </div>
         </>

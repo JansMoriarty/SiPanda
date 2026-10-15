@@ -7,6 +7,7 @@ use App\Models\Chunk;
 use App\Models\Concept;
 use App\Models\Course;
 use App\Models\Document;
+use App\Models\Flashcard;
 use App\Models\Question;
 use App\Models\User;
 use App\Services\StudyPack\StudyPackGenerator;
@@ -15,10 +16,10 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
- * Generator Study Pack: mengisi summary, key_points, concepts, dan questions
- * dari materi dokumen lewat LlmClient. Yang dikunci: hasil tahapan lengkap,
- * idempoten saat di-dispatch ulang, bisa lanjut kalau data sudah ada sebagian,
- * dan menandai failed saat LLM gagal.
+ * Generator Study Pack: mengisi summary, key_points, concepts, questions, dan
+ * flashcards dari materi dokumen lewat LlmClient. Yang dikunci: hasil tahapan
+ * lengkap, idempoten saat di-dispatch ulang, bisa lanjut kalau data sudah ada
+ * sebagian, dan menandai failed saat LLM gagal.
  */
 class StudyPackGeneratorTest extends TestCase
 {
@@ -90,6 +91,15 @@ class StudyPackGeneratorTest extends TestCase
                 ]));
             }
 
+            if (str_contains($body, 'TUGAS_FLASHCARD')) {
+                return Http::response($this->gemini([
+                    'flashcards' => [
+                        ['front' => 'f1', 'back' => 'b1'],
+                        ['front' => 'f2', 'back' => 'b2'],
+                    ],
+                ]));
+            }
+
             return Http::response('unexpected', 500);
         });
     }
@@ -110,6 +120,9 @@ class StudyPackGeneratorTest extends TestCase
         $this->assertSame(4, $document->questions()->count());
         $this->assertTrue($document->concepts->every(fn ($concept) => $concept->questions()->count() === 2));
         $this->assertSame(['a', 'b', 'c', 'd'], $document->questions()->first()->options);
+        $this->assertSame(4, $document->flashcards()->count());
+        $this->assertTrue($document->concepts->every(fn ($concept) => $concept->flashcards()->count() === 2));
+        $this->assertSame('f1', $document->flashcards()->orderBy('id')->first()->front);
     }
 
     public function test_dispatch_ulang_tidak_memanggil_llm_lagi(): void
@@ -140,6 +153,13 @@ class StudyPackGeneratorTest extends TestCase
             'options' => ['a', 'b'],
             'correct_index' => 0,
         ]);
+        Flashcard::create([
+            'document_id' => $document->id,
+            'concept_id' => $concept->id,
+            'front' => 'f',
+            'back' => 'b',
+            'sort_order' => 0,
+        ]);
 
         Http::fake();
 
@@ -149,7 +169,33 @@ class StudyPackGeneratorTest extends TestCase
         $this->assertSame('ready', $document->study_pack_status);
         $this->assertSame(1, $document->concepts()->count());
         $this->assertSame(1, $document->questions()->count());
+        $this->assertSame(1, $document->flashcards()->count());
         Http::assertNothingSent();
+    }
+
+    public function test_tahap_flashcard_melengkapi_konsep_yang_belum_punya_kartu(): void
+    {
+        $document = $this->document();
+        $document->update(['summary' => 'Sudah ada', 'key_points' => ['K1']]);
+
+        $concept = Concept::create(['document_id' => $document->id, 'name' => 'Limit', 'sort_order' => 0]);
+        Question::create([
+            'document_id' => $document->id,
+            'concept_id' => $concept->id,
+            'question' => 'q',
+            'options' => ['a', 'b'],
+            'correct_index' => 0,
+        ]);
+
+        $this->fakeLlm();
+
+        app(StudyPackGenerator::class)->generate($document);
+
+        $document->refresh();
+        $this->assertSame('ready', $document->study_pack_status);
+        // Summary/konsep/soal tidak digandakan, hanya kartu yang diisi.
+        $this->assertSame(1, $document->questions()->count());
+        $this->assertSame(2, $document->flashcards()->count());
     }
 
     public function test_kegagalan_llm_menandai_failed(): void

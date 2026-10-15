@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AttemptAnswer;
 use App\Models\Document;
+use App\Models\FlashcardReview;
 use App\Models\QuizAttempt;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -11,7 +12,8 @@ use Inertia\Inertia;
 
 /**
  * Study Pack satu dokumen: ringkasan, poin penting, konsep (+penguasaan),
- * dan ringkasan quiz. Semua di-scope lewat course.user_id.
+ * kartu belajar (+status tinjauan user), dan ringkasan quiz. Semua di-scope
+ * lewat course.user_id.
  *
  * Penguasaan per konsep SENGAJA dihitung di sini dengan definisi yang sama
  * seperti Knowledge Gap: benar ÷ dijawab dari attempt yang sudah selesai.
@@ -30,6 +32,22 @@ class StudyPackController extends Controller
         $masteryByConcept = $this->masteryByConcept($request, $document);
 
         $questions = $document->questions()->get(['id', 'concept_id']);
+
+        $flashcards = $document->flashcards()
+            ->with('concept:id,name,importance')
+            ->orderBy('concept_id')
+            ->orderBy('sort_order')
+            ->get(['id', 'concept_id', 'front', 'back', 'sort_order']);
+
+        // known di-key by flashcard_id. Kartu yang belum pernah ditandai tidak
+        // muncul di sini, jadi UI bisa membedakan "belum ditinjau" (null) dari
+        // "perlu diulang" (false).
+        $reviewStates = $flashcards->isEmpty()
+            ? collect()
+            : FlashcardReview::query()
+                ->where('user_id', $request->user()->id)
+                ->whereIn('flashcard_id', $flashcards->pluck('id'))
+                ->pluck('known', 'flashcard_id');
 
         $attempts = QuizAttempt::query()
             ->where('user_id', $request->user()->id)
@@ -73,9 +91,17 @@ class StudyPackController extends Controller
                             : (int) round($bucket['correct'] / $bucket['answered'] * 100),
                     ];
                 })->values(),
-                // Flashcards belum punya tabel (nice-to-have di roadmap),
-                // jadi dikirim kosong alih-alih mengarang isinya.
-                'flashcards' => [],
+                // Kartu belajar + status tinjauan user ini. 'known' null berarti
+                // kartu belum pernah ditandai, false berarti perlu diulang.
+                'flashcards' => $flashcards->map(fn ($card) => [
+                    'id' => $card->id,
+                    'concept_id' => $card->concept_id,
+                    'concept_name' => $card->concept?->name,
+                    'importance' => $card->concept?->importance,
+                    'front' => $card->front,
+                    'back' => $card->back,
+                    'known' => $reviewStates->has($card->id) ? (bool) $reviewStates->get($card->id) : null,
+                ])->values(),
                 'quiz' => [
                     'total_questions' => min(
                         $questions->count(),

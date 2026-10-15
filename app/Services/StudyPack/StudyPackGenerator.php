@@ -5,6 +5,7 @@ namespace App\Services\StudyPack;
 use App\Contracts\LlmClient;
 use App\Models\Concept;
 use App\Models\Document;
+use App\Models\Flashcard;
 use App\Models\LlmUsage;
 use App\Models\Question;
 use App\Services\Llm\LlmUsageRecorder;
@@ -12,11 +13,14 @@ use Illuminate\Support\Collection;
 
 /**
  * Menghasilkan Study Pack sebuah dokumen dengan memanggil LLM secara bertahap:
- * 1) summary + key points, 2) daftar konsep, 3) soal per konsep.
+ * 1) summary + key points, 2) daftar konsep, 3) soal per konsep, 4) kartu belajar
+ * (flashcard) per konsep.
  *
- * Idempoten & bisa lanjut: tahap yang datanya sudah ada dilewati, dan soal
- * hanya dibuat untuk konsep yang belum punya soal. Jadi retry tidak
- * menggandakan data dan tidak membuang token untuk yang sudah selesai.
+ * Idempoten & bisa lanjut: tahap yang datanya sudah ada dilewati, dan soal/kartu
+ * hanya dibuat untuk konsep yang belum punya. Jadi retry tidak menggandakan data
+ * dan tidak membuang token untuk yang sudah selesai. Tahap kartu yang terpisah
+ * ini jugalah yang membuat dokumen lama bisa mengisi flashcard lewat "Buat ulang"
+ * tanpa mengulang summary/konsep/soal.
  */
 class StudyPackGenerator
 {
@@ -46,6 +50,7 @@ class StudyPackGenerator
             $this->generateSummaryAndKeyPoints($document, $text);
             $concepts = $this->generateConcepts($document, $text);
             $this->generateQuestions($document, $concepts, $text);
+            $this->generateFlashcards($document, $concepts, $text);
 
             $document->update([
                 'study_pack_status' => 'ready',
@@ -235,6 +240,70 @@ class StudyPackGenerator
     }
 
     /**
+     * Buat kartu belajar per konsep. Dilewati kalau konsep sudah punya kartu,
+     * jadi retry hanya melengkapi konsep yang belum selesai.
+     *
+     * @param  Collection<int, Concept>  $concepts
+     */
+    protected function generateFlashcards(Document $document, Collection $concepts, string $text): void
+    {
+        $perConcept = (int) config('sipanda.study_pack.flashcards_per_concept', 3);
+
+        if ($perConcept < 1) {
+            return;
+        }
+
+        $schema = [
+            'type' => 'OBJECT',
+            'properties' => [
+                'flashcards' => [
+                    'type' => 'ARRAY',
+                    'items' => [
+                        'type' => 'OBJECT',
+                        'properties' => [
+                            'front' => ['type' => 'STRING'],
+                            'back' => ['type' => 'STRING'],
+                        ],
+                        'required' => ['front', 'back'],
+                    ],
+                ],
+            ],
+            'required' => ['flashcards'],
+        ];
+
+        foreach ($concepts as $concept) {
+            if ($concept->flashcards()->exists()) {
+                continue;
+            }
+
+            $result = $this->llm->generateJson(
+                $this->flashcardsPrompt($concept->name, $perConcept, $text),
+                $schema,
+                $this->systemInstruction()
+            );
+
+            $rows = array_slice((array) ($result['flashcards'] ?? []), 0, $perConcept);
+
+            foreach ($rows as $index => $row) {
+                $front = trim((string) ($row['front'] ?? ''));
+                $back = trim((string) ($row['back'] ?? ''));
+
+                if ($front === '' || $back === '') {
+                    continue;
+                }
+
+                Flashcard::create([
+                    'document_id' => $document->id,
+                    'concept_id' => $concept->id,
+                    'front' => $front,
+                    'back' => $back,
+                    'sort_order' => $index,
+                ]);
+            }
+        }
+    }
+
+    /**
      * @param  array<int, mixed>  $values
      * @return array<int, string>
      */
@@ -268,5 +337,12 @@ class StudyPackGenerator
         return "TUGAS_SOAL\nBuat {$count} soal pilihan ganda tentang konsep \"{$concept}\" "
             . "berdasarkan materi. Setiap soal punya {$optionsCount} opsi, correct_index (0-based), "
             . "explanation, dan source_label bila ada.\n\nMATERI:\n{$text}";
+    }
+
+    protected function flashcardsPrompt(string $concept, int $count, string $text): string
+    {
+        return "TUGAS_FLASHCARD\nBuat {$count} kartu belajar (flashcard) tentang konsep \"{$concept}\" "
+            . "berdasarkan materi. Setiap kartu punya front (istilah atau pertanyaan singkat) "
+            . "dan back (jawaban atau penjelasan singkat).\n\nMATERI:\n{$text}";
     }
 }

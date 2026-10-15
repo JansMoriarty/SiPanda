@@ -135,6 +135,9 @@ class AdminLlmUsageTest extends TestCase
             if (str_contains($body, 'TUGAS_SOAL')) {
                 return Http::response($this->gemini(['questions' => [['question' => 'q', 'options' => ['a', 'b'], 'correct_index' => 0, 'explanation' => 'e']]]));
             }
+            if (str_contains($body, 'TUGAS_FLASHCARD')) {
+                return Http::response($this->gemini(['flashcards' => [['front' => 'f', 'back' => 'b']]]));
+            }
 
             return Http::response('unexpected', 500);
         });
@@ -146,10 +149,11 @@ class AdminLlmUsageTest extends TestCase
 
         $rows = LlmUsage::where('feature', LlmUsage::FEATURE_STUDY_PACK)->get();
 
-        $this->assertCount(3, $rows);
+        // summary + konsep + soal + flashcard = 4 panggilan.
+        $this->assertCount(4, $rows);
         $this->assertTrue($rows->every(fn ($row) => $row->user_id === $owner->id));
         $this->assertTrue($rows->every(fn ($row) => $row->document_id === $document->id));
-        $this->assertSame(300, (int) $rows->sum('total_tokens'));
+        $this->assertSame(400, (int) $rows->sum('total_tokens'));
     }
 
     public function test_admin_melihat_halaman_pemakaian_ai(): void
