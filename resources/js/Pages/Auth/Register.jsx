@@ -53,6 +53,108 @@ const Spinner = () => (
     </svg>
 );
 
+/* Ikon perjalanan belajar */
+const f = 'h-1/2 w-1/2';
+const UploadIcon = () => (
+    <Icon className={f}>
+        <path d="M12 16V4" />
+        <path d="m7 9 5-5 5 5" />
+        <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </Icon>
+);
+const SummaryIcon = () => (
+    <Icon className={f}>
+        <path d="M6 3h8l4 4v14H6z" />
+        <path d="M9 12h6M9 16h6M9 8h2" />
+    </Icon>
+);
+const CardsIcon = () => (
+    <Icon className={f}>
+        <rect x="7" y="4" width="13" height="12" rx="2.5" />
+        <path d="M4 8v9a3 3 0 0 0 3 3h9" />
+    </Icon>
+);
+const QuizIcon = () => (
+    <Icon className={f}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5M12 17h.01" />
+    </Icon>
+);
+const TargetIcon = () => (
+    <Icon className={f}>
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="12" cy="12" r="5" />
+        <circle cx="12" cy="12" r="1" />
+    </Icon>
+);
+const TrendIcon = () => (
+    <Icon className={f}>
+        <path d="M4 19V5" />
+        <path d="M4 19h16" />
+        <path d="m7 15 4-4 3 3 5-6" />
+    </Icon>
+);
+
+/* ---------- Right panel: perjalanan belajar (konsep berbeda dari login) ---------- */
+const JW = 360;
+const JH = 420;
+
+// Titik-titik milestone berkelok dari bawah (unggah) menuju atas (progress).
+const journey = [
+    { icon: <UploadIcon />, label: 'Unggah Materi', color: 'text-blue-600', dot: '#2563EB', cx: 80, cy: 356 },
+    { icon: <SummaryIcon />, label: 'Ringkasan', color: 'text-indigo-600', dot: '#4F46E5', cx: 280, cy: 292 },
+    { icon: <CardsIcon />, label: 'Flashcards', color: 'text-rose-500', dot: '#F43F5E', cx: 80, cy: 228 },
+    { icon: <QuizIcon />, label: 'Quiz', color: 'text-emerald-600', dot: '#059669', cx: 280, cy: 164 },
+    { icon: <TargetIcon />, label: 'Knowledge Gap', color: 'text-amber-500', dot: '#F59E0B', cx: 80, cy: 100 },
+    { icon: <TrendIcon />, label: 'Progress', color: 'text-violet-600', dot: '#7C3AED', cx: 240, cy: 40 },
+];
+
+const JOURNEY_PATH =
+    'M80 356 C180 356 180 292 280 292 C180 292 180 228 80 228 C180 228 180 164 280 164 C180 164 180 100 80 100 C180 100 180 40 240 40';
+
+function Journey() {
+    return (
+        <div className="pointer-events-none w-full max-w-[330px] select-none">
+            <div className="relative w-full" style={{ aspectRatio: `${JW} / ${JH}` }}>
+                <svg viewBox={`0 0 ${JW} ${JH}`} className="absolute inset-0 h-full w-full" fill="none" aria-hidden="true">
+                    {/* satu jalur putus-putus yang berkelok naik */}
+                    <path
+                        id="journey-path"
+                        d={JOURNEY_PATH}
+                        stroke="#fff"
+                        strokeOpacity="0.4"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeDasharray="5 7"
+                    />
+                    {/* bulatan warna milestone yang mengalir menyusuri jalur */}
+                    {journey.map((it, i) => (
+                        <circle key={it.label} r="3.5" fill={it.dot} stroke="#fff" strokeOpacity="0.85" strokeWidth="1">
+                            <animateMotion dur="6s" begin={`-${i}s`} repeatCount="indefinite">
+                                <mpath href="#journey-path" />
+                            </animateMotion>
+                        </circle>
+                    ))}
+                </svg>
+                {journey.map((it) => (
+                    <div
+                        key={it.label}
+                        className="absolute z-10 aspect-square w-[13%] -translate-x-1/2 -translate-y-1/2"
+                        style={{ left: `${(it.cx / JW) * 100}%`, top: `${(it.cy / JH) * 100}%` }}
+                    >
+                        <div className={`absolute inset-[9%] flex items-center justify-center rounded-xl bg-white shadow-lg shadow-[#16238F]/30 ${it.color}`}>
+                            {it.icon}
+                        </div>
+                        <span className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-[10px] font-medium text-white/80">
+                            {it.label}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 /* ---------- Field ---------- */
 const inputBase =
     'h-11 w-full rounded-xl border bg-white dark:bg-gray-900 pl-10 text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-shadow focus:outline-none focus:ring-4';
@@ -110,17 +212,18 @@ export default function Register() {
     );
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-between bg-white dark:bg-gray-900 px-6 py-8 sm:px-10" style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-white dark:bg-gray-900" style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif" }}>
             <Head title="Buat akun">
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
             </Head>
 
-            {/* Spacer atas agar posisi main tepat di tengah layar */}
-            <div />
-
-            <main className="w-full max-w-[380px] my-auto">
+            <div className="grid min-h-screen lg:grid-cols-2">
+                {/* ---------- Sisi form ---------- */}
+                <main className="flex flex-col px-6 py-8 sm:px-10">
+                    <div className="flex flex-1 items-center justify-center">
+                        <div className="w-full max-w-[380px]">
                 <div className="flex justify-center">
                     <img src={LOGO_SRC} alt="SiPanda" className="h-12 w-auto" />
                 </div>
@@ -211,11 +314,39 @@ export default function Register() {
                         Masuk
                     </Link>
                 </p>
-            </main>
+                        </div>
+                    </div>
 
-            <p className="pt-8 text-center text-xs text-slate-400 dark:text-gray-500">
-                © {new Date().getFullYear()} SiPanda. Hak cipta dilindungi.
-            </p>
+                    <p className="pt-8 text-center text-xs text-slate-400 dark:text-gray-500">
+                        © {new Date().getFullYear()} SiPanda. Hak cipta dilindungi.
+                    </p>
+                </main>
+
+                {/* ---------- Sisi showcase (desktop) ---------- */}
+                <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#5A72FF] via-[#465FFF] to-[#2C3FD1] lg:block">
+                    <div
+                        className="absolute inset-0 opacity-[0.12]"
+                        style={{
+                            backgroundImage: 'radial-gradient(circle at 1px 1px, #fff 1px, transparent 0)',
+                            backgroundSize: '22px 22px',
+                        }}
+                        aria-hidden="true"
+                    />
+                    <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
+                    <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-[#1F2FB8]/60 blur-3xl" aria-hidden="true" />
+
+                    <div className="relative flex h-full flex-col items-center justify-center px-14 py-10">
+                        <Journey />
+
+                        <div className="mt-8 max-w-sm text-center text-white">
+                            <h2 className="text-2xl font-semibold tracking-tight">Mulai perjalanan belajarmu</h2>
+                            <p className="mt-2 text-[15px] leading-relaxed text-white/75">
+                                Dari satu materi, tumbuh jadi ringkasan, kuis, dan progres yang bisa kamu lihat.
+                            </p>
+                        </div>
+                    </div>
+                </aside>
+            </div>
         </div>
     );
 }

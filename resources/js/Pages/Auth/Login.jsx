@@ -96,12 +96,12 @@ const R = 22;
 
 // cx/cy = titik tengah tile. Tinggi sengaja beda-beda supaya tidak sejajar.
 const features = [
-    { icon: <SummaryIcon />, label: 'Ringkasan Materi', color: 'text-blue-600', cx: 40, cy: 68 },
-    { icon: <CardsIcon />, label: 'Flashcards', color: 'text-indigo-600', cx: 106, cy: 48 },
-    { icon: <QuizIcon />, label: 'Quiz', color: 'text-rose-500', cx: 172, cy: 28 },
-    { icon: <SparkIcon />, label: 'Ask PANDA', color: 'text-violet-600', cx: 308, cy: 36 },
-    { icon: <PencilIcon />, label: 'Latihan Soal', color: 'text-emerald-600', cx: 374, cy: 56 },
-    { icon: <MapIcon />, label: 'Peta Konsep', color: 'text-amber-500', cx: 440, cy: 74 },
+    { icon: <SummaryIcon />, label: 'Ringkasan Materi', color: 'text-blue-600', dot: '#2563EB', cx: 40, cy: 68 },
+    { icon: <CardsIcon />, label: 'Flashcards', color: 'text-indigo-600', dot: '#4F46E5', cx: 106, cy: 48 },
+    { icon: <QuizIcon />, label: 'Quiz', color: 'text-rose-500', dot: '#F43F5E', cx: 172, cy: 28 },
+    { icon: <SparkIcon />, label: 'Ask PANDA', color: 'text-violet-600', dot: '#7C3AED', cx: 308, cy: 36 },
+    { icon: <PencilIcon />, label: 'Latihan Soal', color: 'text-emerald-600', dot: '#059669', cx: 374, cy: 56 },
+    { icon: <MapIcon />, label: 'Peta Konsep', color: 'text-amber-500', dot: '#F59E0B', cx: 440, cy: 74 },
 ];
 
 const branch = (cx, cy) => {
@@ -112,12 +112,27 @@ const branch = (cx, cy) => {
 function Connector() {
     return (
         <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 h-full w-full" fill="none" aria-hidden="true">
-            {/* satu group opacity: garis yang bertumpuk tidak jadi lebih gelap */}
-            <g opacity="0.2" stroke="#fff" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round">
-                {features.map((it) => (
-                    <path key={it.label} d={branch(it.cx, it.cy)} />
-                ))}
-            </g>
+            {features.map((it, i) => (
+                <g key={it.label}>
+                    {/* garis putus-putus dari icon ke layar */}
+                    <path
+                        id={`connector-${i}`}
+                        d={branch(it.cx, it.cy)}
+                        stroke="#fff"
+                        strokeOpacity="0.5"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeDasharray="5 6"
+                    />
+                    {/* bulatan kecil yang bergerak menyusuri path */}
+                    <circle r="3.5" fill={it.dot} stroke="#fff" strokeOpacity="0.85" strokeWidth="1">
+                        <animateMotion dur="3.2s" begin={`${i * 0.45}s`} repeatCount="indefinite" rotate="auto">
+                            <mpath href={`#connector-${i}`} />
+                        </animateMotion>
+                    </circle>
+                </g>
+            ))}
         </svg>
     );
 }
