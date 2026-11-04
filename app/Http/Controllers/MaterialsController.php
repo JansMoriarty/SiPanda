@@ -63,7 +63,7 @@ class MaterialsController extends Controller
             ->where('user_id', $request->user()->id)
             ->where('document_id', $document->id)
             ->whereNotNull('completed_at')
-            ->orderBy('completed_at')
+            ->latest('completed_at')
             ->value('score');
 
         return Inertia::render('Materials/Show', [
@@ -82,7 +82,11 @@ class MaterialsController extends Controller
 
         // Set 'queued' langsung supaya halaman detail ikut ter-polling begitu
         // diarahkan balik, tanpa menunggu worker mengambil job.
-        $document->update(['study_pack_status' => 'queued']);
+        $document->update([
+            'study_pack_status' => 'queued',
+            'study_pack_progress' => 0,
+            'study_pack_step' => null,
+        ]);
 
         GenerateStudyPackJob::dispatch($document);
 
@@ -111,14 +115,24 @@ class MaterialsController extends Controller
             'processed_at' => $document->processed_at?->toISOString(),
             'error_message' => $document->error_message,
             'last_quiz_score' => $lastScore,
+            // Progres ingest (ekstraksi -> chunking -> embedding) yang ditulis
+            // ProcessDocumentJob. Dipakai timeline realtime di halaman detail.
+            'process' => [
+                'status' => $document->status,
+                'progress' => $document->status === 'processed'
+                    ? 100
+                    : (int) ($document->process_progress ?? 0),
+                'step' => $document->process_step,
+            ],
             'study_pack' => [
                 'status' => $document->study_pack_status,
                 'generated_at' => $document->study_pack_generated_at?->toISOString(),
-                // Tidak ada kolom persen di DB. 'generating' dikirim null
-                // supaya UI menampilkan proses tanpa mengarang angka.
+                'step' => $document->study_pack_step,
+                // Persen nyata dari StudyPackGenerator. 'generating' memakai
+                // nilai tersimpan supaya UI ikut bergerak tiap tahap.
                 'progress' => match ($document->study_pack_status) {
                     'ready' => 100,
-                    'generating' => null,
+                    'generating', 'queued' => (int) ($document->study_pack_progress ?? 0),
                     default => 0,
                 },
             ],

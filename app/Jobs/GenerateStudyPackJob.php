@@ -47,7 +47,11 @@ class GenerateStudyPackJob implements ShouldQueue
             return;
         }
 
-        $document->update(['study_pack_status' => 'queued']);
+        $document->update([
+            'study_pack_status' => 'queued',
+            'study_pack_progress' => 0,
+            'study_pack_step' => null,
+        ]);
 
         $generator->generate($document);
     }

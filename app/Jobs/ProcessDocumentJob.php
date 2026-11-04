@@ -56,7 +56,12 @@ class ProcessDocumentJob implements ShouldQueue
             return;
         }
 
-        $document->update(['status' => 'processing', 'error_message' => null]);
+        $document->update([
+            'status' => 'processing',
+            'error_message' => null,
+            'process_progress' => 5,
+            'process_step' => 'extract',
+        ]);
 
         try {
             $max = $document->chunks()->max('chunk_index');
@@ -68,7 +73,12 @@ class ProcessDocumentJob implements ShouldQueue
                 ? $extractor->extractPdf($path)
                 : $extractor->extractPptx($path);
 
+            $document->update(['process_progress' => 15, 'process_step' => 'chunk']);
+
             $chunks = $extractor->chunkText($text);
+            $totalChunks = count($chunks);
+
+            $document->update(['process_progress' => 20, 'process_step' => 'embed']);
 
             foreach ($chunks as $index => $chunk) {
                 if ($index < $startIndex) {
@@ -84,9 +94,23 @@ class ProcessDocumentJob implements ShouldQueue
                     'source_location' => $chunk['source_location'],
                     'chunk_index' => $index,
                 ]);
+
+                // Embedding memakan waktu paling lama, jadi persennya bergerak
+                // per chunk (20% -> 95%), bukan hanya di akhir.
+                $document->update([
+                    'process_progress' => 20 + (int) floor((($index + 1) / max(1, $totalChunks)) * 75),
+                ]);
             }
 
-            $document->update(['status' => 'processed', 'processed_at' => now(), 'study_pack_status' => 'queued']);
+            $document->update([
+                'status' => 'processed',
+                'processed_at' => now(),
+                'process_progress' => 100,
+                'process_step' => 'done',
+                'study_pack_status' => 'queued',
+                'study_pack_progress' => 0,
+                'study_pack_step' => null,
+            ]);
 
             GenerateStudyPackJob::dispatch($document);
         } catch (\Throwable $e) {

@@ -42,18 +42,31 @@ class StudyPackGenerator
 
     protected function generateWithLlm(Document $document): void
     {
-        $document->update(['study_pack_status' => 'generating', 'error_message' => null]);
+        $document->update([
+            'study_pack_status' => 'generating',
+            'study_pack_progress' => 5,
+            'study_pack_step' => 'summary',
+            'error_message' => null,
+        ]);
 
         try {
             $text = $this->sourceText($document);
 
             $this->generateSummaryAndKeyPoints($document, $text);
+            $this->progress($document, 'concepts', 20);
+
             $concepts = $this->generateConcepts($document, $text);
+            $this->progress($document, 'questions', 35);
+
             $this->generateQuestions($document, $concepts, $text);
+            $this->progress($document, 'flashcards', 75);
+
             $this->generateFlashcards($document, $concepts, $text);
 
             $document->update([
                 'study_pack_status' => 'ready',
+                'study_pack_progress' => 100,
+                'study_pack_step' => 'done',
                 'study_pack_generated_at' => now(),
             ]);
         } catch (\Throwable $e) {
@@ -64,6 +77,19 @@ class StudyPackGenerator
 
             throw $e;
         }
+    }
+
+    /**
+     * Simpan progres tahap study pack. Boleh dipanggil berkali-kali; nilainya
+     * dibatasi 99 selama proses berjalan supaya 100% hanya muncul saat benar-benar
+     * 'ready'.
+     */
+    protected function progress(Document $document, string $step, int $percent): void
+    {
+        $document->update([
+            'study_pack_progress' => max(0, min(99, $percent)),
+            'study_pack_step' => $step,
+        ]);
     }
 
     protected function sourceText(Document $document): string
@@ -200,42 +226,46 @@ class StudyPackGenerator
             'required' => ['questions'],
         ];
 
+        $total = max(1, $concepts->count());
+        $done = 0;
+
         foreach ($concepts as $concept) {
-            if ($concept->questions()->exists()) {
-                continue;
+            if (! $concept->questions()->exists()) {
+                $result = $this->llm->generateJson(
+                    $this->questionsPrompt($concept->name, $perConcept, $optionsCount, $text),
+                    $schema,
+                    $this->systemInstruction()
+                );
+
+                $rows = array_slice((array) ($result['questions'] ?? []), 0, $perConcept);
+
+                foreach ($rows as $row) {
+                    $question = trim((string) ($row['question'] ?? ''));
+                    $options = $this->cleanStringList((array) ($row['options'] ?? []));
+                    $correctIndex = (int) ($row['correct_index'] ?? 0);
+
+                    if ($question === '' || count($options) < 2) {
+                        continue;
+                    }
+
+                    if ($correctIndex < 0 || $correctIndex >= count($options)) {
+                        continue;
+                    }
+
+                    Question::create([
+                        'document_id' => $document->id,
+                        'concept_id' => $concept->id,
+                        'question' => $question,
+                        'options' => $options,
+                        'correct_index' => $correctIndex,
+                        'explanation' => trim((string) ($row['explanation'] ?? '')) ?: null,
+                        'source_label' => trim((string) ($row['source_label'] ?? '')) ?: null,
+                    ]);
+                }
             }
 
-            $result = $this->llm->generateJson(
-                $this->questionsPrompt($concept->name, $perConcept, $optionsCount, $text),
-                $schema,
-                $this->systemInstruction()
-            );
-
-            $rows = array_slice((array) ($result['questions'] ?? []), 0, $perConcept);
-
-            foreach ($rows as $row) {
-                $question = trim((string) ($row['question'] ?? ''));
-                $options = $this->cleanStringList((array) ($row['options'] ?? []));
-                $correctIndex = (int) ($row['correct_index'] ?? 0);
-
-                if ($question === '' || count($options) < 2) {
-                    continue;
-                }
-
-                if ($correctIndex < 0 || $correctIndex >= count($options)) {
-                    continue;
-                }
-
-                Question::create([
-                    'document_id' => $document->id,
-                    'concept_id' => $concept->id,
-                    'question' => $question,
-                    'options' => $options,
-                    'correct_index' => $correctIndex,
-                    'explanation' => trim((string) ($row['explanation'] ?? '')) ?: null,
-                    'source_label' => trim((string) ($row['source_label'] ?? '')) ?: null,
-                ]);
-            }
+            $done++;
+            $this->progress($document, 'questions', 35 + (int) floor(($done / $total) * 40));
         }
     }
 
@@ -271,35 +301,39 @@ class StudyPackGenerator
             'required' => ['flashcards'],
         ];
 
+        $total = max(1, $concepts->count());
+        $done = 0;
+
         foreach ($concepts as $concept) {
-            if ($concept->flashcards()->exists()) {
-                continue;
-            }
+            if (! $concept->flashcards()->exists()) {
+                $result = $this->llm->generateJson(
+                    $this->flashcardsPrompt($concept->name, $perConcept, $text),
+                    $schema,
+                    $this->systemInstruction()
+                );
 
-            $result = $this->llm->generateJson(
-                $this->flashcardsPrompt($concept->name, $perConcept, $text),
-                $schema,
-                $this->systemInstruction()
-            );
+                $rows = array_slice((array) ($result['flashcards'] ?? []), 0, $perConcept);
 
-            $rows = array_slice((array) ($result['flashcards'] ?? []), 0, $perConcept);
+                foreach ($rows as $index => $row) {
+                    $front = trim((string) ($row['front'] ?? ''));
+                    $back = trim((string) ($row['back'] ?? ''));
 
-            foreach ($rows as $index => $row) {
-                $front = trim((string) ($row['front'] ?? ''));
-                $back = trim((string) ($row['back'] ?? ''));
+                    if ($front === '' || $back === '') {
+                        continue;
+                    }
 
-                if ($front === '' || $back === '') {
-                    continue;
+                    Flashcard::create([
+                        'document_id' => $document->id,
+                        'concept_id' => $concept->id,
+                        'front' => $front,
+                        'back' => $back,
+                        'sort_order' => $index,
+                    ]);
                 }
-
-                Flashcard::create([
-                    'document_id' => $document->id,
-                    'concept_id' => $concept->id,
-                    'front' => $front,
-                    'back' => $back,
-                    'sort_order' => $index,
-                ]);
             }
+
+            $done++;
+            $this->progress($document, 'flashcards', 75 + (int) floor(($done / $total) * 20));
         }
     }
 

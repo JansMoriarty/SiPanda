@@ -24,7 +24,11 @@ class Document extends Model
         'page_count',
         'error_message',
         'processed_at',
+        'process_progress',
+        'process_step',
         'study_pack_status',
+        'study_pack_progress',
+        'study_pack_step',
         'study_pack_generated_at',
     ];
 
