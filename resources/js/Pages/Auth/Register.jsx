@@ -101,12 +101,12 @@ const JH = 420;
 
 // Titik-titik milestone berkelok dari bawah (unggah) menuju atas (progress).
 const journey = [
-    { icon: <UploadIcon />, label: 'Unggah Materi', color: 'text-blue-600', dot: '#2563EB', cx: 80, cy: 356 },
-    { icon: <SummaryIcon />, label: 'Ringkasan', color: 'text-indigo-600', dot: '#4F46E5', cx: 280, cy: 292 },
+    { icon: <UploadIcon />, label: 'Unggah Materi', color: 'text-brand', dot: '#5b4b8a', cx: 80, cy: 356 },
+    { icon: <SummaryIcon />, label: 'Ringkasan', color: 'text-[#9679d6]', dot: '#9679d6', cx: 280, cy: 292 },
     { icon: <CardsIcon />, label: 'Flashcards', color: 'text-rose-500', dot: '#F43F5E', cx: 80, cy: 228 },
     { icon: <QuizIcon />, label: 'Quiz', color: 'text-emerald-600', dot: '#059669', cx: 280, cy: 164 },
     { icon: <TargetIcon />, label: 'Knowledge Gap', color: 'text-amber-500', dot: '#F59E0B', cx: 80, cy: 100 },
-    { icon: <TrendIcon />, label: 'Progress', color: 'text-violet-600', dot: '#7C3AED', cx: 240, cy: 40 },
+    { icon: <TrendIcon />, label: 'Progress', color: 'text-[#9679d6]', dot: '#9679d6', cx: 240, cy: 40 },
 ];
 
 const JOURNEY_PATH =
@@ -157,8 +157,8 @@ function Journey() {
 
 /* ---------- Field ---------- */
 const inputBase =
-    'h-11 w-full rounded-xl border bg-white dark:bg-gray-900 pl-10 text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-shadow focus:outline-none focus:ring-4';
-const inputOk = 'border-slate-200 dark:border-gray-800 focus:border-[#465FFF] focus:ring-[#465FFF]/15';
+    'h-11 w-full rounded-control border bg-surface pl-10 text-sm text-ink placeholder:text-muted transition-shadow focus:outline-none focus:ring-4';
+const inputOk = 'border-track focus:border-brand focus:ring-brand/15';
 const inputErr = 'border-red-300 focus:border-red-500 focus:ring-red-500/15';
 
 function Field({ id, label, icon, error, trailing, ...props }) {
@@ -166,7 +166,7 @@ function Field({ id, label, icon, error, trailing, ...props }) {
         <div>
             <label htmlFor={id} className="sr-only">{label}</label>
             <div className="relative">
-                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400 dark:text-gray-500">{icon}</span>
+                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted">{icon}</span>
                 <input
                     id={id}
                     aria-invalid={!!error}
@@ -205,14 +205,14 @@ export default function Register() {
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
             aria-pressed={showPassword}
-            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 focus:outline-none focus-visible:text-[#465FFF]"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-control text-muted hover:text-ink focus:outline-none focus-visible:text-brand"
         >
             <EyeIcon off={showPassword} />
         </button>
     );
 
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-900" style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif" }}>
+        <div className="min-h-screen bg-canvas text-ink" style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif" }}>
             <Head title="Buat akun">
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -229,8 +229,8 @@ export default function Register() {
                 </div>
 
                 <div className="mt-8 text-center">
-                    <h1 className="text-[28px] font-semibold tracking-tight text-slate-800 dark:text-white">Buat akun baru</h1>
-                    <p className="mt-1.5 text-sm text-slate-500 dark:text-gray-400">Daftar untuk mulai belajar dari materimu.</p>
+                    <h1 className="text-[28px] font-semibold tracking-tight text-ink">Buat akun baru</h1>
+                    <p className="mt-1.5 text-sm text-muted">Daftar untuk mulai belajar dari materimu.</p>
                 </div>
 
                 <form onSubmit={submit} className="mt-7 space-y-4" noValidate>
@@ -284,32 +284,32 @@ export default function Register() {
                     <button
                         type="submit"
                         disabled={processing}
-                        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#465FFF] text-sm font-semibold text-white shadow-sm shadow-[#465FFF]/30 transition-colors hover:bg-[#3b4fe0] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/30 disabled:cursor-not-allowed disabled:opacity-70"
+                        className="flex h-11 w-full items-center justify-center gap-2 rounded-control bg-brand text-sm font-semibold text-white shadow-pill transition-colors hover:bg-brand-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
                     >
                         {processing && <Spinner />}
                         {processing ? 'Memproses…' : 'Buat akun'}
                     </button>
                 </form>
 
-                <div className="my-6 flex items-center gap-3 text-xs text-slate-400 dark:text-gray-500">
-                    <span className="h-px flex-1 bg-slate-200 dark:bg-gray-800" />
+                <div className="my-6 flex items-center gap-3 text-xs text-muted">
+                    <span className="h-px flex-1 bg-track" />
                     atau daftar dengan
-                    <span className="h-px flex-1 bg-slate-200 dark:bg-gray-800" />
+                    <span className="h-px flex-1 bg-track" />
                 </div>
 
                 <a
                     href="/auth/google"
-                    className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-transparent text-sm font-medium text-slate-700 dark:text-gray-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.03] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/15"
+                    className="flex h-11 w-full items-center justify-center gap-2.5 rounded-control border border-track bg-surface text-sm font-medium text-ink transition-colors hover:bg-canvas focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/15"
                 >
                     <GoogleIcon />
                     Daftar dengan Google
                 </a>
 
-                <p className="mt-6 text-center text-sm text-slate-500 dark:text-gray-400">
+                <p className="mt-6 text-center text-sm text-muted">
                     Sudah punya akun?{' '}
                     <Link
                         href={route('login')}
-                        className="rounded font-medium text-[#465FFF] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#465FFF]/40"
+                        className="rounded font-medium text-brand hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 dark:text-lavender"
                     >
                         Masuk
                     </Link>
@@ -317,13 +317,13 @@ export default function Register() {
                         </div>
                     </div>
 
-                    <p className="pt-8 text-center text-xs text-slate-400 dark:text-gray-500">
+                    <p className="pt-8 text-center text-xs text-muted">
                         © {new Date().getFullYear()} SiPanda. Hak cipta dilindungi.
                     </p>
                 </main>
 
                 {/* ---------- Sisi showcase (desktop) ---------- */}
-                <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#5A72FF] via-[#465FFF] to-[#2C3FD1] lg:block">
+                <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#9679d6] via-[#5b4b8a] to-[#3f3a5a] lg:block">
                     <div
                         className="absolute inset-0 opacity-[0.12]"
                         style={{
@@ -333,7 +333,7 @@ export default function Register() {
                         aria-hidden="true"
                     />
                     <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
-                    <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-[#1F2FB8]/60 blur-3xl" aria-hidden="true" />
+                    <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-[#29253a]/60 blur-3xl" aria-hidden="true" />
 
                     <div className="relative flex h-full flex-col items-center justify-center px-14 py-10">
                         <Journey />

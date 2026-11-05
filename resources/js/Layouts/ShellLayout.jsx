@@ -1,4 +1,4 @@
-import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
+import { SidebarProvider } from "@/context/SidebarContext";
 import ShellSidebar from "./ShellSidebar";
 import ShellTopbar from "./ShellTopbar";
 import Backdrop from "./Backdrop";
@@ -11,29 +11,26 @@ import Backdrop from "./Backdrop";
  * Keuntungannya: sidebar & topbar tidak di-remount tiap navigasi,
  * sehingga state collapse sidebar & scroll tetap terjaga.
  *
- * Catatan: `useSidebar` TIDAK boleh dipanggil langsung di body komponen ini,
- * karena provider-nya ada di bawah. Sama seperti AppLayout V1, pemecahannya
- * adalah komponen Inner yang membaca context, lalu dibungkus provider.
+ * Sidebar dan area konten berada di panel rounded terpisah dengan jarak,
+ * sementara topbar diberi jarak dari konten di dalam panel konten.
+ * Di layar kecil panel jadi full-bleed dan sidebar tetap berupa drawer.
  */
 function InnerShell({ children }) {
-  const { isExpanded, isHovered } = useSidebar();
-  const isSidebarVisible = isExpanded || isHovered;
-
   return (
-    <div className="flex h-screen min-h-screen overflow-hidden bg-gray-50 font-['Outfit',sans-serif] text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-      <ShellSidebar />
-      <Backdrop />
+    <div className="flex h-screen min-h-screen overflow-hidden bg-canvas p-0 font-['Outfit',sans-serif] text-ink lg:p-5">
+      <div className="flex h-full min-h-0 w-full flex-row lg:gap-5">
+        <ShellSidebar />
+        <Backdrop />
 
-      <div
-        className={`flex h-screen flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out ${
-          isSidebarVisible ? "lg:pl-[290px]" : "lg:pl-[90px]"
-        }`}
-      >
-        <ShellTopbar />
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface-tint lg:rounded-shell lg:shadow-card">
+          <div className="shrink-0 pb-4">
+            <ShellTopbar />
+          </div>
 
-        <main className="flex-1 overflow-y-auto bg-gray-50 no-scrollbar dark:bg-gray-900">
-          {children}
-        </main>
+          <main className="min-h-0 flex-1 overflow-y-auto bg-surface-tint no-scrollbar">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );

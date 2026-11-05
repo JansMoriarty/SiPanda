@@ -152,4 +152,64 @@ class MaterialsPageTest extends TestCase
                 ->where('materials.0.study_pack.status', null)
                 ->where('materials.0.study_pack.progress', 0));
     }
+
+    public function test_index_mengirim_progres_study_pack_yang_sedang_berjalan(): void
+    {
+        [$user] = $this->material('a', [
+            'study_pack_status' => 'generating',
+            'study_pack_progress' => 42,
+            'study_pack_step' => 'questions',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/materials')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('materials.0.study_pack.progress', 42)
+                ->where('materials.0.study_pack.step', 'questions'));
+    }
+
+    public function test_index_mengirim_progres_ingest(): void
+    {
+        [$user] = $this->material('a', [
+            'status' => 'processing',
+            'process_progress' => 55,
+            'process_step' => 'embed',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/materials')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('materials.0.process.progress', 55)
+                ->where('materials.0.process.step', 'embed'));
+    }
+
+    public function test_show_mengirim_skor_quiz_terakhir_bukan_terlama(): void
+    {
+        [$user, , $document] = $this->material('a');
+
+        QuizAttempt::create([
+            'document_id' => $document->id,
+            'user_id' => $user->id,
+            'total_questions' => 4,
+            'correct_answers' => 2,
+            'score' => 40,
+            'started_at' => now()->subDay(),
+            'completed_at' => now()->subDay(),
+        ]);
+
+        QuizAttempt::create([
+            'document_id' => $document->id,
+            'user_id' => $user->id,
+            'total_questions' => 4,
+            'correct_answers' => 4,
+            'score' => 95,
+            'started_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('materials.show', $document))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('document.last_quiz_score', 95));
+    }
 }

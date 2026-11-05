@@ -46,7 +46,7 @@ export const WEAK_THRESHOLD = 60;
 
 /** Warna badge skor: hijau >= 70, kuning >= 50, merah < 50. */
 export const scoreTone = (score) => {
-    if (score === null || score === undefined) return "text-gray-400 bg-gray-50 border-gray-200 dark:text-gray-500 dark:bg-white/[0.03] dark:border-gray-700";
+    if (score === null || score === undefined) return "text-muted bg-canvas border-track dark:bg-surface-tint";
     if (score >= 70) return "text-emerald-600 bg-emerald-50 border-emerald-200/80 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20";
     if (score >= 50) return "text-amber-600 bg-amber-50 border-amber-200/80 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20";
     return "text-rose-600 bg-rose-50 border-rose-200/80 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20";
@@ -58,7 +58,7 @@ export const fileTone = (type) =>
         ? "bg-rose-50 border-rose-200/60 text-rose-500 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400"
         : type === "pptx"
         ? "bg-amber-50 border-amber-200/60 text-amber-500 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400"
-        : "bg-gray-50 border-gray-200/60 text-gray-500 dark:bg-white/[0.03] dark:border-gray-700 dark:text-gray-400";
+        : "bg-canvas border-track text-muted dark:bg-surface-tint";
 
 export const fileLabel = (type) => (type === "pdf" ? "PDF" : type === "pptx" ? "PPT" : (type || "FILE").toUpperCase());
 
@@ -75,11 +75,11 @@ export const packBadge = (studyPack) => {
                 showProgress: true,
             };
         case "queued":
-            return { label: "Antrean", className: "text-gray-500 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-white/[0.03] dark:border-gray-700", showProgress: false };
+            return { label: "Antrean", className: "text-muted bg-canvas border-track dark:bg-surface-tint", showProgress: false };
         case "failed":
             return { label: "Gagal dibuat", className: "text-rose-600 bg-rose-50 border-rose-200/80 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20", showProgress: false };
         default:
-            return { label: "Belum diproses", className: "text-gray-400 bg-gray-50 border-gray-200 dark:text-gray-500 dark:bg-white/[0.03] dark:border-gray-700", showProgress: false };
+            return { label: "Belum diproses", className: "text-muted bg-canvas border-track dark:bg-surface-tint", showProgress: false };
     }
 };
 
@@ -93,6 +93,6 @@ export const docStatusBadge = (status) => {
         case "failed":
             return { label: "Gagal diproses", className: "text-rose-600 bg-rose-50 border-rose-200/80 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20" };
         default:
-            return { label: status, className: "text-gray-400 bg-gray-50 border-gray-200 dark:text-gray-500 dark:bg-white/[0.03] dark:border-gray-700" };
+            return { label: status, className: "text-muted bg-canvas border-track dark:bg-surface-tint" };
     }
 };

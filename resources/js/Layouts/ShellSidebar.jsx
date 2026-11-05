@@ -1,8 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { Link, router, usePage } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 import { useSidebar } from "@/context/SidebarContext";
-import Avatar from "@/Components/Avatar";
 
 const NAV_SECTIONS = [
   {
@@ -40,7 +37,7 @@ const NAV_SECTIONS = [
         label: "Ask PANDA",
         href: "/ask-panda",
         icon: (
-          <svg className="h-5 w-5 shrink-0 text-[#465FFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+          <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>
         ),
@@ -63,20 +60,6 @@ const NAV_SECTIONS = [
   {
     label: "Lainnya",
     items: [
-      {
-        key: "pricing",
-        label: "Pricing",
-        href: "/pricing",
-        icon: (
-          <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
-          </svg>
-        ),
-        badge: "HOT",
-        badgeTone: "hot",
-        activePattern: (url) => url.startsWith("/pricing"),
-      },
       {
         key: "settings",
         label: "Settings",
@@ -145,10 +128,10 @@ function NavItem({ item, active, show }) {
   return (
     <Link
       href={item.href}
-      className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
+      className={`flex items-center gap-3 rounded-control px-3.5 py-2.5 text-sm font-medium transition-all ${
         active
-          ? "bg-brand-50 font-semibold text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400"
-          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+          ? "bg-surface-raised font-semibold text-ink shadow-pill dark:ring-1 dark:ring-white/[0.06]"
+          : "text-muted hover:bg-canvas hover:text-ink"
       } ${!show ? "justify-center px-0" : "justify-between"}`}
     >
       <div className="flex items-center gap-3">
@@ -159,8 +142,8 @@ function NavItem({ item, active, show }) {
         <span
           className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
             item.badgeTone === "hot"
-              ? "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"
-              : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
+              ? "bg-peach-soft text-ink dark:bg-peach/15 dark:text-peach"
+              : "bg-lavender-soft text-brand dark:bg-lavender/15 dark:text-lavender"
           }`}
         >
           {item.badge}
@@ -175,7 +158,7 @@ function SidebarSection({ label, items, url, show }) {
   return (
     <div className="space-y-1">
       {show && (
-        <h2 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+        <h2 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
           {label}
         </h2>
       )}
@@ -192,58 +175,19 @@ export default function ShellSidebar() {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const { url, props } = usePage();
   const user = props.auth?.user;
-  const displayName = user?.name ?? "User";
-
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef(null);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
 
   const isSidebarVisible = isExpanded || isHovered || isMobileOpen;
 
-  const handleLogout = () => {
-    router.post(
-      route("logout"),
-      {},
-      {
-        onStart: () => setLoggingOut(true),
-        onFinish: () => {
-          setLoggingOut(false);
-          setIsLogoutModalOpen(false);
-        },
-      }
-    );
-  };
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
-        setIsProfileMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (!isLogoutModalOpen) return;
-    const onKey = (e) => {
-      if (e.key === "Escape" && !loggingOut) setIsLogoutModalOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [isLogoutModalOpen, loggingOut]);
-
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 flex h-screen flex-col justify-between border-r border-gray-200 bg-white font-['Outfit',sans-serif] text-gray-600 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 ${
-        isSidebarVisible ? "w-[290px]" : "w-[90px]"
+      className={`fixed inset-y-0 left-0 z-50 flex h-screen shrink-0 flex-col justify-between bg-surface-tint font-['Outfit',sans-serif] text-muted transition-all duration-300 ease-in-out lg:static lg:z-auto lg:h-full lg:overflow-hidden lg:rounded-shell lg:shadow-card ${
+        isSidebarVisible ? "w-[260px]" : "w-[90px]"
       } ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex flex-1 flex-col overflow-y-auto no-scrollbar">
-        <div className={`flex items-center gap-3 px-6 py-6 ${!isSidebarVisible ? "px-0 lg:justify-center" : ""}`}>
+        <div className={`flex h-[65px] shrink-0 items-center gap-3 px-6 ${!isSidebarVisible ? "px-0 lg:justify-center" : ""}`}>
           <Link href={user?.is_admin ? "/admin" : "/student"} className="flex items-center gap-3">
             {isSidebarVisible ? (
               <img
@@ -280,119 +224,46 @@ export default function ShellSidebar() {
         </nav>
       </div>
 
-      <div className="relative border-t border-gray-200 p-3 dark:border-gray-800" ref={profileMenuRef}>
-        {isProfileMenuOpen && isSidebarVisible && (
-          <div className="absolute bottom-full left-3 right-3 z-50 mb-2 animate-fade-in-up space-y-1 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-gray-800 dark:bg-gray-900">
-            {!user?.is_admin && (
-              <>
-                <Link
-                  href="/profile"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
-            >
-              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
-              View Profile
-            </Link>
-            <Link
-              href="/settings"
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
-            >
-              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Account Settings
-            </Link>
-            <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
-              </>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setIsProfileMenuOpen(false);
-                setIsLogoutModalOpen(true);
-              }}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-rose-600 transition-all hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"
-            >
-              <svg className="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-              </svg>
-              Log Out
-            </button>
-          </div>
-        )}
-
-        <div
-          onClick={() => isSidebarVisible && setIsProfileMenuOpen(!isProfileMenuOpen)}
-          className={`flex cursor-pointer items-center gap-3 rounded-2xl p-2 transition-all hover:bg-gray-50 dark:hover:bg-white/[0.03] ${
-            !isSidebarVisible ? "justify-center p-1 hover:bg-transparent dark:hover:bg-transparent" : ""
-          }`}
-        >
-          <div className="relative shrink-0">
-            <Avatar src={user?.avatar} name={displayName} />
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 dark:border-gray-900" />
-          </div>
-          {isSidebarVisible && (
-            <div className="flex min-w-0 flex-1 items-center justify-between">
-              <div className="flex min-w-0 flex-col">
-                <h4 className="truncate text-xs font-semibold text-gray-900 dark:text-white">{displayName}</h4>
-                <span className="truncate text-[10px] font-medium text-gray-500 dark:text-gray-400">{user?.email}</span>
-              </div>
-              <button type="button" className="rounded-lg p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
-                </svg>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {isLogoutModalOpen &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-['Outfit',sans-serif]"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="logout-title"
+      {/* TODO: sembunyikan kalau user sudah premium (data dari backend) */}
+      <div className={`mt-auto shrink-0 px-4 pb-5 ${!isSidebarVisible ? "flex justify-center" : ""}`}>
+        {isSidebarVisible ? (
+          <Link
+            href={route("pricing.index")}
+            className="group relative block overflow-hidden rounded-[20px] bg-surface px-5 pt-5 pb-0 shadow-[0_8px_30px_rgba(60,50,100,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_36px_rgba(60,50,100,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lavender"
           >
-            <div
-              className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
-              onClick={() => !loggingOut && setIsLogoutModalOpen(false)}
-            />
-            <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-500">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+            <h3 className="max-w-[150px] text-[17px] font-bold leading-snug text-brand dark:text-ink">
+              Upgrade ke fitur premium
+            </h3>
+            <p className="mt-2 max-w-[150px] text-[11px] leading-snug text-muted">
+              Buka semua fitur SiPanda tanpa batas
+            </p>
+
+            <div className="mt-3 flex h-[120px] items-end justify-between">
+              <img
+                src="/images/graduation-girl.png"
+                alt=""
+                className="pointer-events-none h-full w-auto object-contain object-bottom"
+              />
+              <span className="mb-4 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand text-white">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
-              </div>
-              <h3 id="logout-title" className="mt-4 text-center text-lg font-semibold text-gray-900 dark:text-white">
-                Keluar dari akun?
-              </h3>
-              <p className="mt-1.5 text-center text-sm text-gray-500 dark:text-gray-400">Kamu harus masuk lagi untuk melanjutkan belajar.</p>
-              <div className="mt-6 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsLogoutModalOpen(false)}
-                  disabled={loggingOut}
-                  className="h-10 flex-1 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/[0.03]"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  disabled={loggingOut}
-                  className="h-10 flex-1 rounded-xl bg-rose-600 text-sm font-semibold text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {loggingOut ? "Keluar…" : "Ya, keluar"}
-                </button>
-              </div>
+              </span>
             </div>
-          </div>,
-          document.body
+          </Link>
+        ) : (
+          <Link
+            href={route("pricing.index")}
+            title="Upgrade ke fitur premium"
+            aria-label="Upgrade ke fitur premium"
+            className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand text-white shadow-[0_8px_30px_rgba(60,50,100,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_36px_rgba(60,50,100,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lavender"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         )}
+      </div>
     </aside>
   );
 }

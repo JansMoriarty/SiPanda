@@ -12,7 +12,7 @@ export default function Avatar({
   name,
   className = "h-9 w-9",
   textClass = "text-xs",
-  fallbackClassName = "bg-[#465FFF]",
+  fallbackClassName = "bg-brand",
   fallbackStyle,
 }) {
   const [failed, setFailed] = useState(false);

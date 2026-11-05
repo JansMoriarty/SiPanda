@@ -42,6 +42,8 @@ class DashboardController extends Controller
 
         $weekly = $this->weeklyActivity($user->id, $documentIds);
         $questionsThisWeek = array_sum(array_column($weekly, 'questions'));
+        $scoreTrend = $this->scoreTrend($user->id, $documentIds);
+        $studyDates = $this->studyDates($user->id, $documentIds);
 
         $completedQuery = QuizAttempt::query()
             ->where('user_id', $user->id)
@@ -71,6 +73,8 @@ class DashboardController extends Controller
                 'passing_score' => (int) config('sipanda.quiz.passing_score', 70),
             ],
             'weekly_activity' => $weekly,
+            'score_trend' => $scoreTrend,
+            'study_dates' => $studyDates,
             'continue_learning' => $documents->take(3)->map(fn (Document $document) => [
                 'id' => $document->id,
                 'title' => $document->original_filename,
@@ -87,7 +91,7 @@ class DashboardController extends Controller
                     'status' => $document->study_pack_status,
                     'progress' => match ($document->study_pack_status) {
                         'ready' => 100,
-                        'generating' => null,
+                        'generating', 'queued' => (int) ($document->study_pack_progress ?? 0),
                         default => 0,
                     },
                 ],
@@ -141,6 +145,70 @@ class DashboardController extends Controller
         }
 
         return $days;
+    }
+
+    /**
+     * Rata-rata skor quiz per hari untuk 7 hari terakhir. Hari tanpa attempt
+     * dikirim sebagai null supaya grafik tidak mengarang nilai 0.
+     *
+     * @param  \Illuminate\Support\Collection<int, int>  $documentIds
+     * @return array<int, array{day: string, date: string, score: int|null, attempts: int, is_today: bool}>
+     */
+    private function scoreTrend(int $userId, $documentIds): array
+    {
+        $start = Carbon::today()->subDays(6);
+
+        $rows = QuizAttempt::query()
+            ->where('user_id', $userId)
+            ->whereIn('document_id', $documentIds)
+            ->whereNotNull('completed_at')
+            ->where('completed_at', '>=', $start->copy()->startOfDay())
+            ->selectRaw('DATE(completed_at) as day, AVG(score) as average, COUNT(*) as attempts')
+            ->groupBy('day')
+            ->get()
+            ->keyBy('day');
+
+        $labels = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+        $trend = [];
+
+        for ($i = 0; $i < 7; $i++) {
+            $date = $start->copy()->addDays($i);
+            $key = $date->toDateString();
+            $row = $rows->get($key);
+
+            $trend[] = [
+                'day' => $labels[(int) $date->dayOfWeek],
+                'date' => $key,
+                'score' => $row ? (int) round((float) $row->average) : null,
+                'attempts' => $row ? (int) $row->attempts : 0,
+                'is_today' => $date->isToday(),
+            ];
+        }
+
+        return $trend;
+    }
+
+    /**
+     * Tanggal (Y-m-d) yang punya attempt selesai, dipakai untuk dot kalender.
+     *
+     * @param  \Illuminate\Support\Collection<int, int>  $documentIds
+     * @return array<int, string>
+     */
+    private function studyDates(int $userId, $documentIds): array
+    {
+        return QuizAttempt::query()
+            ->where('user_id', $userId)
+            ->whereIn('document_id', $documentIds)
+            ->whereNotNull('completed_at')
+            ->where('completed_at', '>=', Carbon::today()->subDays(364))
+            ->selectRaw('DATE(completed_at) as day')
+            ->distinct()
+            ->orderBy('day')
+            ->pluck('day')
+            ->map(fn ($day) => (string) $day)
+            ->values()
+            ->all();
     }
 
     /**

@@ -1,342 +1,639 @@
+import { useState } from "react";
 import { Head, Link } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
-import Card from "@/Components/Card";
-import StatCard from "@/Components/StatCard";
-import { buildStrongestConcepts, buildWeakestConcepts } from "@/utils/gap";
-import { fileTone, formatSize, scoreTone } from "@/utils/format";
+import UICard from "@/Components/ui/Card";
+import IconChip from "@/Components/ui/IconChip";
+import SectionHeader from "@/Components/ui/SectionHeader";
+import Badge from "@/Components/ui/Badge";
+import Button from "@/Components/ui/Button";
+import { buildWeakestConcepts } from "@/utils/gap";
+import { formatSize } from "@/utils/format";
 
-export default function Dashboard({ greeting_name, study_streak_days, stats, weekly_activity, continue_learning, recent_quizzes, gap }) {
-    // Grafik aktivitas memakai jumlah soal yang dijawab per hari (durasi
-    // belajar tidak dilacak oleh aplikasi).
-    const maxQuestions = Math.max(0, ...weekly_activity.map((d) => d.questions));
+const WEEKDAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+const CONTINUE_TONES = ["peach", "sage", "lavender"];
 
-    // Dihitung dari tabel attempt yang sama dengan halaman Progress, supaya
-    // kartu di sini tidak bisa menampilkan angka yang berbeda dengan sana.
+const pad2 = (value) => String(value).padStart(2, "0");
+const toDateKey = (date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+const monthKey = (year, monthIndex, day) => `${year}-${pad2(monthIndex + 1)}-${pad2(day)}`;
+
+function ScoreChart({ data = [], target = 70 }) {
+    const [hovered, setHovered] = useState(null);
+
+    const width = 700;
+    const height = 240;
+    const paddingX = 18;
+    const paddingTop = 18;
+    const paddingBottom = 18;
+    const plotWidth = width - paddingX * 2;
+    const plotHeight = height - paddingTop - paddingBottom;
+    const lastIndex = Math.max(1, data.length - 1);
+    const slotWidth = plotWidth / lastIndex;
+    const xFor = (index) => paddingX + (index / lastIndex) * plotWidth;
+    const yFor = (score) => paddingTop + (1 - score / 100) * plotHeight;
+
+    const points = data
+        .map((day, index) => (day.score === null ? null : { ...day, index, x: xFor(index), y: yFor(day.score) }))
+        .filter(Boolean);
+    const hasData = points.length > 0;
+    const linePath = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+    const areaPath = hasData
+        ? `${linePath} L ${points[points.length - 1].x} ${paddingTop + plotHeight} L ${points[0].x} ${paddingTop + plotHeight} Z`
+        : "";
+    const targetY = yFor(target);
+    const active = hovered === null ? null : points.find((point) => point.index === hovered) ?? null;
+    const activeLeft = active ? Math.min(92, Math.max(8, (active.x / width) * 100)) : 0;
+
+    return (
+        <UICard padding="md">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h2 className="text-base font-semibold text-ink">Score Statistic</h2>
+                    <p className="mt-1 text-xs text-muted">Rata-rata skor quiz · 7 hari terakhir</p>
+                </div>
+                <div className="flex items-center gap-3 text-[11px] font-medium text-muted">
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-peach-strong dark:bg-peach" />
+                        Skor
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <span className="w-4 border-t-2 border-dashed border-lavender" />
+                        Target {target}%
+                    </span>
+                </div>
+            </div>
+
+            {hasData ? (
+                <>
+                    <div className="relative mt-5 h-[240px] w-full">
+                        <svg
+                            viewBox={`0 0 ${width} ${height}`}
+                            preserveAspectRatio="none"
+                            className="absolute inset-0 h-full w-full"
+                            role="img"
+                            aria-label="Grafik rata-rata skor quiz 7 hari terakhir"
+                        >
+                            <defs>
+                                <linearGradient id="dashboard-score-area" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="var(--color-lavender)" stopOpacity="0.35" />
+                                    <stop offset="100%" stopColor="var(--color-lavender)" stopOpacity="0" />
+                                </linearGradient>
+                            </defs>
+
+                            {[0, 25, 50, 75, 100].map((value) => (
+                                <line
+                                    key={value}
+                                    x1={paddingX}
+                                    y1={yFor(value)}
+                                    x2={width - paddingX}
+                                    y2={yFor(value)}
+                                    stroke="var(--color-track)"
+                                    strokeWidth="1"
+                                    vectorEffect="non-scaling-stroke"
+                                />
+                            ))}
+
+                            <path d={areaPath} fill="url(#dashboard-score-area)" />
+
+                            <line
+                                x1={paddingX}
+                                y1={targetY}
+                                x2={width - paddingX}
+                                y2={targetY}
+                                stroke="var(--color-lavender)"
+                                strokeWidth="2"
+                                strokeDasharray="6 6"
+                                vectorEffect="non-scaling-stroke"
+                            />
+                            <path
+                                d={linePath}
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                vectorEffect="non-scaling-stroke"
+                                className="text-peach-strong dark:text-peach"
+                            />
+
+                            {active && (
+                                <line
+                                    x1={active.x}
+                                    y1={paddingTop}
+                                    x2={active.x}
+                                    y2={paddingTop + plotHeight}
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    strokeDasharray="4 4"
+                                    vectorEffect="non-scaling-stroke"
+                                    className="text-lavender"
+                                />
+                            )}
+                        </svg>
+
+                        {points.map((point) => (
+                            <span
+                                key={point.date}
+                                className={`pointer-events-none absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-peach-strong bg-surface transition-transform dark:border-peach ${
+                                    active === point ? "scale-125" : ""
+                                }`}
+                                style={{ left: `${(point.x / width) * 100}%`, top: `${(point.y / height) * 100}%` }}
+                            />
+                        ))}
+
+                        {data.map((day, index) => (
+                            <div
+                                key={day.date}
+                                className="absolute inset-y-0"
+                                style={{
+                                    left: `${((xFor(index) - slotWidth / 2) / width) * 100}%`,
+                                    width: `${(slotWidth / width) * 100}%`,
+                                }}
+                                onMouseEnter={() => setHovered(day.score === null ? null : index)}
+                                onMouseLeave={() => setHovered(null)}
+                            />
+                        ))}
+
+                        {active && (
+                            <div
+                                className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-xl bg-peach px-2.5 py-1.5 text-center text-[11px] font-semibold text-brand shadow-card"
+                                style={{
+                                    left: `${activeLeft}%`,
+                                    top: `${(active.y / height) * 100}%`,
+                                    marginTop: "-10px",
+                                }}
+                            >
+                                {active.score}%
+                                <span className="block text-[9px] font-medium text-brand/70">{active.day}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-2 flex justify-between px-1">
+                        {data.map((day) => (
+                            <span
+                                key={day.date}
+                                className={`text-[10px] font-medium ${day.is_today ? "text-ink" : "text-muted"}`}
+                            >
+                                {day.day}
+                            </span>
+                        ))}
+                    </div>
+                </>
+            ) : (
+                <div className="mt-5 flex h-[240px] items-center justify-center rounded-2xl border border-dashed border-track text-xs text-muted">
+                    Belum ada quiz dalam 7 hari terakhir.
+                </div>
+            )}
+        </UICard>
+    );
+}
+
+function ActivityPills({ data = [], total = 0 }) {
+    const maxQuestions = Math.max(1, ...data.map((day) => day.questions));
+
+    return (
+        <UICard padding="md" className="flex flex-col">
+            <SectionHeader
+                title="Activity"
+                subtitle="Soal dijawab per hari"
+                action={<Badge tone="lavender">{total} soal</Badge>}
+            />
+
+            <div className="mt-6 flex h-40 items-end justify-between gap-2">
+                {data.map((day) => {
+                    const heightPct = day.questions > 0 ? Math.max((day.questions / maxQuestions) * 100, 8) : 0;
+
+                    return (
+                        <div
+                            key={day.date}
+                            title={`${day.questions} soal dijawab`}
+                            className="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                        >
+                            <div className="relative w-2.5 flex-1 overflow-hidden rounded-full bg-lavender-soft dark:bg-lavender/15">
+                                <div
+                                    className={`absolute inset-x-0 bottom-0 rounded-full transition-all ${
+                                        day.is_today ? "bg-peach" : "bg-lavender"
+                                    }`}
+                                    style={{ height: `${heightPct}%` }}
+                                />
+                            </div>
+                            <span
+                                className={`text-[10px] font-medium ${day.is_today ? "text-ink" : "text-muted"}`}
+                            >
+                                {day.day}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </UICard>
+    );
+}
+
+function ProgressRing({ value, target = 70 }) {
+    const size = 152;
+    const strokeWidth = 10;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const score = value ?? 0;
+    const offset = circumference - (Math.min(100, Math.max(0, score)) / 100) * circumference;
+
+    return (
+        <UICard padding="md" className="flex flex-col">
+            <SectionHeader title="Progress" subtitle="Rata-rata skor vs target" />
+
+            <div className="flex flex-1 items-center justify-center py-4">
+                <div className="relative">
+                    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="block">
+                        <circle
+                            cx={size / 2}
+                            cy={size / 2}
+                            r={radius}
+                            fill="none"
+                            stroke="var(--color-track)"
+                            strokeWidth={strokeWidth}
+                        />
+                        <circle
+                            cx={size / 2}
+                            cy={size / 2}
+                            r={radius}
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={strokeWidth}
+                            strokeLinecap="round"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={offset}
+                            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                            className="text-peach"
+                        />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-3xl font-bold leading-none text-ink">
+                            {value === null || value === undefined ? "—" : `${value}%`}
+                        </span>
+                        <span className="mt-2 text-[11px] font-medium text-muted">Target {target}%</span>
+                    </div>
+                </div>
+            </div>
+        </UICard>
+    );
+}
+
+function CalendarCard({ studyDates = [] }) {
+    const [view, setView] = useState(() => {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    });
+    const [selected, setSelected] = useState(() => toDateKey(new Date()));
+    const studySet = new Set(studyDates);
+    const todayKey = toDateKey(new Date());
+    const year = view.getFullYear();
+    const monthIndex = view.getMonth();
+    const firstOffset = new Date(year, monthIndex, 1).getDay();
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const cells = [
+        ...Array(firstOffset).fill(null),
+        ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
+    ];
+    while (cells.length % 7 !== 0) cells.push(null);
+    const label = view.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+    const changeMonth = (delta) => setView(new Date(year, monthIndex + delta, 1));
+
+    return (
+        <UICard padding="md">
+            <div className="flex items-center justify-between gap-3">
+                <h2 className="text-base font-semibold text-ink">{label}</h2>
+                <div className="flex items-center gap-1.5">
+                    <button
+                        type="button"
+                        onClick={() => changeMonth(-1)}
+                        aria-label="Bulan sebelumnya"
+                        className="flex h-7 w-7 items-center justify-center rounded-control border border-track bg-surface text-muted transition-colors hover:text-ink"
+                    >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                        </svg>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => changeMonth(1)}
+                        aria-label="Bulan berikutnya"
+                        className="flex h-7 w-7 items-center justify-center rounded-control border border-track bg-surface text-muted transition-colors hover:text-ink"
+                    >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-7 gap-y-1 text-center">
+                {WEEKDAYS.map((day) => (
+                    <span key={day} className="pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                        {day}
+                    </span>
+                ))}
+
+                {cells.map((day, index) => {
+                    if (!day) return <span key={`empty-${index}`} aria-hidden="true" />;
+
+                    const key = monthKey(year, monthIndex, day);
+                    const isToday = key === todayKey;
+                    const isSelected = key === selected;
+                    const hasStudy = studySet.has(key);
+
+                    return (
+                        <button
+                            key={key}
+                            type="button"
+                            onClick={() => setSelected(key)}
+                            aria-label={`${day} ${label}`}
+                            aria-pressed={isSelected}
+                            className="relative flex h-8 items-center justify-center"
+                        >
+                            <span
+                                className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] transition-colors ${
+                                    isSelected
+                                        ? "bg-peach font-semibold text-brand"
+                                        : isToday
+                                        ? "font-semibold text-peach-strong ring-1 ring-peach/40"
+                                        : "font-medium text-ink hover:bg-lavender-soft dark:hover:bg-lavender/15"
+                                }`}
+                            >
+                                {day}
+                            </span>
+                            {hasStudy && (
+                                <span
+                                    className={`absolute bottom-0 h-1 w-1 rounded-full ${
+                                        isSelected ? "bg-white/80" : "bg-peach-strong dark:bg-peach"
+                                    }`}
+                                />
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+        </UICard>
+    );
+}
+
+function ContinueLearning({ documents = [] }) {
+    return (
+        <section>
+            <SectionHeader
+                title="Lanjutkan belajar"
+                action={
+                    <Link href="/materials" className="transition-colors hover:text-ink">
+                        Lihat semua
+                    </Link>
+                }
+            />
+
+            <div className="mt-3.5 space-y-2">
+                {documents.map((doc, index) => (
+                    <Link key={doc.id} href={`/documents/${doc.id}/study-pack`} className="block">
+                        <UICard padding="sm" hover>
+                            <div className="flex items-center gap-3">
+                                <IconChip
+                                    tone={CONTINUE_TONES[index % CONTINUE_TONES.length]}
+                                    shape="circle"
+                                    size="lg"
+                                >
+                                    <svg
+                                        className="h-5 w-5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        strokeWidth="1.75"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M19.5 14.25v-2.625A3.375 3.375 0 0016.125 8.25h-1.5A1.125 1.125 0 0013.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                                        />
+                                    </svg>
+                                </IconChip>
+
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-semibold text-ink">{doc.title}</p>
+                                    <p className="mt-0.5 truncate text-xs text-muted">
+                                        {doc.course?.name ?? "Tanpa mata kuliah"} · {formatSize(doc.file_size)} ·{" "}
+                                        {doc.page_count} halaman
+                                    </p>
+                                </div>
+
+                                <svg
+                                    className="h-4 w-4 shrink-0 text-muted"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </div>
+                        </UICard>
+                    </Link>
+                ))}
+
+                {documents.length === 0 && (
+                    <p className="rounded-2xl border border-dashed border-track p-4 text-center text-xs text-muted">
+                        Belum ada materi untuk dilanjutkan.
+                    </p>
+                )}
+            </div>
+        </section>
+    );
+}
+
+function PandaMascot({ className = "" }) {
+    return (
+        <svg viewBox="0 0 200 230" aria-hidden="true" className={className}>
+            <ellipse cx="100" cy="218" rx="62" ry="10" fill="#15131F" opacity="0.2" />
+
+            <path
+                d="M56 204c-10-46 6-84 44-84s54 38 44 84c-10 8-26 14-44 14s-34-6-44-14z"
+                fill="#F7F7FB"
+            />
+
+            <ellipse cx="52" cy="170" rx="17" ry="30" transform="rotate(-22 52 170)" fill="#2B2840" />
+            <ellipse cx="148" cy="170" rx="17" ry="30" transform="rotate(22 148 170)" fill="#2B2840" />
+
+            <g>
+                <path d="M64 168c12-6 24-6 36 0v38c-12-6-24-6-36 0z" fill="#F3A183" />
+                <path d="M136 168c-12-6-24-6-36 0v38c12-6 24-6 36 0z" fill="#F3A183" />
+                <path d="M70 172c10-4 20-4 30 0v28c-10-4-20-4-30 0z" fill="#FBD9CC" />
+                <path d="M130 172c-10-4-20-4-30 0v28c10-4 20-4 30 0z" fill="#FBD9CC" />
+                <path d="M100 170v36" stroke="#F3A183" strokeWidth="3" strokeLinecap="round" />
+            </g>
+
+            <ellipse cx="68" cy="194" rx="14" ry="12" fill="#2B2840" />
+            <ellipse cx="132" cy="194" rx="14" ry="12" fill="#2B2840" />
+
+            <path d="M60 136c14 10 66 10 80 0l-5 18c-16 10-54 10-70 0z" fill="#B7A6E6" />
+            <path d="M66 150l-10 24 15-4 5-18z" fill="#B7A6E6" />
+
+            <circle cx="56" cy="52" r="26" fill="#2B2840" />
+            <circle cx="144" cy="52" r="26" fill="#2B2840" />
+            <circle cx="56" cy="52" r="13" fill="#B7A6E6" opacity="0.45" />
+            <circle cx="144" cy="52" r="13" fill="#B7A6E6" opacity="0.45" />
+
+            <circle cx="100" cy="88" r="60" fill="#F7F7FB" />
+
+            <ellipse cx="74" cy="84" rx="18" ry="23" transform="rotate(-18 74 84)" fill="#2B2840" />
+            <ellipse cx="126" cy="84" rx="18" ry="23" transform="rotate(18 126 84)" fill="#2B2840" />
+
+            <circle cx="76" cy="82" r="6" fill="#FFFFFF" />
+            <circle cx="124" cy="82" r="6" fill="#FFFFFF" />
+            <circle cx="77" cy="83" r="3" fill="#2B2840" />
+            <circle cx="123" cy="83" r="3" fill="#2B2840" />
+
+            <circle cx="52" cy="108" r="9" fill="#F3A183" opacity="0.5" />
+            <circle cx="148" cy="108" r="9" fill="#F3A183" opacity="0.5" />
+
+            <ellipse cx="100" cy="100" rx="7" ry="5" fill="#2B2840" />
+            <path d="M100 105v5" stroke="#2B2840" strokeWidth="2.5" strokeLinecap="round" />
+            <path
+                d="M100 110c-4 6-11 6-15 1"
+                stroke="#2B2840"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                fill="none"
+            />
+            <path
+                d="M100 110c4 6 11 6 15 1"
+                stroke="#2B2840"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                fill="none"
+            />
+        </svg>
+    );
+}
+
+export default function Dashboard({
+    greeting_name,
+    study_streak_days,
+    stats,
+    weekly_activity,
+    continue_learning,
+    gap,
+    score_trend = [],
+    study_dates = [],
+}) {
     const knowledge_gap_preview = buildWeakestConcepts(gap).slice(0, 3);
-    const strong_concepts = buildStrongestConcepts(gap);
 
     return (
         <>
             <Head title="Dashboard — SiPanda" />
 
-            <div className="mx-auto max-w-[1400px] space-y-6 p-6 sm:p-7">
-                {/* ---------------------------------------------------------- header */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard</h1>
-                        <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
-                            Selamat datang kembali,{" "}
-                            <span className="font-medium text-gray-700 dark:text-gray-300">{greeting_name}</span>.
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <span
-                            title={`${study_streak_days} hari belajar beruntun`}
-                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300"
-                        >
-                            <svg className="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z" />
-                            </svg>
-                            {study_streak_days} hari beruntun
-                        </span>
-                        <Link
-                            href="/materials"
-                            className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-xs font-medium text-white shadow-xs transition-all hover:bg-brand-600 active:scale-95"
-                        >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                            </svg>
-                            <span>Cari materi</span>
-                        </Link>
-                    </div>
-                </div>
-
-                {/* ---------------------------------------------------------- stat cards */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <StatCard
-                        label="Materi"
-                        value={stats.total_materials}
-                        hint={`${stats.study_packs_ready} study pack siap`}
-                        tone="bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
-                        icon={
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625A3.375 3.375 0 0016.125 8.25h-1.5A1.125 1.125 0 0013.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                            </svg>
-                        }
-                    />
-                    <StatCard
-                        label="Quiz dikerjakan"
-                        value={stats.quizzes_taken}
-                        hint="total selesai"
-                        tone="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
-                        icon={
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        }
-                    />
-                    <StatCard
-                        label="Rata-rata skor"
-                        value={stats.average_score === null ? "—" : `${stats.average_score}%`}
-                        hint={`Target ${stats.passing_score}%`}
-                        tone="bg-amber-50 text-amber-500 dark:bg-amber-500/15 dark:text-amber-400"
-                        icon={
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                            </svg>
-                        }
-                    />
-                    <StatCard
-                        label="Mata kuliah"
-                        value={gap.courses.length}
-                        hint={`${stats.total_materials} materi`}
-                        tone="bg-violet-50 text-violet-500 dark:bg-violet-500/15 dark:text-violet-400"
-                        icon={
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
-                            </svg>
-                        }
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                    {/* ------------------------------------------------------ left: 2/3 */}
-                    <div className="space-y-6 xl:col-span-2">
-                        {/* weekly activity */}
-                        <Card>
-                            <div className="mb-5 flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-sm font-bold text-gray-900 dark:text-white">Aktivitas minggu ini</h2>
-                                    <p className="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500">Soal dijawab per hari</p>
-                                </div>
-                                <span className="rounded-lg bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
-                                    {stats.questions_this_week} soal
-                                </span>
+            <div className="mx-auto max-w-[1400px] p-6 sm:p-7">
+                <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+                    <div className="min-w-0 flex-1 space-y-6">
+                        <section className="relative overflow-visible rounded-card bg-brand p-6 text-white shadow-card sm:p-7 dark:bg-surface-raised dark:ring-1 dark:ring-track">
+                            <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-card">
+                                <span className="absolute -right-12 -top-16 h-48 w-48 rounded-full border border-white/10" />
+                                <span className="absolute -left-10 -bottom-10 h-32 w-32 rounded-full border border-white/10" />
+                                <span className="absolute left-5 top-5 h-2.5 w-2.5 rounded-full bg-peach/70" />
+                                <span className="absolute left-10 bottom-10 h-1.5 w-1.5 rounded-full bg-white/30" />
+                                <svg
+                                    aria-hidden="true"
+                                    viewBox="0 0 64 16"
+                                    className="absolute bottom-4 left-20 h-4 w-16 text-lavender/40"
+                                >
+                                    <path
+                                        d="M2 8c5-8 10 8 15 0s10 8 15 0 10 8 15 0 10 8 15 0"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                    />
+                                </svg>
                             </div>
 
-                            <div className="flex h-36 items-end justify-between gap-2">
-                                {weekly_activity.map((day) => {
-                                    const heightPct = maxQuestions > 0 ? (day.questions / maxQuestions) * 100 : 0;
-                                    const isToday = day.is_today;
-                                    return (
-                                        <div key={day.date} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
-                                            <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">{day.questions}</span>
-                                            <div className="flex w-full flex-1 items-end">
-                                                <div
-                                                    className={`w-full rounded-t-lg transition-all ${
-                                                        isToday ? "bg-brand-500" : "bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
-                                                    }`}
-                                                    style={{ height: `${Math.max(heightPct, 4)}%` }}
-                                                    title={`${day.questions} soal dijawab`}
-                                                />
-                                            </div>
-                                            <span className={`text-[10px] font-medium ${isToday ? "text-brand-500 dark:text-brand-400" : "text-gray-400 dark:text-gray-500"}`}>
-                                                {day.day}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </Card>
-
-                        {/* continue learning */}
-                        <section>
-                            <div className="mb-3.5 flex items-center justify-between">
-                                <h2 className="text-sm font-bold text-gray-900 dark:text-white">Lanjutkan belajar</h2>
-                                <Link href="/materials" className="text-[11px] font-semibold text-brand-500 hover:underline dark:text-brand-400">
-                                    Lihat semua
-                                </Link>
+                            <div className="pointer-events-none absolute -bottom-3 right-4 z-0 hidden h-[125%] aspect-square md:block lg:right-7">
+                                <img
+                                    src="/images/reading-boy.png"
+                                    alt="Ilustrasi belajar"
+                                    className="h-full w-full max-w-none select-none object-contain"
+                                />
                             </div>
 
-                            <div className="space-y-2.5">
-                                {continue_learning.map((doc) => (
-                                    <div
-                                        key={doc.id}
-                                        className="group flex items-center gap-3.5 rounded-2xl border border-gray-200 bg-white p-3.5 transition-all hover:border-gray-300 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-gray-700"
+                            <div className="relative z-10 md:pr-64">
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70">Dashboard</p>
+                                    <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
+                                        Selamat datang kembali,{" "}
+                                        <span className="font-medium">{greeting_name}</span>.
+                                    </h1>
+                                    <span
+                                        title={`${study_streak_days} hari belajar beruntun`}
+                                        className="mt-3.5 flex w-fit items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm"
                                     >
-                                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${fileTone(doc.file_type)}`}>
-                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    d="M19.5 14.25v-2.625A3.375 3.375 0 0016.125 8.25h-1.5A1.125 1.125 0 0013.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-                                                />
-                                            </svg>
-                                        </div>
-
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate text-xs font-semibold text-gray-800 transition-colors group-hover:text-brand-500 dark:text-gray-200 dark:group-hover:text-brand-400">
-                                                {doc.title}
-                                            </p>
-                                            <p className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500">
-                                                <span
-                                                    className="h-1.5 w-1.5 rounded-full"
-                                                    style={{ backgroundColor: doc.course.color }}
-                                                />
-                                                {doc.course.name}
-                                                <span>·</span>
-                                                {formatSize(doc.file_size)}
-                                                <span>·</span>
-                                                {doc.page_count} halaman
-                                            </p>
-                                        </div>
-
-                                        {doc.last_quiz_score !== null ? (
-                                            <span className={`shrink-0 rounded-lg border px-2.5 py-1 text-[11px] font-bold ${scoreTone(doc.last_quiz_score)}`}>
-                                                {doc.last_quiz_score}%
-                                            </span>
-                                        ) : (
-                                            <span className="shrink-0 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-[11px] font-medium text-brand-500 dark:border-brand-500/20 dark:bg-brand-500/10 dark:text-brand-400">
-                                                {doc.study_pack.status === "ready"
-                                                    ? "Siap"
-                                                    : doc.study_pack.status === "generating"
-                                                    ? "Diproses"
-                                                    : "Belum diproses"}
-                                            </span>
-                                        )}
-
-                                        <Link
-                                            href={`/documents/${doc.id}/study-pack`}
-                                            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-[11px] font-medium text-gray-700 transition-all hover:border-brand-500 hover:bg-brand-50 hover:text-brand-500 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:border-brand-500 dark:hover:bg-brand-500/10 dark:hover:text-brand-400"
-                                        >
-                                            Buka
-                                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                                            </svg>
-                                        </Link>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* recent quizzes */}
-                        <section>
-                            <div className="mb-3.5 flex items-center justify-between">
-                                <h2 className="text-sm font-bold text-gray-900 dark:text-white">Quiz terakhir</h2>
-                                <Link href="/progress" className="text-[11px] font-semibold text-brand-500 hover:underline dark:text-brand-400">
-                                    Lihat riwayat
-                                </Link>
-                            </div>
-
-                            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full border-collapse text-left">
-                                        <thead>
-                                            <tr className="border-b border-gray-100 bg-gray-50/60 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:border-gray-800 dark:bg-white/[0.02] dark:text-gray-500">
-                                                <th className="px-4 py-3">Materi</th>
-                                                <th className="px-4 py-3">Skor</th>
-                                                <th className="hidden px-4 py-3 md:table-cell">Konsep lemah</th>
-                                                <th className="px-4 py-3 text-right">Hasil</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100 text-xs dark:divide-gray-800">
-                                            {recent_quizzes.map((quiz) => (
-                                                <tr key={quiz.id} className="transition-colors hover:bg-gray-50/60 dark:hover:bg-white/[0.02]">
-                                                    <td className="px-4 py-3">
-                                                        <p className="font-medium text-gray-800 dark:text-gray-200">{quiz.material_title}</p>
-                                                        <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">{quiz.course}</p>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <span className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold ${scoreTone(quiz.score)}`}>
-                                                            {quiz.score}%
-                                                        </span>
-                                                        <p className="mt-0.5 text-[10px] text-gray-400 dark:text-gray-500">
-                                                            {quiz.correct}/{quiz.total} benar
-                                                        </p>
-                                                    </td>
-                                                    <td className="hidden px-4 py-3 md:table-cell">
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {quiz.weak_concepts.length === 0 ? (
-                                                                <span className="text-[10px] text-gray-400 dark:text-gray-500">—</span>
-                                                            ) : (
-                                                                quiz.weak_concepts.map((c) => (
-                                                                    <span key={c} className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
-                                                                        {c}
-                                                                    </span>
-                                                                ))
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <Link
-                                                            href={quiz.results_url}
-                                                            className="text-[11px] font-semibold text-brand-500 hover:underline dark:text-brand-400"
-                                                        >
-                                                            Review
-                                                        </Link>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                        <svg className="h-4 w-4 text-peach" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z" />
+                                        </svg>
+                                        {study_streak_days} hari beruntun
+                                    </span>
                                 </div>
                             </div>
                         </section>
-                    </div>
 
-                    {/* ------------------------------------------------------ right: 1/3 */}
-                    <div className="space-y-6">
-                        {/* knowledge gap */}
-                        <Card>
-                            <div className="mb-4 flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-sm font-bold text-gray-900 dark:text-white">Knowledge gap</h2>
-                                    <p className="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500">Topik paling perlu diperkuat</p>
-                                </div>
-                                <span className="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">PERLU LATIHAN</span>
-                            </div>
+                        <ScoreChart data={score_trend} target={stats.passing_score} />
 
-                            <div className="space-y-3.5">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                            <ActivityPills data={weekly_activity} total={stats.questions_this_week} />
+                            <ProgressRing value={stats.average_score} target={stats.passing_score} />
+                        </div>
+
+                        <UICard padding="md">
+                            <SectionHeader
+                                title="Knowledge gap"
+                                subtitle="Topik paling perlu diperkuat"
+                                action={<Badge tone="rose">Perlu latihan</Badge>}
+                            />
+
+                            <div className="mt-4 space-y-3">
                                 {knowledge_gap_preview.map((gap) => (
-                                    <div key={gap.concept_id}>
-                                        <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                                            <p className="truncate text-[11px] font-semibold text-gray-700 dark:text-gray-300">{gap.name}</p>
-                                            <span className="shrink-0 text-[11px] font-bold text-rose-600 dark:text-rose-400">{gap.mastery}%</span>
+                                    <div key={gap.concept_id} className="rounded-2xl bg-surface-tint p-3.5">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="truncate text-sm font-semibold text-ink">{gap.name}</p>
+                                                <p className="mt-0.5 truncate text-xs text-muted">{gap.course_name}</p>
+                                            </div>
+                                            <span className="shrink-0 text-sm font-semibold text-peach-strong dark:text-peach">
+                                                {gap.mastery}%
+                                            </span>
                                         </div>
-                                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                                            <div className="h-full rounded-full bg-rose-400" style={{ width: `${gap.mastery}%` }} />
+                                        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-track">
+                                            <div
+                                                className="h-full rounded-full bg-peach-strong dark:bg-peach"
+                                                style={{ width: `${gap.mastery}%` }}
+                                            />
                                         </div>
-                                        <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">{gap.course_name}</p>
                                     </div>
                                 ))}
                             </div>
 
-                            <Link
+                            <Button
                                 href="/progress"
-                                className="mt-5 flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2.5 text-[11px] font-semibold text-gray-700 transition-all hover:border-brand-500 hover:bg-brand-50 hover:text-brand-500 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:border-brand-500 dark:hover:bg-brand-500/10 dark:hover:text-brand-400"
+                                variant="secondary"
+                                size="sm"
+                                className="mt-4 w-full"
                             >
                                 Buat latihan personal
                                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                                 </svg>
-                            </Link>
-                        </Card>
-
-                        {/* strong concepts */}
-                        <Card>
-                            <h2 className="text-sm font-bold text-gray-900 dark:text-white">Sudah kuat</h2>
-                            <p className="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500">Konsep dengan penguasaan tinggi</p>
-
-                            <div className="mt-4 space-y-3">
-                                {strong_concepts.map((c) => (
-                                    <div key={`${c.course_id}-${c.concept_id}`} className="flex items-center gap-2.5">
-                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400">
-                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                            </svg>
-                                        </span>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="truncate text-[11px] font-semibold text-gray-700 dark:text-gray-300">{c.name}</p>
-                                            <p className="text-[10px] text-gray-400 dark:text-gray-500">{c.course_name}</p>
-                                        </div>
-                                        <span className="shrink-0 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{c.mastery}%</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
+                            </Button>
+                        </UICard>
                     </div>
+
+                    <aside className="w-full space-y-6 xl:w-[340px] xl:shrink-0">
+                        <CalendarCard studyDates={study_dates} />
+                        <ContinueLearning documents={continue_learning} />
+                    </aside>
                 </div>
             </div>
         </>

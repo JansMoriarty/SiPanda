@@ -1,5 +1,7 @@
 import { Head } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
+import Card from "@/Components/ui/Card";
+import Badge from "@/Components/ui/Badge";
 
 /**
  * Pengaturan akun.
@@ -37,15 +39,15 @@ const PLANNED_SETTINGS = [
 
 function PlannedSetting({ title, note }) {
     return (
-        <li className="flex items-start justify-between gap-4 py-3.5">
+        <li className="flex items-start justify-between gap-4 py-4">
             <div className="min-w-0">
-                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{title}</p>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">{note}</p>
+                <p className="text-sm font-semibold text-ink">{title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted">{note}</p>
             </div>
             <span
                 aria-disabled="true"
                 title="Belum ada route dan belum ada tempat untuk menyimpan setelan ini."
-                className="shrink-0 cursor-not-allowed rounded-lg border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-white/[0.03] px-2.5 py-1 text-[10px] font-bold text-gray-400 dark:text-gray-500"
+                className="shrink-0 cursor-not-allowed rounded-full border border-dashed border-track bg-canvas px-2.5 py-1 text-[11px] font-bold text-muted"
             >
                 BELUM ADA
             </span>
@@ -60,35 +62,31 @@ export default function Index() {
 
             <div className="mx-auto max-w-[1400px] space-y-6 p-6 sm:p-7">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h1>
-                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                        Pengaturan akun dan preferensi belajarmu.
-                    </p>
+                    <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-[28px]">Settings</h1>
+                    <p className="mt-1.5 text-sm text-muted">Pengaturan akun dan preferensi belajarmu.</p>
                 </div>
 
-                <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-5 shadow-xs">
-                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                        <h2 className="text-sm font-bold text-gray-900 dark:text-white">Belum ada pengaturan aktif</h2>
-                        <span className="rounded-lg border border-amber-200/80 bg-amber-50 px-2.5 py-1.5 text-[10px] font-bold text-amber-600">
-                            HALAMAN KOSONG
-                        </span>
+                <Card>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <h2 className="text-base font-semibold text-ink">Belum ada pengaturan aktif</h2>
+                        <Badge tone="peach">HALAMAN KOSONG</Badge>
                     </div>
 
-                    <p className="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                    <p className="text-sm leading-relaxed text-muted">
                         Identitas akun dan foto profil ada di halaman{" "}
-                        <a href="/profile" className="font-semibold text-brand-500 dark:text-brand-400 hover:underline">
+                        <a href="/profile" className="font-semibold text-brand dark:text-lavender hover:underline">
                             Profile
                         </a>
-                        . Untuk pengaturan lain, belum ada yang bisa disimpan di server, jadi
-                        halaman ini sengaja tidak memuat form yang kelihatan berfungsi.
+                        . Untuk pengaturan lain, belum ada yang bisa disimpan di server, jadi halaman ini sengaja
+                        tidak memuat form yang kelihatan berfungsi.
                     </p>
 
-                    <ul className="mt-4 divide-y divide-gray-100 dark:divide-gray-800 border-t border-gray-100 dark:border-gray-800">
+                    <ul className="mt-5 divide-y divide-track border-t border-track">
                         {PLANNED_SETTINGS.map((setting) => (
                             <PlannedSetting key={setting.title} {...setting} />
                         ))}
                     </ul>
-                </section>
+                </Card>
             </div>
         </>
     );

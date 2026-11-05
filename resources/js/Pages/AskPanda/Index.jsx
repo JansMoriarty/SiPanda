@@ -58,15 +58,15 @@ function TypewriterHeading() {
     }, [step]);
 
     return (
-        <div className="text-center mb-8 select-none z-10">
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white min-h-[44px]">
+        <div className="mb-8 select-none text-center z-10">
+            <h1 className="min-h-[44px] text-3xl font-bold tracking-tight text-ink sm:text-4xl">
                 {displayedText1}
-                {step === 1 && <span className="inline-block w-0.5 h-7 bg-slate-900 dark:bg-white ml-1 animate-pulse" />}
+                {step === 1 && <span className="ml-1 inline-block h-7 w-0.5 animate-pulse bg-brand dark:bg-lavender" />}
             </h1>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mt-1 min-h-[44px]">
+            <h2 className="mt-1 min-h-[44px] text-3xl font-bold tracking-tight text-ink sm:text-4xl">
                 {displayedText2Prefix}
-                <span className="text-[#465FFF] dark:text-brand-400">{displayedText2Highlight}</span>
-                {step >= 2 && step < 4 && <span className="inline-block w-0.5 h-7 bg-[#465FFF] ml-1 animate-pulse" />}
+                <span className="text-brand dark:text-lavender">{displayedText2Highlight}</span>
+                {step >= 2 && step < 4 && <span className="ml-1 inline-block h-7 w-0.5 animate-pulse bg-brand dark:bg-lavender" />}
             </h2>
         </div>
     );
@@ -77,10 +77,10 @@ function FileGlyph({ type }) {
 
     return (
         <span
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-control ${
                 isPdf
                     ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/10 dark:text-rose-400'
-                    : 'bg-[#ECF2FF] text-[#465FFF] dark:bg-brand-500/15 dark:text-brand-400'
+                    : 'bg-brand/10 text-brand dark:bg-brand/20 dark:text-lavender'
             }`}
         >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -394,21 +394,21 @@ export default function Index({ materials = [] }) {
     const renderChatInput = () => (
         <form
             onSubmit={handleSubmit}
-            className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border border-slate-200/90 dark:border-gray-800 rounded-3xl p-4 focus-within:border-[#465FFF]/50 focus-within:ring-2 focus-within:ring-[#465FFF]/10 transition-all duration-300 w-full animate-fade-in-up shadow-lg shadow-blue-950/5 z-10"
+            className="relative z-10 w-full rounded-card border border-track bg-surface/90 p-3.5 shadow-card backdrop-blur-md transition-all duration-300 animate-fade-in-up focus-within:border-brand/40 focus-within:ring-2 focus-within:ring-brand/10 dark:bg-surface/90"
         >
             {activeModule && (
-                <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-[#465FFF]/20 bg-[#ECF2FF]/60 px-3 py-2 dark:border-brand-500/20 dark:bg-brand-500/10">
+                <div className="mb-3 flex items-center justify-between gap-2 rounded-control border border-brand/20 bg-lavender-soft/60 px-3 py-2 dark:bg-brand/10">
                     <div className="flex min-w-0 items-center gap-2">
-                        <svg className="h-4 w-4 shrink-0 text-[#465FFF] dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                        <svg className="h-4 w-4 shrink-0 text-brand dark:text-lavender" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                         </svg>
-                        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-[#465FFF] dark:text-brand-400">Terkunci</span>
-                        <span className="truncate text-xs font-medium text-slate-600 dark:text-gray-300">{activeModule.title}</span>
+                        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-brand dark:text-lavender">Terkunci</span>
+                        <span className="truncate text-xs font-medium text-ink">{activeModule.title}</span>
                     </div>
                     <button
                         type="button"
                         onClick={unlockModule}
-                        className="shrink-0 text-[11px] font-medium text-slate-500 transition-colors hover:text-slate-800 dark:text-gray-400 dark:hover:text-white"
+                        className="shrink-0 text-[11px] font-medium text-muted transition-colors hover:text-ink"
                     >
                         Buka kunci
                     </button>
@@ -416,7 +416,7 @@ export default function Index({ materials = [] }) {
             )}
 
             <div className="flex items-start gap-3 px-1 pt-1">
-                <svg className="w-5 h-5 text-[#465FFF] dark:text-brand-400 shrink-0 mt-0.5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                <svg className="mt-0.5 h-5 w-5 shrink-0 animate-pulse text-brand dark:text-lavender" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
 
@@ -432,20 +432,20 @@ export default function Index({ materials = [] }) {
                         }
                     }}
                     placeholder="Tanya apa saja tentang materi kuliahmu..."
-                    className="w-full bg-transparent text-sm text-slate-800 dark:text-gray-200 placeholder-slate-400 dark:placeholder-gray-500 outline-none resize-none font-['Outfit'] min-h-[38px] max-h-[200px] overflow-y-auto no-scrollbar leading-relaxed"
+                    className="no-scrollbar min-h-[38px] max-h-[200px] w-full resize-none overflow-y-auto bg-transparent text-sm leading-relaxed text-ink outline-none placeholder:text-muted"
                     disabled={loading}
                 />
             </div>
 
-            <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-100 dark:border-gray-800">
-                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <div className="mt-2 flex items-center justify-between border-t border-track pt-3">
+                <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto py-0.5">
                     <button
                         type="button"
                         onClick={() => triggerToast('Upload File')}
-                        className="p-2 text-slate-300 dark:text-gray-600 hover:text-slate-400 rounded-xl transition-all cursor-not-allowed"
+                        className="cursor-not-allowed rounded-control p-2 text-muted/50 transition-all hover:text-muted"
                         title="Upload Attachment (Coming Soon)"
                     >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94a3 3 0 114.243 4.242L8.56 18.313a1.5 1.5 0 01-2.122-2.122l8.485-8.485" />
                         </svg>
                     </button>
@@ -453,9 +453,9 @@ export default function Index({ materials = [] }) {
                     <button
                         type="button"
                         onClick={() => triggerToast('Reasoning')}
-                        className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-gray-500 bg-slate-50 dark:bg-white/[0.03] opacity-60 border border-slate-200/60 dark:border-gray-800 px-3 py-1.5 rounded-xl font-medium cursor-not-allowed whitespace-nowrap"
+                        className="flex cursor-not-allowed items-center gap-1.5 whitespace-nowrap rounded-control border border-track bg-canvas px-3 py-1.5 text-xs font-medium text-muted opacity-60"
                     >
-                        <svg className="w-3.5 h-3.5 text-amber-500/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                        <svg className="h-3.5 w-3.5 text-amber-500/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 2.438a3.75 3.75 0 01-4.5 0M12 3a6 6 0 00-6 6c0 2.22 1.206 4.16 3 5.197V16.5a1.5 1.5 0 001.5 1.5h3a1.5 1.5 0 001.5-1.5v-2.303c1.794-1.037 3-2.977 3-5.197a6 6 0 00-6-6z" />
                         </svg>
                         Reasoning
@@ -464,9 +464,9 @@ export default function Index({ materials = [] }) {
                     <button
                         type="button"
                         onClick={() => triggerToast('Create Image')}
-                        className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-gray-500 bg-slate-50 dark:bg-white/[0.03] opacity-60 border border-slate-200/60 dark:border-gray-800 px-3 py-1.5 rounded-xl font-medium cursor-not-allowed whitespace-nowrap"
+                        className="flex cursor-not-allowed items-center gap-1.5 whitespace-nowrap rounded-control border border-track bg-canvas px-3 py-1.5 text-xs font-medium text-muted opacity-60"
                     >
-                        <svg className="w-3.5 h-3.5 text-purple-500/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                        <svg className="h-3.5 w-3.5 text-rose-400/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                         </svg>
                         Create Image
@@ -475,9 +475,9 @@ export default function Index({ materials = [] }) {
                     <button
                         type="button"
                         onClick={() => triggerToast('Deep Research')}
-                        className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-gray-500 bg-slate-50 dark:bg-white/[0.03] opacity-60 border border-slate-200/60 dark:border-gray-800 px-3 py-1.5 rounded-xl font-medium cursor-not-allowed whitespace-nowrap"
+                        className="flex cursor-not-allowed items-center gap-1.5 whitespace-nowrap rounded-control border border-track bg-canvas px-3 py-1.5 text-xs font-medium text-muted opacity-60"
                     >
-                        <svg className="w-3.5 h-3.5 text-blue-500/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                        <svg className="h-3.5 w-3.5 text-sage/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.255-3.633c.195-.29.515-.475.865-.501 1.153-.086 2.294-.213 3.423-.379 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
                         </svg>
                         Deep Research
@@ -487,9 +487,9 @@ export default function Index({ materials = [] }) {
                 <button
                     type="submit"
                     disabled={loading || !question.trim()}
-                    className="bg-[#465FFF] hover:bg-blue-600 text-white p-2.5 rounded-2xl text-sm font-medium transition-all hover:scale-105 active:scale-95 disabled:opacity-40 shrink-0 ml-2 shadow-md shadow-[#465FFF]/20"
+                    className="ml-2 shrink-0 rounded-control bg-brand p-2.5 text-sm font-medium text-white shadow-pill transition-all hover:scale-105 hover:bg-brand-600 active:scale-95 disabled:opacity-40 dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
                 >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                 </button>
@@ -523,8 +523,8 @@ export default function Index({ materials = [] }) {
 
             {/* Floating Toast Notification */}
             {toastMessage && (
-                <div className="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-2xl shadow-xl backdrop-blur-md z-50 flex items-center gap-2 animate-bounce">
-                    <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <div className="fixed left-1/2 top-5 z-50 flex -translate-x-1/2 animate-bounce items-center gap-2 rounded-control bg-ink/95 px-4 py-2.5 text-xs text-canvas shadow-xl backdrop-blur-md">
+                    <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                     </svg>
                     <span>{toastMessage}</span>
@@ -533,25 +533,25 @@ export default function Index({ materials = [] }) {
 
             {/* Rate Limit & Server Error Modal Dinamis */}
             {showLimitModal && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center animate-fade-in-up">
-                        <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-7 h-7 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-sm rounded-card bg-surface p-6 text-center shadow-card animate-fade-in-up dark:ring-1 dark:ring-track">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-control border border-amber-100 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10">
+                            <svg className="h-7 w-7 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                             </svg>
                         </div>
 
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                        <h3 className="mb-2 text-lg font-semibold text-ink">
                             {modalTitle}
                         </h3>
 
-                        <p className="text-sm text-slate-500 dark:text-gray-400 leading-relaxed mb-6">
+                        <p className="mb-6 text-sm leading-relaxed text-muted">
                             {limitMessage}
                         </p>
 
                         <button
                             onClick={() => setShowLimitModal(false)}
-                            className="w-full bg-[#465FFF] hover:bg-blue-600 text-white py-2.5 rounded-2xl text-sm font-medium transition-all"
+                            className="w-full rounded-control bg-brand py-2.5 text-sm font-medium text-white transition-all hover:bg-brand-600 dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
                         >
                             Mengerti
                         </button>
@@ -559,22 +559,23 @@ export default function Index({ materials = [] }) {
                 </div>
             )}
 
-            <div className="flex flex-1 h-full bg-[#FAFAFC] dark:bg-gray-900 text-slate-800 dark:text-gray-200 overflow-hidden font-['Outfit'] relative">
+            <div className="relative flex h-full flex-1 overflow-hidden bg-canvas text-ink">
 
                 {/* Main Content Area */}
-                <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-[#FAFAFC] dark:bg-gray-900">
+                <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-canvas">
 
                     {/* Header */}
-                    <div className="flex items-center justify-end px-6 py-3 bg-transparent z-10">
+                    <div className="z-10 flex items-center justify-end bg-transparent px-6 py-3">
                         <button
                             onClick={() => setIsHistoryOpen(!isHistoryOpen)}
                             title="Toggle Sidebar"
-                            className={`p-2 rounded-xl border text-xs transition-all flex items-center justify-center hover:scale-105 active:scale-95 ${isHistoryOpen
-                                ? "bg-[#ECF2FF] border-blue-200 text-[#465FFF] dark:bg-brand-500/15 dark:border-brand-500/30 dark:text-brand-400"
-                                : "bg-white/80 border-slate-200 text-slate-500 hover:text-slate-900 dark:bg-gray-900/80 dark:border-gray-800 dark:text-gray-400 dark:hover:text-white"
-                                }`}
+                            className={`flex items-center justify-center rounded-control border p-2 text-xs transition-all hover:scale-105 active:scale-95 ${
+                                isHistoryOpen
+                                    ? 'border-brand/20 bg-lavender-soft text-brand dark:border-lavender/30 dark:bg-brand/20 dark:text-lavender'
+                                    : 'border-track bg-surface/80 text-muted hover:text-ink'
+                            }`}
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <rect x="3" y="4" width="18" height="16" rx="2" strokeWidth="2" />
                                 <path d="M15 4v16" strokeWidth="2" />
                             </svg>
@@ -583,18 +584,18 @@ export default function Index({ materials = [] }) {
 
                     {/* Chat Area */}
                     {messages.length === 0 ? (
-                        <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-2xl mx-auto w-full transition-all duration-500 relative z-10">
+                        <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center p-6 transition-all duration-500">
                             <TypewriterHeading />
                             {renderChatInput()}
                         </div>
                     ) : (
                         <>
-                            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-8 max-w-3xl mx-auto w-full no-scrollbar relative z-10">
+                            <div ref={chatContainerRef} className="no-scrollbar relative z-10 mx-auto w-full max-w-3xl flex-1 space-y-8 overflow-y-auto p-6">
                                 {messages.map((msg, i) => (
                                     <div key={i} className="w-full">
                                         {msg.role === 'user' && (
                                             <div className="flex justify-end animate-fade-in-up">
-                                                <div className="bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-gray-100 px-4 py-3 rounded-2xl max-w-[80%] text-sm leading-relaxed font-normal">
+                                                <div className="max-w-[80%] rounded-card bg-brand px-4 py-3 text-sm font-normal leading-relaxed text-white dark:bg-lavender dark:text-brand">
                                                     {msg.text}
                                                 </div>
                                             </div>
@@ -602,20 +603,20 @@ export default function Index({ materials = [] }) {
 
                                         {msg.role === 'module' && (
                                             <div className="flex justify-end animate-fade-in-up">
-                                                <div className="w-full max-w-sm rounded-2xl border border-[#465FFF]/20 bg-[#ECF2FF]/70 dark:bg-brand-500/10 p-4">
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#465FFF] dark:text-brand-400">
+                                                <div className="w-full max-w-sm rounded-card border border-brand/20 bg-lavender-soft/70 p-4 dark:bg-brand/10">
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-brand dark:text-lavender">
                                                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
                                                         </svg>
                                                         Modul
                                                     </div>
-                                                    <p className="mt-1.5 truncate text-sm font-semibold text-slate-800 dark:text-gray-100">{msg.module.title}</p>
+                                                    <p className="mt-1.5 truncate text-sm font-semibold text-ink">{msg.module.title}</p>
                                                     {msg.module.course?.name && (
-                                                        <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-gray-400">{msg.module.course.name}</p>
+                                                        <p className="mt-0.5 truncate text-[11px] text-muted">{msg.module.course.name}</p>
                                                     )}
                                                     <Link
                                                         href={`/documents/${msg.module.id}`}
-                                                        className="mt-3 inline-flex items-center gap-1 rounded-lg border border-[#465FFF]/30 bg-white/70 px-2.5 py-1 text-[11px] font-medium text-[#465FFF] transition-colors hover:bg-white dark:border-brand-500/30 dark:bg-white/[0.04] dark:text-brand-400 dark:hover:bg-white/[0.08]"
+                                                        className="mt-3 inline-flex items-center gap-1 rounded-control border border-brand/30 bg-surface/70 px-2.5 py-1 text-[11px] font-medium text-brand transition-colors hover:bg-surface dark:border-lavender/30 dark:text-lavender"
                                                     >
                                                         Buka modul
                                                         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -628,14 +629,14 @@ export default function Index({ materials = [] }) {
 
                                         {msg.role === 'assistant' && msg.clarify && (
                                             <div className="flex flex-col items-start animate-fade-in-up">
-                                                <div className="w-full max-w-lg rounded-2xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
+                                                <div className="w-full max-w-lg rounded-card border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
                                                     <div className="flex items-start gap-2.5">
                                                         <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                                                         </svg>
                                                         <div>
-                                                            <p className="text-sm font-semibold text-slate-800 dark:text-gray-100">Pertanyaan di luar materi</p>
-                                                            <p className="mt-0.5 text-xs leading-relaxed text-slate-600 dark:text-gray-300">
+                                                            <p className="text-sm font-semibold text-ink">Pertanyaan di luar materi</p>
+                                                            <p className="mt-0.5 text-xs leading-relaxed text-muted">
                                                                 Pertanyaan ini sepertinya tidak berkaitan dengan modul yang kamu unggah. Mau PANDA jawab pakai pengetahuan umum?
                                                             </p>
                                                         </div>
@@ -643,13 +644,13 @@ export default function Index({ materials = [] }) {
                                                     <div className="mt-3 flex flex-wrap gap-2 pl-6">
                                                         <button
                                                             onClick={() => answerGeneral(msg.question)}
-                                                            className="rounded-xl bg-[#465FFF] px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-blue-600 active:scale-95"
+                                                            className="rounded-control bg-brand px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-brand-600 active:scale-95 dark:bg-lavender dark:text-brand"
                                                         >
                                                             Ya, pakai pengetahuan umum
                                                         </button>
                                                         <button
                                                             onClick={declineGeneral}
-                                                            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-all hover:bg-slate-50 dark:border-gray-700 dark:bg-white/[0.04] dark:text-gray-300 dark:hover:bg-white/[0.08]"
+                                                            className="rounded-control border border-track bg-surface px-3 py-1.5 text-xs font-medium text-muted transition-all hover:bg-canvas hover:text-ink dark:bg-track"
                                                         >
                                                             Tidak
                                                         </button>
@@ -661,56 +662,56 @@ export default function Index({ materials = [] }) {
                                         {msg.role === 'assistant' && !msg.clarify && (
                                             (!msg.text && msg.isWriting ? (
                                                 <div className="flex flex-col items-start space-y-2 animate-fade-in-up">
-                                                    <div className="flex items-center gap-2 text-xs font-medium text-[#465FFF] dark:text-brand-400">
-                                                        <div className="relative flex items-center justify-center w-4 h-4">
-                                                            <div className="absolute w-full h-full border-2 border-[#465FFF]/30 border-t-[#465FFF] rounded-full animate-spin"></div>
-                                                            <div className="w-1.5 h-1.5 bg-[#465FFF] rounded-full animate-pulse shadow-[0_0_6px_#465FFF]"></div>
+                                                    <div className="flex items-center gap-2 text-xs font-medium text-brand dark:text-lavender">
+                                                        <div className="relative flex h-4 w-4 items-center justify-center">
+                                                            <div className="absolute h-full w-full animate-spin rounded-full border-2 border-brand/30 border-t-brand dark:border-lavender/30 dark:border-t-lavender"></div>
+                                                            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand shadow-[0_0_6px_#5b4b8a] dark:bg-lavender"></div>
                                                         </div>
                                                         <span className="animate-pulse font-semibold">Thinking...</span>
                                                     </div>
 
-                                                    <div className="flex items-center gap-1.5 px-4 py-3 bg-slate-100/70 dark:bg-gray-800/70 rounded-2xl">
-                                                        <span className="w-2 h-2 bg-[#465FFF] rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                                        <span className="w-2 h-2 bg-[#465FFF] rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                                        <span className="w-2 h-2 bg-[#465FFF] rounded-full animate-bounce"></span>
+                                                    <div className="flex items-center gap-1.5 rounded-card bg-canvas px-4 py-3">
+                                                        <span className="h-2 w-2 animate-bounce rounded-full bg-brand [animation-delay:-0.3s] dark:bg-lavender"></span>
+                                                        <span className="h-2 w-2 animate-bounce rounded-full bg-brand [animation-delay:-0.15s] dark:bg-lavender"></span>
+                                                        <span className="h-2 w-2 animate-bounce rounded-full bg-brand dark:bg-lavender"></span>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 <div className="flex flex-col items-start space-y-3 animate-fade-in-up">
                                                     <div className="flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-400">
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" />
                                                         </svg>
                                                         <span>PANDA AI v1.0</span>
                                                     </div>
 
-                                                    <div className="text-slate-800 dark:text-gray-200 text-sm leading-relaxed pl-0">
+                                                    <div className="pl-0 text-sm leading-relaxed text-ink">
                                                         {renderMarkdown(msg.text)}
                                                         {msg.isWriting && (
-                                                            <span className="inline-block w-2 h-4 bg-[#465FFF] ml-1 animate-pulse rounded-sm" />
+                                                            <span className="ml-1 inline-block h-4 w-2 animate-pulse rounded-sm bg-brand dark:bg-lavender" />
                                                         )}
                                                     </div>
 
                                                     {/* Card Sumber Dokumen */}
                                                     {msg.sources && msg.sources.length > 0 && (
-                                                        <div className="mt-2 space-y-2 w-full max-w-lg">
+                                                        <div className="mt-2 w-full max-w-lg space-y-2">
                                                             {msg.sources.map((s) => (
                                                                 <div
                                                                     key={s.document_id}
-                                                                    className="flex items-center justify-between p-3 bg-white/90 dark:bg-white/[0.03] backdrop-blur-sm rounded-2xl border border-slate-200/90 dark:border-gray-800 shadow-sm hover:border-[#465FFF]/30 transition-all group"
+                                                                    className="group flex items-center justify-between rounded-card border border-track bg-surface/90 p-3 shadow-card backdrop-blur-sm transition-all hover:border-brand/30"
                                                                 >
-                                                                    <div className="flex items-center gap-3 min-w-0 pr-2">
-                                                                        <div className="w-9 h-9 rounded-xl bg-pink-50 dark:bg-pink-500/10 border border-pink-100 dark:border-pink-500/20 flex items-center justify-center text-pink-500 shrink-0">
-                                                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                                                    <div className="flex min-w-0 items-center gap-3 pr-2">
+                                                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-rose-100 bg-rose-50 text-rose-500 dark:border-rose-500/20 dark:bg-rose-500/10">
+                                                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                                                                 <circle cx="12" cy="12" r="9" />
                                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 9h16.8M3.6 15h16.8M12 3a14.25 14.25 0 000 18 14.25 14.25 0 000-18z" />
                                                                             </svg>
                                                                         </div>
-                                                                        <div className="flex flex-col min-w-0">
-                                                                            <h5 className="text-xs font-semibold text-slate-800 dark:text-gray-200 truncate leading-snug">
+                                                                        <div className="flex min-w-0 flex-col">
+                                                                            <h5 className="truncate text-xs font-semibold leading-snug text-ink">
                                                                                 {s.document}
                                                                             </h5>
-                                                                            <p className="text-[11px] text-slate-400 dark:text-gray-500 truncate mt-0.5">
+                                                                            <p className="mt-0.5 truncate text-[11px] text-muted">
                                                                                 Document {s.locations && s.locations.length > 0 ? `• ${s.locations.join(', ')}` : ''}
                                                                             </p>
                                                                         </div>
@@ -720,11 +721,11 @@ export default function Index({ materials = [] }) {
                                                                         href={`/documents/${s.document_id}/download`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className="flex items-center bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200/80 dark:hover:bg-white/[0.1] text-slate-700 dark:text-gray-300 rounded-xl px-3 py-1.5 text-xs font-medium transition-all shrink-0 border border-slate-200/60 dark:border-gray-800"
+                                                                        className="flex shrink-0 items-center rounded-control border border-track bg-canvas px-3 py-1.5 text-xs font-medium text-ink transition-all hover:bg-surface-tint"
                                                                     >
                                                                         <span>Download</span>
-                                                                        <div className="h-3 w-[1px] bg-slate-300 dark:bg-gray-700 mx-2" />
-                                                                        <svg className="w-3.5 h-3.5 text-slate-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                                        <div className="mx-2 h-3 w-[1px] bg-track" />
+                                                                        <svg className="h-3.5 w-3.5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                                                                         </svg>
                                                                     </a>
@@ -734,32 +735,32 @@ export default function Index({ materials = [] }) {
                                                     )}
 
                                                     {!msg.isWriting && (
-                                                        <div className="flex items-center gap-1.5 text-slate-400 dark:text-gray-500 pt-1">
+                                                        <div className="flex items-center gap-1.5 pt-1 text-muted">
                                                             <button
                                                                 onClick={() => handleCopy(msg.text, i)}
-                                                                className="p-1.5 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-all text-xs flex items-center gap-1"
+                                                                className="flex items-center gap-1 rounded-control p-1.5 text-xs transition-all hover:bg-canvas hover:text-ink"
                                                                 title="Copy response"
                                                             >
-                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
                                                                 </svg>
-                                                                {copiedIndex === i && <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Copied!</span>}
+                                                                {copiedIndex === i && <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Copied!</span>}
                                                             </button>
 
-                                                            <button className="p-1.5 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-all" title="Like">
-                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                                            <button className="rounded-control p-1.5 transition-all hover:bg-canvas hover:text-ink" title="Like">
+                                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.5c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75A2.25 2.25 0 0116.5 4.5c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23H5.25M6.633 10.5H5.25m1.383 0v10.5m-1.383 0H3.75A1.5 1.5 0 012.25 19.5V12a1.5 1.5 0 011.5-1.5h1.5" />
                                                                 </svg>
                                                             </button>
 
-                                                            <button className="p-1.5 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-all" title="Dislike">
-                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                                            <button className="rounded-control p-1.5 transition-all hover:bg-canvas hover:text-ink" title="Dislike">
+                                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.367 13.5c-.806 0-1.533.446-2.031 1.08a9.041 9.041 0 01-2.861 2.4c-.723.384-1.35.956-1.653 1.715a4.498 4.498 0 00-.322 1.672V21a.75.75 0 01.75.75A2.25 2.25 0 017.5 19.5c0-1.152.26-2.243.723-3.218.266-.558-.107-1.282-.725-1.282H4.372c-1.026 0-1.945-.694-2.054-1.715A12.137 12.137 0 012.25 12c0-2.848.992-5.464 2.649-7.521C5.287 3.997 5.886 3.75 6.504 3.75h4.016c.483 0 .964.078 1.423.23l3.114 1.04c.473.158.966.23 1.423.23h1.383m-1.383 8.25h1.383m-1.383 0V3.75m1.383 0h1.5A1.5 1.5 0 0121.75 5.25V12a1.5 1.5 0 01-1.5 1.5h-1.5" />
                                                                 </svg>
                                                             </button>
 
-                                                            <button className="p-1.5 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-lg transition-all" title="Regenerate">
-                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                                            <button className="rounded-control p-1.5 transition-all hover:bg-canvas hover:text-ink" title="Regenerate">
+                                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                                                                 </svg>
                                                             </button>
@@ -772,68 +773,69 @@ export default function Index({ materials = [] }) {
                                 ))}
                             </div>
 
-                            <div className="p-4 max-w-3xl mx-auto w-full relative z-10">
+                            <div className="relative z-10 mx-auto w-full max-w-3xl p-4">
                                 {renderChatInput()}
                             </div>
                         </>
                     )}
 
                     {/* Gemini Background Wave */}
-                    <div className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none overflow-hidden z-0">
-                        <div className="absolute inset-0 blur-2xl opacity-70">
-                            <svg className="absolute -bottom-4 left-0 w-[200%] h-full animate-wave-1" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-0 h-48 overflow-hidden">
+                        <div className="absolute inset-0 opacity-70 blur-2xl">
+                            <svg className="absolute -bottom-4 left-0 h-full w-[200%] animate-wave-1" viewBox="0 0 1200 120" preserveAspectRatio="none">
                                 <defs>
                                     <linearGradient id="geminiGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.8" />
-                                        <stop offset="40%" stopColor="#465FFF" stopOpacity="0.7" />
-                                        <stop offset="80%" stopColor="#818CF8" stopOpacity="0.6" />
-                                        <stop offset="100%" stopColor="#C084FC" stopOpacity="0.5" />
+                                        <stop offset="0%" stopColor="#bfaeea" stopOpacity="0.8" />
+                                        <stop offset="40%" stopColor="#9679d6" stopOpacity="0.7" />
+                                        <stop offset="80%" stopColor="#5b4b8a" stopOpacity="0.6" />
+                                        <stop offset="100%" stopColor="#d7cbf3" stopOpacity="0.5" />
                                     </linearGradient>
                                 </defs>
                                 <path d="M0,0 C150,90 350,-40 500,60 C650,160 900,-20 1200,40 L1200,120 L0,120 Z" fill="url(#geminiGrad1)" />
                             </svg>
 
-                            <svg className="absolute -bottom-2 left-0 w-[200%] h-full animate-wave-2" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                            <svg className="absolute -bottom-2 left-0 h-full w-[200%] animate-wave-2" viewBox="0 0 1200 120" preserveAspectRatio="none">
                                 <defs>
                                     <linearGradient id="geminiGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" stopColor="#6366F1" stopOpacity="0.6" />
-                                        <stop offset="50%" stopColor="#EC4899" stopOpacity="0.45" />
-                                        <stop offset="100%" stopColor="#38BDF8" stopOpacity="0.7" />
+                                        <stop offset="0%" stopColor="#9679d6" stopOpacity="0.6" />
+                                        <stop offset="50%" stopColor="#f3a183" stopOpacity="0.4" />
+                                        <stop offset="100%" stopColor="#bfaeea" stopOpacity="0.7" />
                                     </linearGradient>
                                 </defs>
                                 <path d="M0,30 C200,-30 400,80 600,20 C800,-40 1000,70 1200,10 L1200,120 L0,120 Z" fill="url(#geminiGrad2)" />
                             </svg>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-[#FAFAFC]/30 to-[#FAFAFC] dark:via-gray-900/30 dark:to-gray-900" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-canvas via-canvas/30 to-canvas"></div>
                     </div>
 
                 </div>
 
                 {/* Sidebar: daftar modul per mata kuliah */}
                 <aside
-                    className={`bg-white dark:bg-gray-900 text-slate-700 dark:text-gray-300 transition-all duration-300 ease-in-out flex flex-col justify-between overflow-hidden shrink-0 border-l border-slate-200/80 dark:border-gray-800 z-20 ${isHistoryOpen
-                        ? "w-72 p-5 opacity-100"
-                        : "w-0 p-0 opacity-0 border-l-0"
-                        }`}
+                    className={`z-20 flex shrink-0 flex-col justify-between overflow-hidden border-l border-track bg-surface text-ink transition-all duration-300 ease-in-out ${
+                        isHistoryOpen
+                            ? "w-72 p-5 opacity-100"
+                            : "w-0 border-l-0 p-0 opacity-0"
+                    }`}
                 >
-                    <div className="w-60 flex flex-col h-full overflow-y-auto no-scrollbar space-y-5">
+                    <div className="no-scrollbar flex h-full w-60 flex-col space-y-5 overflow-y-auto">
 
                         <div className="flex items-center justify-between pt-1">
                             <div className="flex items-center gap-2.5">
-                                <div className="text-[#465FFF] dark:text-brand-400">
-                                    <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
+                                <div className="text-brand dark:text-lavender">
+                                    <svg className="h-7 w-7" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 2C10.34 2 9 3.34 9 5c0 .73.26 1.4.7 1.93A3.99 3.99 0 0 0 5 9c-1.66 0-3 1.34-3 3 0 1.66 1.34 3 3 3 .73 0 1.4-.26 1.93-.7A3.99 3.99 0 0 0 9 19c0 1.66 1.34 3 3 3 1.66 0 3-1.34 3-3 0-.73-.26-1.4-.7-1.93A3.99 3.99 0 0 0 19 15c1.66 0 3-1.34 3-3 0-1.66-1.34-3-3-3-.73 0-1.4.26-1.93.7A3.99 3.99 0 0 0 15 5c0-1.66-1.34-3-3-3z" />
                                     </svg>
                                 </div>
-                                <span className="font-serif text-xl tracking-tight text-slate-900 dark:text-white font-semibold">Ask PANDA</span>
+                                <span className="font-serif text-xl font-semibold tracking-tight text-ink">Ask PANDA</span>
                             </div>
 
                             <button
                                 onClick={() => setIsHistoryOpen(false)}
-                                className="text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] p-1.5 rounded-lg transition-colors"
+                                className="rounded-control p-1.5 text-muted transition-colors hover:bg-canvas hover:text-ink"
                                 title="Tutup sidebar"
                             >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                     <rect x="3" y="4" width="18" height="16" rx="2" />
                                     <path d="M15 4v16" />
                                 </svg>
@@ -843,9 +845,9 @@ export default function Index({ materials = [] }) {
                         <div className="space-y-1 text-sm font-medium">
                             <button
                                 onClick={handleNewChat}
-                                className="w-full flex items-center gap-3.5 px-2.5 py-2 rounded-xl text-slate-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-colors"
+                                className="flex w-full items-center gap-3.5 rounded-control px-2.5 py-2 text-ink transition-colors hover:bg-canvas"
                             >
-                                <svg className="w-5 h-5 text-slate-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                <svg className="h-5 w-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
                                 </svg>
                                 <span>New Chat</span>
@@ -853,8 +855,8 @@ export default function Index({ materials = [] }) {
 
                             {isSearchOpen ? (
                                 <div className="relative">
-                                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500">
-                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                    <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted">
+                                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                                         </svg>
                                     </span>
@@ -867,15 +869,15 @@ export default function Index({ materials = [] }) {
                                             if (e.key === 'Escape') closeSearch();
                                         }}
                                         placeholder="Cari modul..."
-                                        className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-9 text-sm text-slate-700 placeholder-slate-400 outline-none transition-colors focus:border-[#465FFF]/50 focus:ring-2 focus:ring-[#465FFF]/10 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300 dark:placeholder-gray-500"
+                                        className="w-full rounded-control border border-track bg-canvas py-2 pl-9 pr-9 text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-brand/50 focus:ring-2 focus:ring-brand/10"
                                     />
                                     <button
                                         type="button"
                                         onClick={closeSearch}
                                         title="Batalkan pencarian"
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:text-gray-500 dark:hover:bg-white/[0.06] dark:hover:text-gray-200"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-control p-1 text-muted transition-colors hover:bg-surface-tint hover:text-ink"
                                     >
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
@@ -883,9 +885,9 @@ export default function Index({ materials = [] }) {
                             ) : (
                                 <button
                                     onClick={() => setIsSearchOpen(true)}
-                                    className="w-full flex items-center gap-3.5 px-2.5 py-2 rounded-xl text-slate-700 dark:text-gray-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.06] transition-colors"
+                                    className="flex w-full items-center gap-3.5 rounded-control px-2.5 py-2 text-ink transition-colors hover:bg-canvas"
                                 >
-                                    <svg className="w-5 h-5 text-slate-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                                    <svg className="h-5 w-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                                     </svg>
                                     <span>Search</span>
@@ -896,27 +898,27 @@ export default function Index({ materials = [] }) {
                         <div className="space-y-2.5">
 
                             <div className="flex items-center justify-between px-1">
-                                <span className="text-[10px] font-semibold tracking-wider text-slate-400 dark:text-gray-500 uppercase">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
                                     Materi kamu
                                 </span>
-                                <span className="text-[10px] font-medium text-slate-400 dark:text-gray-500">
+                                <span className="text-[10px] font-medium text-muted">
                                     {filteredMaterials.length}
                                 </span>
                             </div>
 
                             {materials.length === 0 ? (
-                                <p className="rounded-xl border border-dashed border-slate-200 dark:border-gray-800 px-3 py-3 text-[11px] leading-relaxed text-slate-400 dark:text-gray-500">
-                                    Belum ada materi. Unggah dulu di halaman <span className="font-medium text-slate-500 dark:text-gray-400">Materi</span>.
+                                <p className="rounded-control border border-dashed border-track bg-surface-tint px-3 py-3 text-[11px] leading-relaxed text-muted">
+                                    Belum ada materi. Unggah dulu di halaman <span className="font-medium text-ink">Materi</span>.
                                 </p>
                             ) : filteredMaterials.length === 0 ? (
-                                <p className="rounded-xl border border-dashed border-slate-200 dark:border-gray-800 px-3 py-3 text-[11px] leading-relaxed text-slate-400 dark:text-gray-500">
-                                    Tidak ada modul yang cocok dengan &ldquo;<span className="font-medium text-slate-500 dark:text-gray-400">{moduleQuery}</span>&rdquo;.
+                                <p className="rounded-control border border-dashed border-track bg-surface-tint px-3 py-3 text-[11px] leading-relaxed text-muted">
+                                    Tidak ada modul yang cocok dengan &ldquo;<span className="font-medium text-ink">{moduleQuery}</span>&rdquo;.
                                 </p>
                             ) : (
                                 <div className="space-y-3">
                                     {groupedMaterials.map((group) => (
                                         <div key={group.course} className="space-y-1">
-                                            <p className="truncate px-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-gray-500">
+                                            <p className="truncate px-1 text-[10px] font-semibold uppercase tracking-wider text-muted">
                                                 {group.course}
                                             </p>
                                             <div className="space-y-0.5">
@@ -924,17 +926,18 @@ export default function Index({ materials = [] }) {
                                                     <button
                                                         key={mod.id}
                                                         onClick={() => handleModuleClick(mod)}
-                                                        className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors ${activeModule?.id === mod.id
-                                                            ? 'bg-[#ECF2FF] dark:bg-brand-500/15'
-                                                            : 'hover:bg-slate-100/80 dark:hover:bg-white/[0.06]'
-                                                            }`}
+                                                        className={`flex w-full items-center gap-2.5 rounded-control px-2.5 py-2 text-left transition-colors ${
+                                                            activeModule?.id === mod.id
+                                                                ? 'bg-lavender-soft dark:bg-brand/20'
+                                                                : 'hover:bg-canvas'
+                                                        }`}
                                                     >
                                                         <FileGlyph type={mod.file_type} />
-                                                        <span className="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-gray-300">
+                                                        <span className="min-w-0 flex-1 truncate text-sm text-ink">
                                                             {mod.title}
                                                         </span>
                                                         {activeModule?.id === mod.id && (
-                                                            <svg className="h-3.5 w-3.5 shrink-0 text-[#465FFF] dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                            <svg className="h-3.5 w-3.5 shrink-0 text-brand dark:text-lavender" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                                                             </svg>
                                                         )}

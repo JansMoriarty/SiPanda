@@ -78,7 +78,13 @@ class DashboardPageTest extends TestCase
                 ->where('stats.quizzes_taken', 1)
                 ->where('stats.average_score', 75)
                 ->has('weekly_activity', 7)
-                ->where('weekly_activity.6.is_today', true));
+                ->where('weekly_activity.6.is_today', true)
+                ->has('score_trend', 7)
+                ->where('score_trend.6.is_today', true)
+                ->where('score_trend.6.score', 75)
+                ->where('score_trend.6.attempts', 1)
+                ->has('study_dates', 1)
+                ->where('study_dates.0', now()->toDateString()));
     }
 
     public function test_aktivitas_mingguan_menghitung_soal_dijawab(): void
@@ -125,6 +131,7 @@ class DashboardPageTest extends TestCase
                 ->where('stats.questions_this_week', 1)
                 ->where('stats.average_score', 0)
                 ->where('weekly_activity.6.questions', 1)
+                ->where('score_trend.6.score', 0)
                 ->has('recent_quizzes', 1)
                 ->where('recent_quizzes.0.material_title', 'bab-a.pdf')
                 ->where('recent_quizzes.0.score', 0)
@@ -182,6 +189,8 @@ class DashboardPageTest extends TestCase
                 ->where('stats.quizzes_taken', 0)
                 ->where('stats.average_score', null)
                 ->where('study_streak_days', 0)
+                ->where('score_trend.6.score', null)
+                ->has('study_dates', 0)
                 ->has('recent_quizzes', 0));
     }
 }

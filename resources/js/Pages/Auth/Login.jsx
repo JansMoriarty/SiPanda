@@ -96,10 +96,10 @@ const R = 22;
 
 // cx/cy = titik tengah tile. Tinggi sengaja beda-beda supaya tidak sejajar.
 const features = [
-    { icon: <SummaryIcon />, label: 'Ringkasan Materi', color: 'text-blue-600', dot: '#2563EB', cx: 40, cy: 68 },
-    { icon: <CardsIcon />, label: 'Flashcards', color: 'text-indigo-600', dot: '#4F46E5', cx: 106, cy: 48 },
+    { icon: <SummaryIcon />, label: 'Ringkasan Materi', color: 'text-brand', dot: '#5b4b8a', cx: 40, cy: 68 },
+    { icon: <CardsIcon />, label: 'Flashcards', color: 'text-[#9679d6]', dot: '#9679d6', cx: 106, cy: 48 },
     { icon: <QuizIcon />, label: 'Quiz', color: 'text-rose-500', dot: '#F43F5E', cx: 172, cy: 28 },
-    { icon: <SparkIcon />, label: 'Ask PANDA', color: 'text-violet-600', dot: '#7C3AED', cx: 308, cy: 36 },
+    { icon: <SparkIcon />, label: 'Ask PANDA', color: 'text-[#9679d6]', dot: '#9679d6', cx: 308, cy: 36 },
     { icon: <PencilIcon />, label: 'Latihan Soal', color: 'text-emerald-600', dot: '#059669', cx: 374, cy: 56 },
     { icon: <MapIcon />, label: 'Peta Konsep', color: 'text-amber-500', dot: '#F59E0B', cx: 440, cy: 74 },
 ];
@@ -139,103 +139,103 @@ function Connector() {
 
 function WireframeCard() {
     return (
-        <div className="relative z-10 flex h-[184px] w-[66%] min-w-[264px] overflow-hidden rounded-xl bg-white shadow-xl shadow-[#16238F]/40 ring-1 ring-white/40">
+        <div className="relative z-10 flex h-[184px] w-[66%] min-w-[264px] overflow-hidden rounded-xl bg-white shadow-xl shadow-[#3f3a5a]/40 ring-1 ring-white/40">
             {/* sidebar kiri */}
-            <div className="flex w-[23%] flex-col border-r border-slate-100 bg-white p-2">
+            <div className="flex w-[23%] flex-col border-r border-track bg-white p-2">
                 <div className="flex items-center gap-1">
-                    <span className="h-3 w-3 rounded bg-[#465FFF]" />
-                    <span className="h-1.5 w-8 rounded-full bg-slate-700/70" />
+                    <span className="h-3 w-3 rounded bg-brand" />
+                    <span className="h-1.5 w-8 rounded-full bg-brand-700/70" />
                 </div>
-                <span className="mt-3 mb-1.5 block h-1 w-5 rounded-full bg-slate-200" />
+                <span className="mt-3 mb-1.5 block h-1 w-5 rounded-full bg-track" />
                 <div className="space-y-1">
-                    <div className="flex items-center gap-1 rounded-md bg-[#EEF1FF] p-1">
-                        <span className="h-2 w-2 rounded-sm bg-[#465FFF]" />
-                        <span className="h-1.5 w-6 rounded-full bg-[#465FFF]/60" />
+                    <div className="flex items-center gap-1 rounded-md bg-lavender-soft p-1">
+                        <span className="h-2 w-2 rounded-sm bg-brand" />
+                        <span className="h-1.5 w-6 rounded-full bg-brand/60" />
                     </div>
                     {[8, 6].map((w, i) => (
                         <div key={i} className="flex items-center gap-1 p-1">
-                            <span className="h-2 w-2 rounded-sm bg-slate-300" />
-                            <span className="h-1.5 rounded-full bg-slate-200" style={{ width: w * 4 }} />
+                            <span className="h-2 w-2 rounded-sm bg-brand-300" />
+                            <span className="h-1.5 rounded-full bg-track" style={{ width: w * 4 }} />
                         </div>
                     ))}
                 </div>
                 <div className="mt-auto flex items-center gap-1">
-                    <span className="h-4 w-4 shrink-0 rounded-full bg-slate-300" />
+                    <span className="h-4 w-4 shrink-0 rounded-full bg-brand-300" />
                     <div className="space-y-0.5">
-                        <span className="block h-1 w-8 rounded-full bg-slate-300" />
-                        <span className="block h-1 w-5 rounded-full bg-slate-200" />
+                        <span className="block h-1 w-8 rounded-full bg-brand-300" />
+                        <span className="block h-1 w-5 rounded-full bg-track" />
                     </div>
                 </div>
             </div>
 
             {/* area chat */}
             <div className="relative flex flex-1 flex-col gap-1.5 overflow-hidden bg-white px-2.5 pb-2 pt-2.5">
-                <span className="h-3.5 w-16 self-end rounded-md bg-slate-100" />
+                <span className="h-3.5 w-16 self-end rounded-md bg-canvas" />
                 <div className="space-y-1">
-                    <span className="block h-1 w-full rounded-full bg-slate-200" />
-                    <span className="block h-1 w-11/12 rounded-full bg-slate-200" />
-                    <span className="block h-1 w-2/3 rounded-full bg-slate-300" />
+                    <span className="block h-1 w-full rounded-full bg-track" />
+                    <span className="block h-1 w-11/12 rounded-full bg-track" />
+                    <span className="block h-1 w-2/3 rounded-full bg-brand-300" />
                 </div>
-                <div className="flex w-[82%] items-center gap-1.5 rounded-md bg-[#E4E9FF] p-1.5">
-                    <span className="h-5 w-4 shrink-0 rounded-[3px] bg-[#465FFF]/40" />
+                <div className="flex w-[82%] items-center gap-1.5 rounded-md bg-lavender-soft p-1.5">
+                    <span className="h-5 w-4 shrink-0 rounded-[3px] bg-brand/40" />
                     <div className="flex-1 space-y-1">
-                        <span className="block h-1 w-4/5 rounded-full bg-slate-400/60" />
-                        <span className="block h-1 w-1/2 rounded-full bg-slate-300" />
+                        <span className="block h-1 w-4/5 rounded-full bg-brand-400/60" />
+                        <span className="block h-1 w-1/2 rounded-full bg-brand-300" />
                     </div>
-                    <span className="h-2.5 w-6 rounded border border-slate-300 bg-white" />
+                    <span className="h-2.5 w-6 rounded border border-track bg-white" />
                 </div>
                 <div className="flex gap-1.5">
                     {[0, 1, 2, 3].map((i) => (
-                        <span key={i} className="h-1.5 w-1.5 rounded-sm bg-slate-300" />
+                        <span key={i} className="h-1.5 w-1.5 rounded-sm bg-brand-300" />
                     ))}
                 </div>
-                <span className="h-3.5 w-20 self-end rounded-md bg-slate-100" />
+                <span className="h-3.5 w-20 self-end rounded-md bg-canvas" />
                 <div className="space-y-1">
-                    <span className="block h-1 w-5/6 rounded-full bg-slate-200" />
-                    <span className="block h-1 w-1/2 rounded-full bg-slate-200" />
+                    <span className="block h-1 w-5/6 rounded-full bg-track" />
+                    <span className="block h-1 w-1/2 rounded-full bg-track" />
                 </div>
 
                 {/* input + glow */}
                 <div className="relative mt-auto">
-                    <span className="absolute -inset-x-3 -bottom-3 h-10 bg-gradient-to-r from-blue-300/60 via-violet-200/50 to-pink-300/60 blur-lg" aria-hidden="true" />
-                    <div className="relative rounded-lg border border-slate-200 bg-white/95 p-1.5">
+                    <span className="absolute -inset-x-3 -bottom-3 h-10 bg-gradient-to-r from-brand-300/60 via-lavender/50 to-peach/40 blur-lg" aria-hidden="true" />
+                    <div className="relative rounded-lg border border-track bg-white/95 p-1.5">
                         <div className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full bg-[#465FFF]/60" />
-                            <span className="h-1 w-20 rounded-full bg-slate-200" />
+                            <span className="h-2 w-2 rounded-full bg-brand/60" />
+                            <span className="h-1 w-20 rounded-full bg-track" />
                         </div>
                         <div className="mt-1.5 flex items-center gap-1">
-                            <span className="h-3 w-3 rounded bg-slate-200" />
-                            <span className="h-3 w-8 rounded bg-slate-100" />
-                            <span className="ml-auto h-3 w-3 rounded-full bg-[#465FFF]/60" />
+                            <span className="h-3 w-3 rounded bg-track" />
+                            <span className="h-3 w-8 rounded bg-canvas" />
+                            <span className="ml-auto h-3 w-3 rounded-full bg-brand/60" />
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* panel kanan (riwayat) */}
-            <div className="w-[27%] space-y-1.5 border-l border-slate-100 bg-white p-2">
+            <div className="w-[27%] space-y-1.5 border-l border-track bg-white p-2">
                 <div className="flex items-center gap-1">
-                    <span className="h-2.5 w-2.5 rotate-45 rounded-sm bg-[#465FFF]" />
-                    <span className="h-1.5 w-6 rounded-full bg-slate-700/70" />
-                    <span className="ml-auto h-2 w-2 rounded-sm border border-slate-300" />
+                    <span className="h-2.5 w-2.5 rotate-45 rounded-sm bg-brand" />
+                    <span className="h-1.5 w-6 rounded-full bg-brand-700/70" />
+                    <span className="ml-auto h-2 w-2 rounded-sm border border-track" />
                 </div>
                 {[0, 1].map((i) => (
                     <div key={i} className="flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-full bg-slate-300" />
-                        <span className="h-1 w-8 rounded-full bg-slate-200" />
+                        <span className="h-2 w-2 rounded-full bg-brand-300" />
+                        <span className="h-1 w-8 rounded-full bg-track" />
                     </div>
                 ))}
-                <span className="mt-2 block h-1 w-8 rounded-full bg-[#465FFF]/30" />
+                <span className="mt-2 block h-1 w-8 rounded-full bg-brand/30" />
                 {[0, 1, 2].map((i) => (
                     <div key={i} className="flex items-center gap-1">
-                        <span className="h-2 w-2 rounded-sm bg-slate-300" />
-                        <span className="h-1.5 flex-1 rounded-full bg-slate-200" />
-                        <span className="h-2.5 w-2.5 rounded-full bg-slate-100" />
+                        <span className="h-2 w-2 rounded-sm bg-brand-300" />
+                        <span className="h-1.5 flex-1 rounded-full bg-track" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-canvas" />
                     </div>
                 ))}
-                <span className="mt-2 block h-1 w-6 rounded-full bg-slate-200" />
+                <span className="mt-2 block h-1 w-6 rounded-full bg-track" />
                 {['w-full', 'w-4/5', 'w-full', 'w-3/5'].map((w, i) => (
-                    <span key={i} className={`block h-1.5 rounded-full bg-slate-200 ${w}`} />
+                    <span key={i} className={`block h-1.5 rounded-full bg-track ${w}`} />
                 ))}
             </div>
         </div>
@@ -256,7 +256,7 @@ function FeatureTree() {
                         className="absolute z-10 aspect-square w-[11.7%] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white/20"
                         style={{ left: `${(it.cx / W) * 100}%`, top: `${(it.cy / H) * 100}%` }}
                     >
-                        <div className={`absolute inset-[9%] flex items-center justify-center rounded-xl bg-white shadow-lg shadow-[#16238F]/30 ${it.color}`}>
+                        <div className={`absolute inset-[9%] flex items-center justify-center rounded-xl bg-white shadow-lg shadow-[#3f3a5a]/30 ${it.color}`}>
                             {it.icon}
                         </div>
                     </div>
@@ -287,13 +287,13 @@ export default function Login({ status, canResetPassword = false }) {
     };
 
     const inputBase =
-        'h-11 w-full rounded-xl border bg-white dark:bg-gray-900 pl-10 text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400 dark:placeholder:text-gray-500 transition-shadow focus:outline-none focus:ring-4';
-    const inputOk = 'border-slate-200 dark:border-gray-800 focus:border-[#465FFF] focus:ring-[#465FFF]/15';
+        'h-11 w-full rounded-control border bg-surface pl-10 text-sm text-ink placeholder:text-muted transition-shadow focus:outline-none focus:ring-4';
+    const inputOk = 'border-track focus:border-brand focus:ring-brand/15';
     const inputErr = 'border-red-300 focus:border-red-500 focus:ring-red-500/15';
 
     return (
         <div
-            className="min-h-screen bg-white dark:bg-gray-900"
+            className="min-h-screen bg-canvas text-ink"
             style={{ fontFamily: "'Outfit', ui-sans-serif, system-ui, sans-serif" }}
         >
             <Head title="Masuk">
@@ -312,8 +312,8 @@ export default function Login({ status, canResetPassword = false }) {
                             </div>
 
                             <div className="mt-10 text-center">
-                                <h1 className="text-[28px] font-semibold tracking-tight text-slate-800 dark:text-white">Selamat datang kembali</h1>
-                                <p className="mt-1.5 text-sm text-slate-500 dark:text-gray-400">Masuk untuk lanjut belajar.</p>
+                                <h1 className="text-[28px] font-semibold tracking-tight text-ink">Selamat datang kembali</h1>
+                                <p className="mt-1.5 text-sm text-muted">Masuk untuk lanjut belajar.</p>
                             </div>
 
                             {status && (
@@ -326,7 +326,7 @@ export default function Login({ status, canResetPassword = false }) {
                                 <div>
                                     <label htmlFor="email" className="sr-only">Email</label>
                                     <div className="relative">
-                                        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400 dark:text-gray-500">
+                                        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted">
                                             <MailIcon />
                                         </span>
                                         <input
@@ -350,7 +350,7 @@ export default function Login({ status, canResetPassword = false }) {
                                 <div>
                                     <label htmlFor="password" className="sr-only">Kata sandi</label>
                                     <div className="relative">
-                                        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400 dark:text-gray-500">
+                                        <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-muted">
                                             <LockIcon />
                                         </span>
                                         <input
@@ -369,7 +369,7 @@ export default function Login({ status, canResetPassword = false }) {
                                             onClick={() => setShowPassword((v) => !v)}
                                             aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
                                             aria-pressed={showPassword}
-                                            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-slate-400 dark:text-gray-500 hover:text-slate-600 dark:hover:text-gray-300 focus:outline-none focus-visible:text-[#465FFF]"
+                                            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-control text-muted hover:text-ink focus:outline-none focus-visible:text-brand"
                                         >
                                             <EyeIcon off={showPassword} />
                                         </button>
@@ -380,13 +380,13 @@ export default function Login({ status, canResetPassword = false }) {
                                 </div>
 
                                 <div className="flex items-center justify-between py-0.5">
-                                    <label className="flex cursor-pointer select-none items-center gap-2.5 text-sm leading-none text-slate-600 dark:text-gray-300">
+                                    <label className="flex cursor-pointer select-none items-center gap-2.5 text-sm leading-none text-muted">
                                         <span className="relative flex h-[18px] w-[18px] shrink-0">
                                             <input
                                                 type="checkbox"
                                                 checked={data.remember}
                                                 onChange={(e) => setData('remember', e.target.checked)}
-                                                className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-[6px] border border-slate-300 dark:border-gray-700 bg-white dark:bg-gray-900 transition-colors checked:border-[#465FFF] checked:bg-[#465FFF] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/20"
+                                                className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-[6px] border border-track bg-surface transition-colors checked:border-brand checked:bg-brand focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/20"
                                             />
                                             <svg
                                                 className="pointer-events-none absolute inset-0 m-auto h-3 w-3 text-white opacity-0 peer-checked:opacity-100"
@@ -406,7 +406,7 @@ export default function Login({ status, canResetPassword = false }) {
                                     {canResetPassword && (
                                         <Link
                                             href={route('password.request')}
-                                            className="rounded text-sm font-medium text-[#465FFF] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#465FFF]/40"
+                                            className="rounded text-sm font-medium text-brand hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 dark:text-lavender"
                                         >
                                             Lupa kata sandi?
                                         </Link>
@@ -416,33 +416,33 @@ export default function Login({ status, canResetPassword = false }) {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#465FFF] text-sm font-semibold text-white shadow-sm shadow-[#465FFF]/30 transition-colors hover:bg-[#3b4fe0] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/30 disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="flex h-11 w-full items-center justify-center gap-2 rounded-control bg-brand text-sm font-semibold text-white shadow-pill transition-colors hover:bg-brand-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
                                 >
                                     {processing && <Spinner />}
                                     {processing ? 'Memproses…' : 'Masuk'}
                                 </button>
                             </form>
 
-                            <div className="my-6 flex items-center gap-3 text-xs text-slate-400 dark:text-gray-500">
-                                <span className="h-px flex-1 bg-slate-200 dark:bg-gray-800" />
+                            <div className="my-6 flex items-center gap-3 text-xs text-muted">
+                                <span className="h-px flex-1 bg-track" />
                                 atau lanjutkan dengan
-                                <span className="h-px flex-1 bg-slate-200 dark:bg-gray-800" />
+                                <span className="h-px flex-1 bg-track" />
                             </div>
 
                             {/* OAuth butuh redirect penuh, jadi pakai <a> biasa. Sesuaikan href dengan route Socialite-mu. */}
                             <a
                                 href="/auth/google"
-                                className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200 dark:border-gray-800 bg-white dark:bg-transparent text-sm font-medium text-slate-700 dark:text-gray-300 transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.03] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#465FFF]/15"
+                                className="flex h-11 w-full items-center justify-center gap-2.5 rounded-control border border-track bg-surface text-sm font-medium text-ink transition-colors hover:bg-canvas focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/15"
                             >
                                 <GoogleIcon />
                                 Lanjutkan dengan Google
                             </a>
 
-                            <p className="mt-6 text-center text-sm text-slate-500 dark:text-gray-400">
+                            <p className="mt-6 text-center text-sm text-muted">
                                 Belum punya akun?{' '}
                                 <Link
                                     href={route('register')}
-                                    className="rounded font-medium text-[#465FFF] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#465FFF]/40"
+                                    className="rounded font-medium text-brand hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 dark:text-lavender"
                                 >
                                     Buat akun
                                 </Link>
@@ -450,13 +450,13 @@ export default function Login({ status, canResetPassword = false }) {
                         </div>
                     </div>
 
-                    <p className="pt-8 text-center text-xs text-slate-400 dark:text-gray-500">
+                    <p className="pt-8 text-center text-xs text-muted">
                         © {new Date().getFullYear()} SiPanda. Hak cipta dilindungi.
                     </p>
                 </main>
 
                 {/* ---------- Sisi showcase (desktop) ---------- */}
-                <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#5A72FF] via-[#465FFF] to-[#2C3FD1] lg:block">
+                <aside className="relative hidden overflow-hidden bg-gradient-to-br from-[#9679d6] via-[#5b4b8a] to-[#3f3a5a] lg:block">
                     <div
                         className="absolute inset-0 opacity-[0.12]"
                         style={{
@@ -466,7 +466,7 @@ export default function Login({ status, canResetPassword = false }) {
                         aria-hidden="true"
                     />
                     <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
-                    <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-[#1F2FB8]/60 blur-3xl" aria-hidden="true" />
+                    <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-[#29253a]/60 blur-3xl" aria-hidden="true" />
 
                     <div className="relative flex h-full flex-col items-center justify-center px-14 py-10">
                         <FeatureTree />

@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Link } from "@inertiajs/react";
 import { cx } from "@/utils/format";
 
 /**
@@ -25,19 +24,19 @@ function ProgressHeader({ session, index, answers, conceptName }) {
     return (
         <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-gray-900 dark:text-white">
-                        Soal {index + 1} <span className="font-medium text-gray-400 dark:text-gray-500">dari {session.total_questions}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-bold text-ink">
+                        Soal {index + 1} <span className="font-medium text-muted">dari {session.total_questions}</span>
                     </span>
-                    <span className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-white/[0.03] px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+                    <span className="rounded-full border border-track bg-surface px-2.5 py-1 text-xs font-semibold text-muted">
                         {conceptName(current.concept, current)}
                     </span>
                 </div>
-                <span className="text-[11px] font-semibold text-brand-500 dark:text-brand-400">{pct}% selesai</span>
+                <span className="text-xs font-semibold text-brand dark:text-lavender">{pct}% selesai</span>
             </div>
 
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                <div className="h-full rounded-full bg-brand-500 transition-all duration-300" style={{ width: `${pct}%` }} />
+            <div className="h-2 w-full overflow-hidden rounded-full bg-track">
+                <div className="h-full rounded-full bg-brand transition-all duration-300 dark:bg-lavender" style={{ width: `${pct}%` }} />
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
@@ -50,14 +49,14 @@ function ProgressHeader({ session, index, answers, conceptName }) {
                             key={q.id}
                             title={`Soal ${i + 1}${answered ? answered.correct ? " — benar" : " — salah" : done ? " — dijawab" : ""}`}
                             className={cx(
-                                "flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold transition-colors",
+                                "flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold transition-colors",
                                 isCurrent
-                                    ? "bg-brand-500 text-white"
+                                    ? "bg-brand text-white dark:bg-lavender dark:text-brand"
                                     : done
                                     ? answered?.correct
-                                        ? "bg-emerald-100 text-emerald-700"
-                                        : "bg-rose-100 text-rose-700"
-                                    : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
+                                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                                        : "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300"
+                                    : "bg-canvas text-muted dark:bg-track"
                             )}
                         >
                             {i + 1}
@@ -72,34 +71,34 @@ function ProgressHeader({ session, index, answers, conceptName }) {
 function Option({ letter, text, state }) {
     // state: "idle" | "chosen" | "correct" | "wrong" | "dim"
     const tone = {
-        idle: "border-gray-200 dark:border-gray-700 bg-white dark:bg-white/[0.03] hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/15",
-        chosen: "border-brand-500 bg-brand-50 dark:bg-brand-500/15",
-        correct: "border-emerald-300 bg-emerald-50",
-        wrong: "border-rose-300 bg-rose-50",
-        dim: "border-gray-200 dark:border-gray-700 bg-white dark:bg-white/[0.03] opacity-55",
+        idle: "border-track bg-surface hover:border-brand/50 hover:bg-lavender-soft/60 dark:bg-white/[0.03] dark:hover:bg-white/[0.06]",
+        chosen: "border-brand bg-lavender-soft dark:border-lavender dark:bg-lavender/15",
+        correct: "border-emerald-300 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10",
+        wrong: "border-rose-300 bg-rose-50 dark:border-rose-500/30 dark:bg-rose-500/10",
+        dim: "border-track bg-surface opacity-55 dark:bg-white/[0.03]",
     }[state];
 
     const letterTone = {
-        idle: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400",
-        chosen: "bg-brand-500 text-white",
+        idle: "bg-canvas text-muted dark:bg-track",
+        chosen: "bg-brand text-white dark:bg-lavender dark:text-brand",
         correct: "bg-emerald-500 text-white",
         wrong: "bg-rose-500 text-white",
-        dim: "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500",
+        dim: "bg-canvas text-muted dark:bg-track",
     }[state];
 
     return (
-        <div className={cx("flex items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors", tone)}>
-            <span className={cx("flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold", letterTone)}>
+        <div className={cx("flex items-start gap-3 rounded-control border px-4 py-3.5 transition-colors", tone)}>
+            <span className={cx("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold", letterTone)}>
                 {letter}
             </span>
-            <span className="flex-1 pt-0.5 text-[11px] font-medium leading-relaxed text-gray-700 dark:text-gray-300">{text}</span>
+            <span className="flex-1 pt-0.5 text-sm font-medium leading-relaxed text-ink">{text}</span>
             {state === "correct" && (
-                <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                 </svg>
             )}
             {state === "wrong" && (
-                <svg className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <svg className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             )}
@@ -111,8 +110,10 @@ function Feedback({ correct, chosenText, correctText, explanation }) {
     return (
         <div
             className={cx(
-                "rounded-xl border p-4",
-                correct ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"
+                "rounded-control border p-4",
+                correct
+                    ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/25 dark:bg-emerald-500/10"
+                    : "border-rose-200 bg-rose-50 dark:border-rose-500/25 dark:bg-rose-500/10"
             )}
         >
             <div className="flex items-center gap-2">
@@ -132,23 +133,23 @@ function Feedback({ correct, chosenText, correctText, explanation }) {
                         </svg>
                     )}
                 </span>
-                <p className={cx("text-xs font-bold", correct ? "text-emerald-700" : "text-rose-700")}>
+                <p className={cx("text-sm font-bold", correct ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300")}>
                     {correct ? "Benar" : "Belum tepat"}
                 </p>
             </div>
 
             {!correct && (
-                <p className="mt-2 text-[11px] text-rose-700">
+                <p className="mt-2 text-xs text-rose-700 dark:text-rose-300">
                     Jawabanmu: <span className="font-semibold">{chosenText}</span>
                 </p>
             )}
-            <p className="mt-1 text-[11px] text-emerald-700">
+            <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
                 Jawaban benar: <span className="font-semibold">{correctText}</span>
             </p>
 
-            <div className={cx("mt-3 border-t pt-3", correct ? "border-emerald-200" : "border-rose-200")}>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Penjelasan</p>
-                <p className="mt-1 text-[11px] leading-relaxed text-gray-700 dark:text-gray-300">{explanation}</p>
+            <div className={cx("mt-3 border-t pt-3", correct ? "border-emerald-200 dark:border-emerald-500/20" : "border-rose-200 dark:border-rose-500/20")}>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Penjelasan</p>
+                <p className="mt-1 text-xs leading-relaxed text-ink">{explanation}</p>
             </div>
         </div>
     );
@@ -218,13 +219,13 @@ export default function QuizRunner({ session, context, conceptName, onFinish, re
         <div className="space-y-5">
             <ProgressHeader session={session} index={index} answers={answers} conceptName={conceptName} />
 
-            <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-5 shadow-xs">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            <section className="rounded-card bg-surface p-5 shadow-card dark:ring-1 dark:ring-track sm:p-6">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
                     Soal {index + 1} · {conceptName(question.concept, question)}
                 </p>
-                <p className="mt-2 text-sm font-semibold leading-relaxed text-gray-900 dark:text-white">{question.question}</p>
+                <p className="mt-2 text-base font-semibold leading-relaxed text-ink">{question.question}</p>
 
-                <div className="mt-4 space-y-2">
+                <div className="mt-5 space-y-2.5">
                     {question.options.map((opt, i) => (
                         <button
                             key={opt}
@@ -244,12 +245,12 @@ export default function QuizRunner({ session, context, conceptName, onFinish, re
                         type="button"
                         onClick={submit}
                         disabled={selected === null}
-                        className="mt-4 w-full rounded-xl bg-brand-500 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-brand-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-gray-200 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:shadow-none"
+                        className="mt-5 w-full rounded-control bg-brand py-3 text-sm font-semibold text-white shadow-pill transition-all hover:bg-brand-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-track disabled:text-muted disabled:shadow-none dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
                     >
                         {selected === null ? "Pilih jawaban dulu" : "Kirim jawaban"}
                     </button>
                 ) : (
-                    <div className="mt-4 space-y-3">
+                    <div className="mt-5 space-y-3">
                         <Feedback
                             correct={selected === question.correct_index}
                             chosenText={question.options[selected]}
@@ -259,10 +260,10 @@ export default function QuizRunner({ session, context, conceptName, onFinish, re
                         <button
                             type="button"
                             onClick={next}
-                            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-500 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-brand-600 active:scale-[0.99]"
+                            className="flex w-full items-center justify-center gap-1.5 rounded-control bg-brand py-3 text-sm font-semibold text-white shadow-pill transition-all hover:bg-brand-600 active:scale-[0.99] dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
                         >
                             {isLast ? context.finishLabel ?? "Selesai & lihat hasil" : "Soal berikutnya"}
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                             </svg>
                         </button>
@@ -270,7 +271,7 @@ export default function QuizRunner({ session, context, conceptName, onFinish, re
                 )}
             </section>
 
-            <p className="text-center text-[10px] text-gray-400 dark:text-gray-500">
+            <p className="text-center text-xs text-muted">
                 {answers.length} dari {session.total_questions} soal terjawab. {context.note}
             </p>
         </div>

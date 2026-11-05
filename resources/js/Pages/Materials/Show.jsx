@@ -18,145 +18,262 @@ import { cx, docStatusBadge, fileLabel, fileTone, formatDateTime, formatSize, pa
 
 /* ------------------------------------------------------------ pipeline */
 
-/**
- * Tahapan persis mengikuti status yang ditulis ProcessDocumentJob:
- * 'uploaded' -> 'processing' (ekstraksi teks + chunking + embedding) -> 'processed',
- * atau 'failed' kalau ada exception. Tahapan ini bukan sekadar dekorasi: kalau
- * `status` bertambah nanti, tahap yang belum dikenal tetap tampil apa adanya.
- */
-const STAGES = [
-    { key: "uploaded", label: "Diupload", hint: "File masuk dan menunggu diproses" },
-    { key: "processing", label: "Ekstraksi & chunking", hint: "Teks dibaca, dipecah, lalu di-embed" },
-    { key: "processed", label: "Siap dicari", hint: "Chunks tersimpan dan bisa dipakai Ask PANDA" },
-];
-
-const stageState = (doc) => {
-    const status = doc.status ?? "uploaded";
-    if (status === "failed") {
-        // Tahap 0 (upload) pasti selesai: file sudah ada di storage sebelum
-        // processDocument() dipanggil. Kegagalan terjadi di tahap ekstraksi,
-        // jadi tahap 1 yang ditandai gagal. Status 'failed' tidak menyimpan
-        // nomor tahap, jadi asumsi ini berlaku untuk semua penyebab gagal.
-        return { done: 1, active: -1, failedAt: 1 };
-    }
-    if (status === "processed") {
-        return { done: STAGES.length, active: -1, failedAt: -1 };
-    }
-    if (status === "processing") {
-        // Tahap 0 selesai, tahap 1 SEDANG jalan (bukan selesai), tahap 2 nunggu.
-        return { done: 1, active: 1, failedAt: -1 };
-    }
-    // 'uploaded': file sudah masuk, pipeline belum dijalankan.
-    return { done: 1, active: -1, failedAt: -1 };
+const PROCESS_STEP_LABEL = {
+    extract: "Mengekstrak teks dari file",
+    chunk: "Memecah teks menjadi bagian kecil",
+    embed: "Mengubah tiap bagian menjadi vektor",
+    done: "Ekstraksi selesai",
 };
 
+const PACK_STEP_LABEL = {
+    summary: "Menyusun ringkasan & poin penting",
+    concepts: "Mengambil konsep kunci",
+    questions: "Membuat soal latihan",
+    flashcards: "Membuat kartu belajar",
+    done: "Study pack selesai",
+};
+
+/**
+ * Timeline menggabungkan dua pipeline yang berjalan berurutan:
+ * ingest (upload -> extract -> chunk -> embed) lalu study pack.
+ *
+ * Persen tunggal dihitung dari data yang ditulis job: ingest menyumbang
+ * 0-50%, study pack 50-100%. Jadi angkanya tidak pernah turun saat berpindah
+ * tahap, dan berubah tiap polling (2 detik) tanpa refresh manual.
+ */
+const TIMELINE = [
+    { key: "upload", label: "File diunggah", hint: "Berkas tersimpan dan masuk antrean." },
+    { key: "extract", label: "Ekstraksi teks", hint: "Membaca isi PDF/PPTX." },
+    { key: "chunk", label: "Pemecahan teks", hint: "Teks dipecah menjadi bagian kecil." },
+    { key: "embed", label: "Embedding", hint: "Setiap bagian diubah menjadi vektor." },
+    { key: "study_pack", label: "Study pack", hint: "Ringkasan, konsep, soal, dan kartu." },
+];
+
+const STEP_RANK = { extract: 0, chunk: 1, embed: 2, done: 3 };
+
+const STATE_META = {
+    done: {
+        chip: "Selesai",
+        chipClass:
+            "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400",
+        circleClass: "border-emerald-500 bg-emerald-500 text-white",
+    },
+    active: {
+        chip: "Berjalan",
+        chipClass:
+            "border-brand/20 bg-lavender-soft text-brand dark:border-lavender/30 dark:bg-lavender/15 dark:text-lavender",
+        circleClass: "border-brand bg-surface dark:border-lavender dark:bg-surface",
+    },
+    pending: {
+        chip: "Menunggu",
+        chipClass: "border-track bg-surface text-muted",
+        circleClass: "border-track bg-surface",
+    },
+    failed: {
+        chip: "Gagal",
+        chipClass:
+            "border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400",
+        circleClass: "border-rose-500 bg-rose-500 text-white",
+    },
+};
+
+function pipelineState(doc) {
+    const process = doc.process ?? { status: doc.status, progress: 0, step: null };
+    const pack = doc.study_pack ?? {};
+    const ingestDone = process.status === "processed";
+    const rank = STEP_RANK[process.step] ?? 0;
+
+    const ingestStage = (index) => {
+        if (ingestDone || (process.status === "processing" && rank > index)) {
+            return "done";
+        }
+        if (process.status === "failed") {
+            // 'failed' tidak menyimpan nomor tahap; pakai step terakhir yang
+            // tercatat, atau anggap gagal di ekstraksi kalau step kosong.
+            if (rank === index) return "failed";
+            return rank > index ? "done" : "pending";
+        }
+        if (process.status === "processing" && rank === index) {
+            return "active";
+        }
+        return "pending";
+    };
+
+    let packState = "pending";
+    if (pack.status === "ready") packState = "done";
+    else if (pack.status === "failed") packState = "failed";
+    else if (pack.status === "generating" || pack.status === "queued") packState = "active";
+
+    const states = ["done", ingestStage(0), ingestStage(1), ingestStage(2), packState];
+
+    const overall = ingestDone
+        ? 50 + Math.round(((Number(pack.progress) || 0) / 100) * 50)
+        : Math.round(((Number(process.progress) || 0) / 100) * 50);
+
+    const label = !ingestDone
+        ? PROCESS_STEP_LABEL[process.step] ??
+          (process.status === "uploaded" ? "Menunggu antrean worker" : "Memproses materi")
+        : pack.status === "queued"
+          ? "Menunggu antrean study pack"
+          : pack.status === "ready"
+            ? "Semua tahap selesai"
+            : PACK_STEP_LABEL[pack.step] ?? "Membuat study pack";
+
+    return {
+        states,
+        overall: Math.max(0, Math.min(100, overall)),
+        label,
+        live: (process.status !== "failed" && !ingestDone) || packState === "active",
+    };
+}
+
+function StateIcon({ state }) {
+    return (
+        <span
+            className={cx(
+                "relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2",
+                STATE_META[state].circleClass
+            )}
+        >
+            {state === "active" ? (
+                <>
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-30" />
+                    <span className="h-2 w-2 rounded-full bg-brand dark:bg-lavender" />
+                </>
+            ) : state === "done" ? (
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+            ) : state === "failed" ? (
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            ) : (
+                <span className="h-1.5 w-1.5 rounded-full bg-track" />
+            )}
+        </span>
+    );
+}
+
 function PipelinePanel({ doc }) {
-    const badge = docStatusBadge(doc.status);
-    const { done, active, failedAt } = stageState(doc);
-    const pack = packBadge(doc.study_pack);
+    const { states, overall, label, live } = pipelineState(doc);
+    const badge = doc.status === "processed" ? packBadge(doc.study_pack) : docStatusBadge(doc.status);
+
+    const activeDetail = (stageKey) => {
+        if (stageKey === "study_pack") {
+            if (doc.study_pack?.status === "queued") return "Menunggu antrean worker";
+            return PACK_STEP_LABEL[doc.study_pack?.step] ?? "Membuat study pack";
+        }
+        return PROCESS_STEP_LABEL[doc.process?.step] ?? "Memproses";
+    };
 
     return (
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <section className="rounded-card bg-surface p-5 shadow-card dark:ring-1 dark:ring-track sm:p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-bold text-gray-900 dark:text-white">Status pemrosesan</h2>
-                <span className={cx("rounded-lg border px-2 py-0.5 text-[10px] font-bold", badge.className)}>
+                <div>
+                    <h2 className="text-base font-semibold text-ink">Status pemrosesan</h2>
+                    <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted">
+                        {live ? (
+                            <>
+                                <span className="relative flex h-1.5 w-1.5">
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
+                                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand dark:bg-lavender" />
+                                </span>
+                                Diperbarui otomatis
+                            </>
+                        ) : (
+                            "Selesai"
+                        )}
+                    </p>
+                </div>
+                <span className={cx("rounded-full border px-2.5 py-1 text-[10px] font-bold", badge.className)}>
                     {badge.label}
                 </span>
             </div>
 
-            <ol className="space-y-2.5">
-                {STAGES.map((stage, i) => {
-                    const failed = failedAt === i;
-                    const isDone = i < done;
-                    const isActive = i === active;
-                    const tone = failed
-                        ? "border-rose-200 bg-rose-50/60 dark:border-rose-500/30 dark:bg-rose-500/10"
-                        : isDone
-                          ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-500/30 dark:bg-emerald-500/10"
-                          : isActive
-                            ? "border-brand-300 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-500/10"
-                            : "border-gray-200 bg-gray-50/40 dark:border-gray-700 dark:bg-white/[0.02]";
-                    const label = failed ? "Gagal" : isDone ? "Selesai" : isActive ? "Sedang berjalan" : "Menunggu";
+            {live && (
+                <div className="mb-4 rounded-control border border-brand/15 bg-lavender-soft/60 p-3.5 dark:border-lavender/20 dark:bg-lavender/10">
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-brand dark:text-lavender">{label}</span>
+                        <span className="text-sm font-bold tabular-nums text-brand dark:text-lavender">{overall}%</span>
+                    </div>
+                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface">
+                        <div
+                            className="h-full rounded-full bg-brand transition-[width] duration-700 ease-out dark:bg-lavender"
+                            style={{ width: `${overall}%` }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            <ol className="mt-1">
+                {TIMELINE.map((stage, i) => {
+                    const state = states[i];
+                    const meta = STATE_META[state];
+                    const active = state === "active";
 
                     return (
-                        <li key={stage.key} className={cx("rounded-lg border p-3", tone)}>
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                    <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-200">{stage.label}</p>
-                                    <p className="mt-0.5 text-[10px] leading-relaxed text-gray-400 dark:text-gray-500">{stage.hint}</p>
-                                </div>
+                        <li key={stage.key} className="relative flex gap-3 pb-4 last:pb-0">
+                            {i < TIMELINE.length - 1 && (
                                 <span
-                                    className={cx(
-                                        "shrink-0 rounded-md border px-1.5 py-0.5 text-[9px] font-bold",
-                                        failed
-                                            ? "border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400"
-                                            : isDone
-                                              ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"
-                                              : isActive
-                                                ? "border-brand-300 bg-white text-brand-500 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-400"
-                                                : "border-gray-200 bg-white text-gray-400 dark:border-gray-700 dark:bg-transparent dark:text-gray-500"
-                                    )}
-                                >
-                                    {label}
-                                </span>
+                                    aria-hidden
+                                    className="absolute bottom-0 left-[11px] top-6 w-px bg-track"
+                                />
+                            )}
+                            <StateIcon state={state} />
+                            <div className="min-w-0 flex-1 pt-0.5">
+                                <div className="flex items-start justify-between gap-2">
+                                    <p className="text-sm font-semibold text-ink">{stage.label}</p>
+                                    <span className={cx("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold", meta.chipClass)}>
+                                        {meta.chip}
+                                    </span>
+                                </div>
+                                <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                                    {stage.hint}
+                                </p>
+                                {active && (
+                                    <p className="mt-1 text-[11px] font-semibold text-brand dark:text-lavender">
+                                        {activeDetail(stage.key)} · {overall}%
+                                    </p>
+                                )}
                             </div>
                         </li>
                     );
                 })}
             </ol>
 
-            <dl className="mt-4 space-y-1.5 border-t border-gray-100 pt-3 text-[11px] dark:border-gray-800">
+            <dl className="mt-4 space-y-2 border-t border-track pt-4 text-xs">
                 <div className="flex justify-between gap-3">
-                    <dt className="text-gray-400 dark:text-gray-500">Diunggah</dt>
-                    <dd className="font-medium text-gray-600 dark:text-gray-300">{formatDateTime(doc.uploaded_at)}</dd>
+                    <dt className="text-muted">Diunggah</dt>
+                    <dd className="font-medium text-ink">{formatDateTime(doc.uploaded_at)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                    <dt className="text-gray-400 dark:text-gray-500">Selesai diproses</dt>
-                    <dd className="font-medium text-gray-600 dark:text-gray-300">
+                    <dt className="text-muted">Selesai diproses</dt>
+                    <dd className="font-medium text-ink">
                         {doc.processed_at ? formatDateTime(doc.processed_at) : "—"}
                     </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                    <dt className="text-gray-400 dark:text-gray-500">Study pack</dt>
-                    <dd className="font-medium text-gray-600 dark:text-gray-300">{pack.label}</dd>
+                    <dt className="text-muted">Study pack</dt>
+                    <dd className="font-medium text-ink">{packBadge(doc.study_pack).label}</dd>
                 </div>
             </dl>
-
-            {pack.showProgress ? (
-                <div className="mt-3">
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                        <div
-                            className={cx(
-                                "h-full rounded-full bg-brand-500",
-                                Number.isFinite(doc.study_pack.progress) ? "" : "animate-pulse"
-                            )}
-                            style={{ width: Number.isFinite(doc.study_pack.progress) ? `${doc.study_pack.progress}%` : "100%" }}
-                        />
-                    </div>
-                    <p className="mt-1.5 text-[10px] text-gray-400 dark:text-gray-500">
-                        {Number.isFinite(doc.study_pack.progress)
-                            ? `${doc.study_pack.progress}% selesai.`
-                            : "Sedang berjalan."}{" "}
-                        Halaman ini boleh ditutup, prosesnya jalan sendiri.
-                    </p>
-                </div>
-            ) : null}
 
             {/*
               Error ditampilkan apa adanya dari `error_message`, karena itu
               satu-satunya cara user tahu kenapa file tidak bisa dipakai.
               Kalau field-nya kosong, jangan mengarang penyebab.
             */}
-            {doc.status === "failed" ? (
-                <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50/60 p-3 dark:border-rose-500/30 dark:bg-rose-500/10">
-                    <p className="text-[10px] font-bold text-rose-700 dark:text-rose-400">Alasan gagal</p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-rose-800 dark:text-rose-300">
+            {(doc.status === "failed" || doc.study_pack?.status === "failed") && (
+                <div className="mt-3 rounded-control border border-rose-200 bg-rose-50/60 p-3 dark:border-rose-500/30 dark:bg-rose-500/10">
+                    <p className="text-[11px] font-bold text-rose-700 dark:text-rose-400">Alasan gagal</p>
+                    <p className="mt-1 text-xs leading-relaxed text-rose-800 dark:text-rose-300">
                         {doc.error_message?.trim()
                             ? doc.error_message
-                            : "Dokumen ini gagal diproses, tapi sistem tidak menyimpan alasannya."}
+                            : "Proses gagal, tapi sistem tidak menyimpan alasannya."}
                     </p>
                 </div>
-            ) : null}
+            )}
         </section>
     );
 }
@@ -187,13 +304,13 @@ function ActionsPanel({ doc }) {
     };
 
     return (
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <h2 className="mb-4 text-sm font-bold text-gray-900 dark:text-white">Aksi</h2>
+        <section className="rounded-card bg-surface p-5 shadow-card dark:ring-1 dark:ring-track sm:p-6">
+            <h2 className="mb-4 text-base font-semibold text-ink">Aksi</h2>
 
             {packReady ? (
                 <Link
                     href={`/documents/${doc.id}/study-pack`}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-brand-600 active:scale-[0.99]"
+                    className="flex items-center justify-center gap-2 rounded-control bg-brand py-2.5 text-sm font-semibold text-white shadow-pill transition-all hover:bg-brand-600 active:scale-[0.99] dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
                 >
                     Buka Study Pack
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -201,7 +318,7 @@ function ActionsPanel({ doc }) {
                     </svg>
                 </Link>
             ) : (
-                <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 p-3 text-[11px] leading-relaxed text-gray-500 dark:border-gray-700 dark:bg-white/[0.02] dark:text-gray-400">
+                <p className="rounded-control border border-dashed border-track bg-surface-tint p-3 text-xs leading-relaxed text-muted">
                     Study pack untuk dokumen ini belum siap, jadi belum ada apa pun untuk dipelajari dari sini.{" "}
                     {doc.study_pack?.status === "generating"
                         ? "Progresnya masih jalan."
@@ -218,7 +335,7 @@ function ActionsPanel({ doc }) {
             <div className="mt-3 space-y-2">
                 <a
                     href={`/documents/${doc.id}/download`}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-[11px] font-semibold text-gray-600 transition-all hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-white/[0.03]"
+                    className="flex items-center justify-center gap-2 rounded-control border border-track bg-surface py-2.5 text-xs font-semibold text-ink transition-colors hover:border-brand/30 hover:bg-surface-tint"
                 >
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path
@@ -235,7 +352,7 @@ function ActionsPanel({ doc }) {
                         type="button"
                         onClick={regenerate}
                         disabled={working}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-[11px] font-semibold text-gray-600 transition-all hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:border-gray-600 dark:hover:bg-white/[0.03]"
+                        className="flex w-full items-center justify-center gap-2 rounded-control border border-track bg-surface py-2.5 text-xs font-semibold text-ink transition-colors hover:border-brand/30 hover:bg-surface-tint disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path
@@ -250,13 +367,13 @@ function ActionsPanel({ doc }) {
 
                 {canDelete ? (
                     confirming ? (
-                        <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-3 dark:border-rose-500/30 dark:bg-rose-500/10">
-                            <p className="text-[11px] font-semibold text-rose-700 dark:text-rose-400">Hapus dokumen ini beserta chunks-nya?</p>
+                        <div className="rounded-control border border-rose-200 bg-rose-50/60 p-3 dark:border-rose-500/30 dark:bg-rose-500/10">
+                            <p className="text-xs font-semibold text-rose-700 dark:text-rose-400">Hapus dokumen ini beserta chunks-nya?</p>
                             <div className="mt-2 flex gap-2">
                                 <button
                                     type="button"
                                     onClick={() => setConfirming(false)}
-                                    className="flex-1 rounded-lg border border-gray-200 bg-white py-2 text-[11px] font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-300 dark:hover:bg-white/[0.03]"
+                                    className="flex-1 rounded-control border border-track bg-surface py-2 text-xs font-medium text-ink hover:bg-canvas"
                                 >
                                     Batal
                                 </button>
@@ -264,7 +381,7 @@ function ActionsPanel({ doc }) {
                                     type="button"
                                     onClick={remove}
                                     disabled={working}
-                                    className="flex-1 rounded-lg bg-rose-600 py-2 text-[11px] font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+                                    className="flex-1 rounded-control bg-rose-600 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
                                 >
                                     {working ? "Menghapus…" : "Ya, hapus"}
                                 </button>
@@ -274,7 +391,7 @@ function ActionsPanel({ doc }) {
                         <button
                             type="button"
                             onClick={() => setConfirming(true)}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white py-2.5 text-[11px] font-semibold text-rose-600 transition-all hover:bg-rose-50 dark:border-rose-500/30 dark:bg-transparent dark:text-rose-400 dark:hover:bg-rose-500/10"
+                            className="flex w-full items-center justify-center gap-2 rounded-control border border-rose-200 bg-surface py-2.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-500/30 dark:bg-transparent dark:text-rose-400 dark:hover:bg-rose-500/10"
                         >
                             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path
@@ -287,7 +404,7 @@ function ActionsPanel({ doc }) {
                         </button>
                     )
                 ) : (
-                    <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50/60 p-3 text-[10px] leading-relaxed text-gray-400 dark:border-gray-700 dark:bg-white/[0.02] dark:text-gray-500">
+                    <p className="rounded-control border border-dashed border-track bg-surface-tint p-3 text-[11px] leading-relaxed text-muted">
                         Dokumen sedang diproses, jadi belum bisa dihapus.
                     </p>
                 )}
@@ -300,14 +417,14 @@ function ActionsPanel({ doc }) {
 
 function DocumentNotFound() {
     return (
-        <section className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center dark:border-gray-700 dark:bg-white/[0.03]">
-            <h1 className="text-sm font-bold text-gray-900 dark:text-white">Dokumen tidak ditemukan</h1>
-            <p className="mx-auto mt-2 max-w-md text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+        <section className="rounded-card border border-dashed border-track bg-surface p-10 text-center">
+            <h1 className="text-base font-semibold text-ink">Dokumen tidak ditemukan</h1>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
                 Halaman ini hanya bisa dibuka untuk dokumen yang ada di daftar materi kamu. Cek lagi tautannya.
             </p>
             <Link
                 href="/materials"
-                className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-xs font-semibold text-white shadow-xs transition-all hover:bg-brand-600"
+                className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-control bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-pill transition-all hover:bg-brand-600 dark:bg-lavender dark:text-brand"
             >
                 Kembali ke Materials
             </Link>
@@ -323,7 +440,8 @@ export default function Show({ document: doc }) {
         !!doc &&
         (["uploaded", "processing"].includes(doc.status) ||
             ["queued", "generating"].includes(doc.study_pack?.status));
-    useRefreshWhile(pending, { only: ["document"] });
+    // 2 detik: cukup cepat untuk terasa realtime, tapi tidak membanjiri server.
+    useRefreshWhile(pending, { only: ["document"], interval: 2000 });
 
     if (!doc) {
         return (
@@ -345,26 +463,26 @@ export default function Show({ document: doc }) {
                     Study Pack, jadi di sini cukup konteks navigasi + status. */}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                        <p className="mb-1.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-gray-400 dark:text-gray-500">
-                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: doc.course.color }} />
-                            <Link href="/materials" className="font-medium hover:text-gray-600 hover:underline dark:hover:text-gray-300">
+                        <p className="mb-1.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: doc.course.color }} />
+                            <Link href="/materials" className="font-medium transition-colors hover:text-ink hover:underline">
                                 Materials
                             </Link>
                             <span>·</span>
-                            <span className="font-medium text-gray-500 dark:text-gray-400">{doc.course.name}</span>
+                            <span className="font-medium text-ink">{doc.course.name}</span>
                         </p>
-                        <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                        <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight text-ink sm:text-[28px]">
                             {doc.title}
                             <span
                                 className={cx(
-                                    "rounded-md border px-1.5 py-0.5 text-[9px] font-bold",
+                                    "rounded-full border px-2 py-0.5 text-[10px] font-bold",
                                     fileTone(doc.file_type)
                                 )}
                             >
                                 {fileLabel(doc.file_type)}
                             </span>
                         </h1>
-                        <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-gray-400 dark:text-gray-500">
+                        <p className="mt-2 flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
                             <span>{formatSize(doc.file_size)}</span>
                             <span>·</span>
                             <span>{doc.page_count} halaman</span>

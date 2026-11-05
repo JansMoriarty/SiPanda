@@ -185,7 +185,7 @@ function ThemeToggle() {
             onClick={toggleTheme}
             title={isDark ? "Mode terang" : "Mode gelap"}
             aria-label="Ubah tema"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all hover:bg-gray-50 hover:text-gray-900 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-control border border-track bg-surface text-muted transition-all hover:bg-canvas hover:text-ink dark:border-track dark:bg-surface dark:text-muted dark:hover:bg-surface-tint dark:hover:text-white"
         >
             {isDark ? (
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -204,7 +204,7 @@ function NavBar() {
     const [open, setOpen] = useState(false);
 
     return (
-        <header className="sticky top-0 z-50 border-b border-gray-200/70 bg-white/80 backdrop-blur-xl dark:border-gray-800/70 dark:bg-gray-950/80">
+        <header className="sticky top-0 z-50 border-b border-track/70 bg-surface/80 backdrop-blur-xl dark:border-track/70 dark:bg-surface/80">
             <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
                 <Logo />
 
@@ -213,7 +213,7 @@ function NavBar() {
                         <a
                             key={link.href}
                             href={link.href}
-                            className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                            className="text-sm font-medium text-muted transition-colors hover:text-ink dark:text-muted dark:hover:text-white"
                         >
                             {link.label}
                         </a>
@@ -226,13 +226,13 @@ function NavBar() {
                     </div>
                     <Link
                         href={route("login")}
-                        className="hidden rounded-lg px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 sm:block dark:text-gray-200 dark:hover:bg-white/[0.06]"
+                        className="hidden rounded-control px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-canvas sm:block dark:text-ink dark:hover:bg-surface-tint"
                     >
                         Masuk
                     </Link>
                     <Link
                         href={route("register")}
-                        className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition-colors hover:bg-brand-600"
+                        className="rounded-control bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-brand-500/25 transition-colors hover:bg-brand-600"
                     >
                         Coba Gratis
                     </Link>
@@ -240,7 +240,7 @@ function NavBar() {
                         type="button"
                         onClick={() => setOpen((v) => !v)}
                         aria-label="Menu"
-                        className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 md:hidden dark:border-gray-800 dark:text-gray-400"
+                        className="flex h-9 w-9 items-center justify-center rounded-control border border-track text-muted md:hidden dark:border-track dark:text-muted"
                     >
                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             {open ? (
@@ -254,21 +254,21 @@ function NavBar() {
             </div>
 
             {open && (
-                <div className="border-t border-gray-200 px-6 py-4 md:hidden dark:border-gray-800">
+                <div className="border-t border-track px-6 py-4 md:hidden dark:border-track">
                     <nav className="flex flex-col gap-1">
                         {NAV_LINKS.map((link) => (
                             <a
                                 key={link.href}
                                 href={link.href}
                                 onClick={() => setOpen(false)}
-                                className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/[0.06]"
+                                className="rounded-control px-3 py-2 text-sm font-medium text-muted hover:bg-canvas dark:text-muted dark:hover:bg-surface-tint"
                             >
                                 {link.label}
                             </a>
                         ))}
                         <Link
                             href={route("login")}
-                            className="rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/[0.06]"
+                            className="rounded-control px-3 py-2 text-sm font-medium text-muted hover:bg-canvas dark:text-muted dark:hover:bg-surface-tint"
                         >
                             Masuk
                         </Link>
@@ -284,13 +284,13 @@ function HeroMockup() {
         <div className="relative">
             <div className="pointer-events-none absolute -inset-x-10 -bottom-10 top-10 -z-10 rounded-[3rem] bg-brand-500/10 blur-2xl" />
 
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-900/10 dark:border-gray-800 dark:bg-gray-900 dark:shadow-black/40">
+            <div className="overflow-hidden rounded-card border border-track bg-surface shadow-2xl shadow-brand/10 dark:border-track dark:bg-surface dark:shadow-black/40">
                 {/* Title bar */}
-                <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-white/[0.03]">
+                <div className="flex items-center gap-2 border-b border-track bg-canvas px-4 py-3 dark:border-track dark:bg-surface-tint">
                     <span className="h-3 w-3 rounded-full bg-rose-400" />
                     <span className="h-3 w-3 rounded-full bg-amber-400" />
                     <span className="h-3 w-3 rounded-full bg-emerald-400" />
-                    <div className="mx-auto flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-1 text-[11px] text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500">
+                    <div className="mx-auto flex items-center gap-2 rounded-md border border-track bg-surface px-3 py-1 text-[11px] text-muted dark:border-track dark:bg-track dark:text-muted">
                         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                         </svg>
@@ -301,34 +301,34 @@ function HeroMockup() {
                 {/* App body */}
                 <div className="flex h-[340px] sm:h-[380px]">
                     {/* Sidebar */}
-                    <aside className="hidden w-52 shrink-0 flex-col gap-1 border-r border-gray-200 bg-white p-4 sm:flex dark:border-gray-800 dark:bg-gray-900">
+                    <aside className="hidden w-52 shrink-0 flex-col gap-1 border-r border-track bg-surface p-4 sm:flex dark:border-track dark:bg-surface">
                         <div className="mb-3 flex items-center gap-2">
                             <div className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-500 text-[10px] font-bold text-white">P</div>
-                            <span className="text-xs font-semibold text-gray-800 dark:text-gray-100">SiPanda</span>
+                            <span className="text-xs font-semibold text-ink dark:text-ink">SiPanda</span>
                         </div>
                         {["Dashboard", "Materials", "Ask PANDA", "Progress"].map((item, i) => (
                             <div
                                 key={item}
-                                className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] ${
+                                className={`flex items-center gap-2 rounded-control px-2.5 py-1.5 text-[11px] ${
                                     i === 1
                                         ? "bg-brand-50 font-semibold text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
-                                        : "text-gray-500 dark:text-gray-400"
+                                        : "text-muted dark:text-muted"
                                 }`}
                             >
-                                <span className={`h-3.5 w-3.5 rounded ${i === 1 ? "bg-brand-500/70" : "bg-gray-300 dark:bg-gray-700"}`} />
+                                <span className={`h-3.5 w-3.5 rounded ${i === 1 ? "bg-brand-500/70" : "bg-track dark:bg-track"}`} />
                                 {item}
                             </div>
                         ))}
                     </aside>
 
                     {/* Main */}
-                    <div className="flex-1 overflow-hidden bg-gray-50 p-4 dark:bg-gray-950 sm:p-5">
+                    <div className="flex-1 overflow-hidden bg-canvas p-4 dark:bg-canvas sm:p-5">
                         <div className="mb-4 flex items-center justify-between">
                             <div>
-                                <div className="h-3 w-32 rounded bg-gray-300 dark:bg-gray-700" />
-                                <div className="mt-1.5 h-2 w-20 rounded bg-gray-200 dark:bg-gray-800" />
+                                <div className="h-3 w-32 rounded bg-track dark:bg-track" />
+                                <div className="mt-1.5 h-2 w-20 rounded bg-track dark:bg-track" />
                             </div>
-                            <div className="h-7 w-24 rounded-lg bg-brand-500" />
+                            <div className="h-7 w-24 rounded-control bg-brand-500" />
                         </div>
 
                         <div className="grid grid-cols-3 gap-3">
@@ -337,16 +337,16 @@ function HeroMockup() {
                                 { label: "Rata-rata", value: "82%" },
                                 { label: "Topik lemah", value: "3" },
                             ].map((s) => (
-                                <div key={s.label} className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-white/[0.03]">
-                                    <div className="text-[10px] text-gray-400">{s.label}</div>
-                                    <div className="mt-1 text-sm font-bold text-gray-800 dark:text-gray-100">{s.value}</div>
+                                <div key={s.label} className="rounded-control border border-track bg-surface p-3 dark:border-track dark:bg-surface-tint">
+                                    <div className="text-[10px] text-muted">{s.label}</div>
+                                    <div className="mt-1 text-sm font-bold text-ink dark:text-ink">{s.value}</div>
                                 </div>
                             ))}
                         </div>
 
                         <div className="mt-3 grid grid-cols-5 gap-3">
-                            <div className="col-span-3 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-white/[0.03]">
-                                <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Penguasaan per topik</div>
+                            <div className="col-span-3 rounded-control border border-track bg-surface p-3 dark:border-track dark:bg-surface-tint">
+                                <div className="text-[10px] font-semibold text-muted dark:text-muted">Penguasaan per topik</div>
                                 <div className="mt-3 space-y-2">
                                     {[
                                         { t: "Limit", w: "90%", c: "bg-emerald-500" },
@@ -355,23 +355,23 @@ function HeroMockup() {
                                         { t: "Trigonometri", w: "30%", c: "bg-rose-500" },
                                     ].map((row) => (
                                         <div key={row.t} className="flex items-center gap-2">
-                                            <span className="w-16 shrink-0 text-[9px] text-gray-400">{row.t}</span>
-                                            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                                            <span className="w-16 shrink-0 text-[9px] text-muted">{row.t}</span>
+                                            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-canvas dark:bg-track">
                                                 <span className={`block h-full rounded-full ${row.c}`} style={{ width: row.w }} />
                                             </span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
-                            <div className="col-span-2 rounded-xl border border-brand-200 bg-brand-50/60 p-3 dark:border-brand-500/20 dark:bg-brand-500/10">
+                            <div className="col-span-2 rounded-control border border-brand-200 bg-brand-50/60 p-3 dark:border-brand-500/20 dark:bg-brand-500/10">
                                 <div className="flex items-center gap-1.5 text-[10px] font-semibold text-brand-600 dark:text-brand-400">
                                     <Icon name="sparkles" className="h-3.5 w-3.5" />
                                     Ask PANDA
                                 </div>
-                                <div className="mt-2 rounded-lg bg-white p-2 text-[9px] leading-relaxed text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                                <div className="mt-2 rounded-control bg-surface p-2 text-[9px] leading-relaxed text-muted dark:bg-surface dark:text-muted">
                                     &ldquo;Jelaskan konsep integral tentu pada materi ini.&rdquo;
                                 </div>
-                                <div className="mt-2 rounded-lg bg-brand-500 p-2 text-[9px] leading-relaxed text-white/90">
+                                <div className="mt-2 rounded-control bg-brand-500 p-2 text-[9px] leading-relaxed text-white/90">
                                     Integral tentu menghitung luas di bawah kurva...
                                 </div>
                             </div>
@@ -403,7 +403,7 @@ export default function Index() {
                 />
             </Head>
 
-            <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-white">
+            <div className="min-h-screen bg-canvas text-ink">
                 <NavBar />
 
                 {/* Hero */}
@@ -412,7 +412,7 @@ export default function Index() {
                         className="pointer-events-none absolute inset-0 -z-10"
                         style={{
                             backgroundImage:
-                                "linear-gradient(to right, rgba(148,163,184,0.14) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.14) 1px, transparent 1px)",
+                                "linear-gradient(to right, rgba(91,75,138,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(91,75,138,0.12) 1px, transparent 1px)",
                             backgroundSize: "56px 56px",
                             maskImage: "radial-gradient(ellipse 75% 55% at 50% 0%, #000 55%, transparent 100%)",
                             WebkitMaskImage: "radial-gradient(ellipse 75% 55% at 50% 0%, #000 55%, transparent 100%)",
@@ -421,7 +421,7 @@ export default function Index() {
                     <div className="pointer-events-none absolute -top-40 left-1/2 -z-10 h-[440px] w-[720px] -translate-x-1/2 rounded-full bg-brand-500/20 blur-[130px] dark:bg-brand-500/25" />
 
                     <div className="mx-auto max-w-4xl px-6 pt-20 text-center sm:pt-28">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/70 px-3 py-1 text-xs font-medium text-gray-600 backdrop-blur dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-track bg-surface/70 px-3 py-1 text-xs font-medium text-muted backdrop-blur dark:border-track dark:bg-surface-tint dark:text-muted">
                             <span className="flex h-1.5 w-1.5 rounded-full bg-brand-500" />
                             AI Study Companion untuk mahasiswa
                         </span>
@@ -434,7 +434,7 @@ export default function Index() {
                             interaktif
                         </h1>
 
-                        <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-gray-500 sm:text-lg dark:text-gray-400">
+                        <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted sm:text-lg dark:text-muted">
                             Unggah PDF atau presentasi, dan SiPanda menyusun Study Pack, kuis, serta latihan yang
                             menyesuaikan topik terlemahmu. Belajar lebih terarah, bukan sekadar membaca ulang.
                         </p>
@@ -442,7 +442,7 @@ export default function Index() {
                         <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
                             <Link
                                 href={route("register")}
-                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 transition-all hover:bg-brand-600 hover:shadow-brand-500/40 sm:w-auto"
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-control bg-brand-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 transition-all hover:bg-brand-600 hover:shadow-brand-500/40 sm:w-auto"
                             >
                                 Mulai Gratis
                                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -451,13 +451,13 @@ export default function Index() {
                             </Link>
                             <Link
                                 href={route("login")}
-                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 sm:w-auto dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-white/[0.04]"
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-control border border-track bg-surface px-6 py-3 text-sm font-semibold text-ink transition-colors hover:bg-canvas sm:w-auto dark:border-track dark:bg-surface dark:text-ink dark:hover:bg-surface-tint"
                             >
                                 Masuk ke akun
                             </Link>
                         </div>
 
-                        <p className="mt-5 text-xs text-gray-400 dark:text-gray-500">
+                        <p className="mt-5 text-xs text-muted dark:text-muted">
                             Gratis untuk dicoba. Tanpa kartu kredit.
                         </p>
                     </div>
@@ -468,7 +468,7 @@ export default function Index() {
                 </section>
 
                 {/* Fitur */}
-                <section id="fitur" className="border-t border-gray-100 py-20 dark:border-gray-900 sm:py-24">
+                <section id="fitur" className="border-t border-track py-20 dark:border-track sm:py-24">
                     <div className="mx-auto max-w-6xl px-6">
                         <div className="mx-auto max-w-2xl text-center">
                             <span className="text-xs font-semibold uppercase tracking-widest text-brand-500 dark:text-brand-400">
@@ -477,7 +477,7 @@ export default function Index() {
                             <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
                                 Semua yang kamu butuhkan untuk belajar
                             </h2>
-                            <p className="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                            <p className="mt-4 text-sm leading-relaxed text-muted dark:text-muted">
                                 Bukan sekadar chatbot. SiPanda menyusun alur belajar lengkap dari materimu sendiri.
                             </p>
                         </div>
@@ -486,13 +486,13 @@ export default function Index() {
                             {FEATURES.map((feature) => (
                                 <div
                                     key={feature.title}
-                                    className="group rounded-2xl border border-gray-200 bg-white p-6 transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-xl hover:shadow-brand-500/5 dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-500/40"
+                                    className="group rounded-card border border-track bg-surface p-6 transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-xl hover:shadow-brand-500/5 dark:border-track dark:bg-surface-tint dark:hover:border-brand-500/40"
                                 >
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-control bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
                                         <Icon name={feature.icon} />
                                     </div>
                                     <h3 className="mt-4 text-sm font-bold">{feature.title}</h3>
-                                    <p className="mt-1.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{feature.desc}</p>
+                                    <p className="mt-1.5 text-xs leading-relaxed text-muted dark:text-muted">{feature.desc}</p>
                                 </div>
                             ))}
                         </div>
@@ -500,7 +500,7 @@ export default function Index() {
                 </section>
 
                 {/* Cara kerja */}
-                <section id="cara-kerja" className="bg-gray-50 py-20 dark:bg-white/[0.02] sm:py-24">
+                <section id="cara-kerja" className="bg-canvas py-20 dark:bg-canvas sm:py-24">
                     <div className="mx-auto max-w-6xl px-6">
                         <div className="mx-auto max-w-2xl text-center">
                             <span className="text-xs font-semibold uppercase tracking-widest text-brand-500 dark:text-brand-400">
@@ -512,14 +512,14 @@ export default function Index() {
                         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                             {STEPS.map((step, i) => (
                                 <div key={step.n} className="relative">
-                                    <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+                                    <div className="rounded-card border border-track bg-surface p-6 dark:border-track dark:bg-surface">
                                         <span className="text-2xl font-bold text-brand-500/30 dark:text-brand-400/30">{step.n}</span>
                                         <h3 className="mt-3 text-sm font-bold">{step.title}</h3>
-                                        <p className="mt-1.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{step.desc}</p>
+                                        <p className="mt-1.5 text-xs leading-relaxed text-muted dark:text-muted">{step.desc}</p>
                                     </div>
                                     {i < STEPS.length - 1 && (
                                         <svg
-                                            className="absolute -right-3 top-1/2 hidden h-5 w-5 -translate-y-1/2 text-gray-300 lg:block dark:text-gray-700"
+                                            className="absolute -right-3 top-1/2 hidden h-5 w-5 -translate-y-1/2 text-muted lg:block dark:text-ink"
                                             fill="none"
                                             viewBox="0 0 24 24"
                                             stroke="currentColor"
@@ -544,13 +544,13 @@ export default function Index() {
                             <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
                                 Tahu persis harus belajar apa
                             </h2>
-                            <p className="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                            <p className="mt-4 text-sm leading-relaxed text-muted dark:text-muted">
                                 SiPanda menganalisis hasil kuismu dan menandai topik yang masih lemah. Latihan
                                 berikutnya diarahkan ke sana, jadi waktumu tidak terbuang.
                             </p>
                             <ul className="mt-6 space-y-3">
                                 {["Peta penguasaan per topik", "Latihan khusus area lemah", "Progres yang mudah dipantau"].map((item) => (
-                                    <li key={item} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+                                    <li key={item} className="flex items-center gap-3 text-sm text-muted dark:text-muted">
                                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
                                             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -562,7 +562,7 @@ export default function Index() {
                             </ul>
                         </div>
 
-                        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl shadow-gray-900/5 dark:border-gray-800 dark:bg-gray-900 dark:shadow-black/30">
+                        <div className="rounded-card border border-track bg-surface p-6 shadow-xl shadow-brand/5 dark:border-track dark:bg-surface dark:shadow-black/30">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-bold">Penguasaan topik</h3>
                                 <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
@@ -573,10 +573,10 @@ export default function Index() {
                                 {GAPS.map((gap) => (
                                     <div key={gap.topic}>
                                         <div className="mb-1.5 flex items-center justify-between text-xs">
-                                            <span className="font-medium text-gray-600 dark:text-gray-300">{gap.topic}</span>
-                                            <span className="font-semibold text-gray-800 dark:text-gray-100">{gap.score}%</span>
+                                            <span className="font-medium text-muted dark:text-muted">{gap.topic}</span>
+                                            <span className="font-semibold text-ink dark:text-ink">{gap.score}%</span>
                                         </div>
-                                        <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                                        <div className="h-2 overflow-hidden rounded-full bg-canvas dark:bg-track">
                                             <div className={`h-full rounded-full ${TONE[gap.tone]}`} style={{ width: `${gap.score}%` }} />
                                         </div>
                                     </div>
@@ -584,7 +584,7 @@ export default function Index() {
                             </div>
                             <Link
                                 href={route("register")}
-                                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+                                className="mt-6 flex w-full items-center justify-center gap-2 rounded-control bg-brand-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
                             >
                                 Latih topik lemahmu
                             </Link>
@@ -593,14 +593,14 @@ export default function Index() {
                 </section>
 
                 {/* Harga */}
-                <section id="harga" className="bg-gray-50 py-20 dark:bg-white/[0.02] sm:py-24">
+                <section id="harga" className="bg-canvas py-20 dark:bg-canvas sm:py-24">
                     <div className="mx-auto max-w-6xl px-6">
                         <div className="mx-auto max-w-2xl text-center">
                             <span className="text-xs font-semibold uppercase tracking-widest text-brand-500 dark:text-brand-400">
                                 Harga
                             </span>
                             <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Paket yang sederhana</h2>
-                            <p className="mt-4 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                            <p className="mt-4 text-sm leading-relaxed text-muted dark:text-muted">
                                 Mulai gratis, upgrade kapan saja.
                             </p>
                         </div>
@@ -609,10 +609,10 @@ export default function Index() {
                             {PLANS.map((plan) => (
                                 <div
                                     key={plan.name}
-                                    className={`relative flex flex-col rounded-2xl border bg-white p-6 dark:bg-gray-900 ${
+                                    className={`relative flex flex-col rounded-card border bg-surface p-6 dark:bg-surface ${
                                         plan.highlighted
                                             ? "border-brand-500 ring-2 ring-brand-500/15"
-                                            : "border-gray-200 dark:border-gray-800"
+                                            : "border-track dark:border-track"
                                     }`}
                                 >
                                     {plan.badge && (
@@ -623,11 +623,11 @@ export default function Index() {
                                     <h3 className="text-sm font-bold">{plan.name}</h3>
                                     <div className="mt-3 flex items-baseline gap-1">
                                         <span className="text-2xl font-bold tracking-tight">{plan.price}</span>
-                                        {plan.period && <span className="text-xs text-gray-500 dark:text-gray-400">{plan.period}</span>}
+                                        {plan.period && <span className="text-xs text-muted dark:text-muted">{plan.period}</span>}
                                     </div>
-                                    <ul className="mt-5 flex-1 space-y-2.5 border-t border-gray-100 pt-5 dark:border-gray-800">
+                                    <ul className="mt-5 flex-1 space-y-2.5 border-t border-track pt-5 dark:border-track">
                                         {plan.features.map((feature) => (
-                                            <li key={feature} className="flex items-start gap-2.5 text-xs text-gray-600 dark:text-gray-300">
+                                            <li key={feature} className="flex items-start gap-2.5 text-xs text-muted dark:text-muted">
                                                 <svg className="mt-0.5 h-4 w-4 shrink-0 text-brand-500 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                                 </svg>
@@ -637,10 +637,10 @@ export default function Index() {
                                     </ul>
                                     <Link
                                         href={route("register")}
-                                        className={`mt-6 flex h-10 items-center justify-center rounded-xl text-sm font-semibold transition-colors ${
+                                        className={`mt-6 flex h-10 items-center justify-center rounded-control text-sm font-semibold transition-colors ${
                                             plan.highlighted
                                                 ? "bg-brand-500 text-white hover:bg-brand-600"
-                                                : "border border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-white/[0.04]"
+                                                : "border border-track text-ink hover:bg-canvas dark:border-track dark:text-ink dark:hover:bg-surface-tint"
                                         }`}
                                     >
                                         {plan.cta}
@@ -655,16 +655,16 @@ export default function Index() {
                 <section className="py-20 sm:py-24">
                     <div className="mx-auto max-w-3xl px-6">
                         <h2 className="text-center text-3xl font-bold tracking-tight sm:text-4xl">Pertanyaan umum</h2>
-                        <div className="mt-10 divide-y divide-gray-100 rounded-2xl border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+                        <div className="mt-10 divide-y divide-track rounded-card border border-track dark:divide-track dark:border-track">
                             {FAQS.map((faq) => (
                                 <details key={faq.q} className="group px-6 py-4">
                                     <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold">
                                         {faq.q}
-                                        <svg className="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <svg className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                                         </svg>
                                     </summary>
-                                    <p className="mt-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{faq.a}</p>
+                                    <p className="mt-3 text-xs leading-relaxed text-muted dark:text-muted">{faq.a}</p>
                                 </details>
                             ))}
                         </div>
@@ -673,7 +673,7 @@ export default function Index() {
 
                 {/* CTA */}
                 <section className="px-6 pb-20">
-                    <div className="relative mx-auto max-w-5xl overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-8 py-14 text-center shadow-2xl shadow-brand-500/30 sm:px-16">
+                    <div className="relative mx-auto max-w-5xl overflow-hidden rounded-card bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700 px-8 py-14 text-center shadow-2xl shadow-brand-500/30 sm:px-16">
                         <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
                         <div className="pointer-events-none absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
                         <h2 className="relative text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -684,7 +684,7 @@ export default function Index() {
                         </p>
                         <Link
                             href={route("register")}
-                            className="relative mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-brand-600 transition-transform hover:-translate-y-0.5"
+                            className="relative mt-8 inline-flex items-center gap-2 rounded-control bg-white px-6 py-3 text-sm font-semibold text-brand-600 transition-transform hover:-translate-y-0.5"
                         >
                             Mulai sekarang
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -695,16 +695,16 @@ export default function Index() {
                 </section>
 
                 {/* Footer */}
-                <footer className="border-t border-gray-100 py-10 dark:border-gray-900">
+                <footer className="border-t border-track py-10 dark:border-track">
                     <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
                         <Logo />
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                        <p className="text-xs text-muted dark:text-muted">
                             &copy; {new Date().getFullYear()} SiPanda. Dibuat untuk mahasiswa.
                         </p>
-                        <div className="flex items-center gap-5 text-xs font-medium text-gray-500 dark:text-gray-400">
-                            <a href="#fitur" className="hover:text-gray-900 dark:hover:text-white">Fitur</a>
-                            <a href="#harga" className="hover:text-gray-900 dark:hover:text-white">Harga</a>
-                            <Link href={route("login")} className="hover:text-gray-900 dark:hover:text-white">Masuk</Link>
+                        <div className="flex items-center gap-5 text-xs font-medium text-muted dark:text-muted">
+                            <a href="#fitur" className="hover:text-ink dark:hover:text-white">Fitur</a>
+                            <a href="#harga" className="hover:text-ink dark:hover:text-white">Harga</a>
+                            <Link href={route("login")} className="hover:text-ink dark:hover:text-white">Masuk</Link>
                         </div>
                     </div>
                 </footer>

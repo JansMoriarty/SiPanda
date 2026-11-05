@@ -3,38 +3,68 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Token desain mengikuti TailAdmin.
- * Palet `brand` dan skala `gray` diselaraskan dengan TailAdmin supaya
- * kelas seperti `bg-brand-500` / `dark:bg-gray-900` tampil persis.
+ * SiPanda Design System v2.
+ * Semua skala warna memakai keluarga ungu agar halaman baru dan lama
+ * konsisten. `brand-*` dan `gray-*` tetap dipertahankan sebagai alias
+ * legacy supaya komponen lama ikut berubah tanpa perlu rewrite total.
  */
 @theme {
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-25: #f2f7ff;
-  --color-brand-50: #ecf3ff;
-  --color-brand-100: #dde9ff;
-  --color-brand-200: #c2d6ff;
-  --color-brand-300: #9cb9ff;
-  --color-brand-400: #7592ff;
-  --color-brand-500: #465fff;
-  --color-brand-600: #3641f5;
-  --color-brand-700: #2a31d8;
-  --color-brand-800: #252dae;
-  --color-brand-900: #262e90;
-  --color-brand-950: #1b1e4d;
+  /*
+   * SiPanda Design System v2 — semantic tokens.
+   * Dark-mode values untuk canvas/surface/ink/muted ada di @layer base.
+   */
+  --color-canvas: #eeeef4;
+  --color-surface: #ffffff;
+  --color-surface-tint: #f7f6fc;
+  --color-surface-raised: #ffffff;
+  --color-track: #e6e3f1;
+  --color-ink: #2b2840;
+  --color-muted: #a3a1b5;
+  --color-brand: #5b4b8a;
+  --color-peach: #f3a183;
+  --color-peach-soft: #fbd9cc;
+  --color-peach-strong: #c2512b;
+  --color-lavender: #b7a6e6;
+  --color-lavender-soft: #e9e3fa;
+  --color-sage: #8fcbc3;
 
-  --color-gray-25: #fcfcfd;
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f2f4f7;
-  --color-gray-200: #e4e7ec;
-  --color-gray-300: #d0d5dd;
-  --color-gray-400: #98a2b3;
-  --color-gray-500: #667085;
-  --color-gray-600: #475467;
-  --color-gray-700: #344054;
-  --color-gray-800: #1d2939;
-  --color-gray-900: #101828;
-  --color-gray-950: #0c111d;
+  /* Skala legacy — sekarang ungu, bukan biru TailAdmin. */
+  --color-brand-25: #faf9fd;
+  --color-brand-50: #f4f1fb;
+  --color-brand-100: #e9e3fa;
+  --color-brand-200: #d7cbf3;
+  --color-brand-300: #bfaeea;
+  --color-brand-400: #9679d6;
+  --color-brand-500: #5b4b8a;
+  --color-brand-600: #4a3c75;
+  --color-brand-700: #3f3a5a;
+  --color-brand-800: #332f4a;
+  --color-brand-900: #29253a;
+  --color-brand-950: #181622;
+
+  --color-gray-25: #fcfbfe;
+  --color-gray-50: #f8f7fb;
+  --color-gray-100: #f2f0f8;
+  --color-gray-200: #e7e3f1;
+  --color-gray-300: #d4cfe2;
+  --color-gray-400: #a7a1b8;
+  --color-gray-500: #7d7792;
+  --color-gray-600: #5f5977;
+  --color-gray-700: #48425f;
+  --color-gray-800: #2f2a42;
+  --color-gray-900: #201d2e;
+  --color-gray-950: #15131f;
+
+  /* Radius & shadow dari design system (dipakai bertahap saat restyle). */
+  --radius-shell: 32px;
+  --radius-card: 24px;
+  --radius-control: 14px;
+
+  --shadow-card: 0 10px 30px rgba(91, 75, 138, 0.08);
+  --shadow-card-hover: 0 14px 36px rgba(91, 75, 138, 0.12);
+  --shadow-pill: 0 6px 16px rgba(91, 75, 138, 0.1);
 
   --animate-fade-in-up: fade-in-up 0.3s ease-out;
 
@@ -51,9 +81,29 @@
 }
 
 @layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  /*
+   * Dark-mode overrides untuk token semantik. Accent (brand/peach/lavender/
+   * sage) sengaja tetap sama; hanya permukaan & teks yang berubah.
+   */
+  .dark {
+    color-scheme: dark;
+    --color-canvas: #15131f;
+    --color-surface: #1e1b2c;
+    --color-surface-tint: #191625;
+    --color-surface-raised: #2a2640;
+    --color-track: rgba(255, 255, 255, 0.08);
+    --color-peach-strong: #f3a183;
+    --color-ink: #f1effa;
+    --color-muted: #9e9bb5;
+  }
+
   body {
     font-family: "Outfit", sans-serif;
-    @apply bg-gray-50 text-gray-800 antialiased dark:bg-gray-900 dark:text-gray-200;
+    @apply bg-canvas text-ink antialiased;
   }
 }
 
