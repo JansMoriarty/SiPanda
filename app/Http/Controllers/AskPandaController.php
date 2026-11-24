@@ -106,25 +106,21 @@ TXT;
         return response()->stream(function () use ($llm, $question, $chunks, $history, $sources, $userId, $scope, $scopeInstruction, $needsGeneralConfirm) {
             if ($needsGeneralConfirm) {
                 echo "data: " . json_encode(['type' => 'no_context', 'data' => ['question' => $question]]) . "\n\n";
-                ob_flush();
-                flush();
+                $this->flushOutput();
 
                 echo "data: [DONE]\n\n";
-                ob_flush();
-                flush();
+                $this->flushOutput();
 
                 return;
             }
 
             if ($scope !== null) {
                 echo "data: " . json_encode(['type' => 'scope', 'data' => $scope]) . "\n\n";
-                ob_flush();
-                flush();
+                $this->flushOutput();
             }
 
             echo "data: " . json_encode(['type' => 'sources', 'data' => $sources]) . "\n\n";
-            ob_flush();
-            flush();
+            $this->flushOutput();
 
             try {
                 app(LlmUsageRecorder::class)->run(
@@ -132,8 +128,7 @@ TXT;
                     LlmUsage::FEATURE_ASK_PANDA,
                     fn () => $llm->generateStreamAnswer($question, $chunks, $history, function ($chunkText) {
                         echo "data: " . json_encode(['type' => 'text', 'data' => $chunkText]) . "\n\n";
-                        ob_flush();
-                        flush();
+                        $this->flushOutput();
                     }, $scopeInstruction),
                 );
             } catch (\Throwable $e) {
@@ -148,18 +143,30 @@ TXT;
                     'rate_limited' => $isRateLimit,
                     'message' => $errorMessage,
                 ]) . "\n\n";
-                ob_flush();
-                flush();
+                $this->flushOutput();
             }
 
             echo "data: [DONE]\n\n";
-            ob_flush();
-            flush();
+            $this->flushOutput();
         }, 200, [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache',
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    /**
+     * Kirim output ke browser. ob_flush() hanya dipanggil kalau memang ada
+     * output buffer aktif; di shared hosting buffer-nya sering tidak ada dan
+     * ob_flush() tanpa buffer melempar notice (jadi exception di Laravel).
+     */
+    private function flushOutput(): void
+    {
+        if (ob_get_level() > 0) {
+            ob_flush();
+        }
+
+        flush();
     }
 }
