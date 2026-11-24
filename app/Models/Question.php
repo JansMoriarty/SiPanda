@@ -10,6 +10,7 @@ class Question extends Model
 {
     protected $fillable = [
         'document_id',
+        'level_id',
         'concept_id',
         'question',
         'options',
@@ -26,6 +27,11 @@ class Question extends Model
     public function document(): BelongsTo
     {
         return $this->belongsTo(Document::class);
+    }
+
+    public function level(): BelongsTo
+    {
+        return $this->belongsTo(StudyLevel::class, 'level_id');
     }
 
     public function concept(): BelongsTo

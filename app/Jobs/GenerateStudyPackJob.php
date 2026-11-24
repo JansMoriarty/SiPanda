@@ -12,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Menjalankan generator Study Pack di queue. Idempoten: kalau status sudah
- * "ready" dan konsep beserta kartu sudah ada, job keluar tanpa memanggil LLM lagi.
+ * "ready" dan level, konsep, serta kartu sudah ada, job keluar tanpa memanggil LLM lagi.
  */
 class GenerateStudyPackJob implements ShouldQueue
 {
@@ -37,10 +37,11 @@ class GenerateStudyPackJob implements ShouldQueue
             return;
         }
 
-        // Kartu ikut disyaratkan supaya dokumen lama yang sudah 'ready' sebelum
-        // fitur flashcard ada tetap bisa melengkapi kartunya lewat "Buat ulang".
+        // Level ikut disyaratkan supaya dokumen lama yang belum punya peta level
+        // tetap bisa dibuat ulang dan migrasi ke format study pack terbaru.
         if (
             $document->study_pack_status === 'ready'
+            && $document->studyLevels()->exists()
             && $document->concepts()->exists()
             && $document->flashcards()->exists()
         ) {

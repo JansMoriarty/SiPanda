@@ -14,12 +14,12 @@ class LandingController extends Controller
      *
      * Tamu melihat landing page. Pengguna yang sudah login tidak perlu
      * melihatnya lagi, jadi langsung diarahkan ke "rumah" sesuai perannya:
-     * student -> /student (home), admin -> /admin.
+     * student -> dashboard, admin -> /admin.
      */
     public function index(Request $request): Response|RedirectResponse
     {
         if ($user = $request->user()) {
-            return redirect()->route($user->isAdmin() ? 'admin.dashboard' : 'home');
+            return redirect()->route($user->isAdmin() ? 'admin.dashboard' : 'dashboard');
         }
 
         return Inertia::render('Landing/Index');

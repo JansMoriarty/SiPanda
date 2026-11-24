@@ -10,6 +10,7 @@ class QuizAttempt extends Model
 {
     protected $fillable = [
         'document_id',
+        'level_id',
         'user_id',
         'total_questions',
         'correct_answers',
@@ -29,6 +30,11 @@ class QuizAttempt extends Model
     public function document(): BelongsTo
     {
         return $this->belongsTo(Document::class);
+    }
+
+    public function level(): BelongsTo
+    {
+        return $this->belongsTo(StudyLevel::class, 'level_id');
     }
 
     public function user(): BelongsTo

@@ -14,7 +14,7 @@ const NAV_SECTIONS = [
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
           </svg>
         ),
-        activePattern: (url) => url.startsWith("/dashboard"),
+        activePattern: (url) => url === "/student" || url.startsWith("/dashboard"),
       },
       {
         key: "materials",
@@ -25,7 +25,7 @@ const NAV_SECTIONS = [
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
         ),
-        activePattern: (url) => url === "/" || url.startsWith("/materials") || url.startsWith("/student") || url.startsWith("/documents/"),
+        activePattern: (url) => url === "/" || url.startsWith("/materials") || url.startsWith("/documents/"),
       },
     ],
   },
@@ -188,7 +188,7 @@ export default function ShellSidebar() {
     >
       <div className="flex flex-1 flex-col overflow-y-auto no-scrollbar">
         <div className={`flex h-[65px] shrink-0 items-center gap-3 px-6 ${!isSidebarVisible ? "px-0 lg:justify-center" : ""}`}>
-          <Link href={user?.is_admin ? "/admin" : "/student"} className="flex items-center gap-3">
+          <Link href={user?.is_admin ? "/admin" : "/dashboard"} className="flex items-center gap-3">
             {isSidebarVisible ? (
               <img
                 src="/images/sipanda-logo.png"

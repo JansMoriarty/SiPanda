@@ -4,6 +4,7 @@ import { Link, router, usePage } from "@inertiajs/react";
 import { useSidebar } from "@/context/SidebarContext";
 import { useTheme } from "@/context/ThemeContext";
 import Avatar from "@/Components/Avatar";
+import XpMedal from "@/Components/XpMedal";
 
 const CONTROL_CLASS =
   "flex h-10 w-10 items-center justify-center rounded-control bg-lavender-soft text-brand transition-all hover:bg-lavender/60 dark:bg-lavender/15 dark:text-lavender dark:hover:bg-lavender/25";
@@ -37,6 +38,16 @@ export default function ShellTopbar() {
   const { props } = usePage();
   const user = props.auth?.user;
   const displayName = user?.name ?? "User";
+  const xpBalance = user?.xp?.balance ?? 0;
+  const xpTier = user?.xp?.tier ?? {
+    label: "Pemula",
+    color: "#94A3B8",
+    next: null,
+    progress: { percent: 0, remaining: 0 },
+  };
+  const xpNext = xpTier.next;
+  const xpPercent = xpTier.progress?.percent ?? 0;
+  const xpRemaining = xpTier.progress?.remaining ?? 0;
 
   const inputRef = useRef(null);
   const profileMenuRef = useRef(null);
@@ -106,7 +117,7 @@ export default function ShellTopbar() {
   }, [isLogoutModalOpen, loggingOut]);
 
   return (
-    <header className="relative z-10 flex h-[65px] w-full items-center px-4 lg:px-6">
+    <header className="relative z-10 flex h-14 w-full items-center px-4 lg:px-6">
       <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -150,6 +161,29 @@ export default function ShellTopbar() {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <div
+            className="flex h-10 min-w-[92px] items-center gap-2 rounded-control border border-track bg-canvas px-2.5 sm:min-w-[148px] sm:px-3"
+            title={
+              xpNext
+                ? `${xpTier.label} · ${xpBalance} XP · ${xpRemaining} XP menuju ${xpNext.label}`
+                : `${xpTier.label} · ${xpBalance} XP · Tier tertinggi`
+            }
+          >
+            <XpMedal color={xpTier.color} className="h-5 w-5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-1.5">
+                <span className="hidden truncate text-[11px] font-semibold text-ink sm:inline">{xpTier.label}</span>
+                <span className="text-[11px] font-bold text-brand">{xpBalance} XP</span>
+              </div>
+              <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-track">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${xpPercent}%`, backgroundColor: xpTier.color }}
+                />
+              </div>
+            </div>
+          </div>
+
           <ThemeToggleButton />
 
           <button

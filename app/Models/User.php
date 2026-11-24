@@ -6,10 +6,11 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Facades\Storage;
 
 // 'avatar' wajib fillable: ProfileAvatarController memakai $user->update(),
@@ -42,6 +43,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            'xp' => 'integer',
         ];
     }
 
@@ -50,26 +52,41 @@ class User extends Authenticatable
         return $this->role === self::ROLE_ADMIN;
     }
 
-    public function courses(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function courses(): HasMany
     {
         return $this->hasMany(Course::class);
     }
 
-    public function quizAttempts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function quizAttempts(): HasMany
     {
         return $this->hasMany(QuizAttempt::class);
     }
 
-    public function flashcardReviews(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function flashcardReviews(): HasMany
     {
         return $this->hasMany(FlashcardReview::class);
+    }
+
+    public function xpClaims(): HasMany
+    {
+        return $this->hasMany(XpClaim::class);
+    }
+
+    public function avatarPackClaims(): HasMany
+    {
+        return $this->hasMany(AvatarPackClaim::class);
     }
 
     protected function avatar(): Attribute
     {
         return Attribute::get(function (?string $value) {
-            if (! $value) return null;
-            if (str_starts_with($value, 'http')) return $value;   // dari Google
+            if (! $value) {
+                return null;
+            }
+            if (str_starts_with($value, 'http')) {
+                return $value;
+            }   // dari Google
+
             return Storage::disk('public')->url($value);           // hasil upload
         });
     }

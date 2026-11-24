@@ -4,28 +4,85 @@ import ShellLayout from "@/Layouts/ShellLayout";
 import useRefreshWhile from "@/hooks/useRefreshWhile";
 import Badge from "@/Components/ui/Badge";
 import Card from "@/Components/ui/Card";
-import { WEAK_THRESHOLD, cx, fileLabel, fileTone, formatDateTime, formatSize, scoreTone } from "@/utils/format";
+import { cx, fileLabel, fileTone, formatDateTime, formatSize } from "@/utils/format";
 import { renderMarkdown } from "@/utils/markdown";
 
-const TABS = [
-    { id: "summary", label: "Ringkasan" },
-    { id: "concepts", label: "Konsep Kunci" },
-    { id: "flashcards", label: "Flashcards" },
+const LEVEL_TABS = [
+    { id: "ringkasan", label: "Ringkasan" },
+    { id: "poin", label: "Poin Kunci" },
     { id: "quiz", label: "Quiz" },
+    { id: "flashcard", label: "Flashcard" },
     { id: "ask", label: "Ask PANDA" },
 ];
 
-const importanceBadge = (importance) =>
-    importance === "high"
-        ? {
-              label: "Penting",
-              className:
-                  "text-rose-600 bg-rose-50 border-rose-200 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/30",
-          }
-        : {
-              label: "Menengah",
-              className: "text-muted bg-canvas border-track dark:bg-track dark:text-muted",
-          };
+/* ---------------------------------------------------------- map constants */
+
+// Gambar background peta (taruh di public/images/). Disarankan .webp lebar ±800px.
+const MAP_BG = "/images/study-map-bg.png";
+// Tinggi gambar background kalau lebarnya 400px (2576 / 1185 * 400).
+const MAP_BG_HEIGHT = 870;
+// Gambar maskot panda (PNG/SVG transparan), contoh: "/images/panda-walk.png".
+// Selama null, dipakai panda SVG bawaan di bawah (PandaMark).
+const PANDA_SRC = null;
+
+const MAP_W = 400; // lebar viewBox, harus sama dengan lebar card peta (400px di desktop)
+const MAP_TOP = 96; // y node pertama (ruang untuk progress bar di atasnya)
+const MAP_BOTTOM = 140; // ruang di bawah node terakhir (jalur lanjutan keluar lewat sini)
+const MAP_MIN_HEIGHT = 520; // tinggi minimum peta kalau levelnya sedikit
+const ROW_GAP = 160; // jarak vertikal antar level (satu level = satu baris jalur)
+const TURN_R = ROW_GAP / 2; // tikungan = setengah lingkaran sempurna
+const LEFT_X = 135; // sisi kiri jalur (pusat tikungan kiri)
+const RIGHT_X = 265; // sisi kanan jalur (pusat tikungan kanan)
+const NODE_L = 145; // x node di baris genap (jalur bergerak ke kanan)
+const NODE_R = 255; // x node di baris ganjil (jalur bergerak ke kiri)
+const PATH_WIDTH = 24; // ketebalan jalur
+const TARGET_REWARD_SPACE = 210; // ruang di bawah target kalau target punya simpul hadiah
+
+const nodePos = (i) => ({ x: i % 2 === 0 ? NODE_L : NODE_R, y: MAP_TOP + i * ROW_GAP });
+// Simpul hadiah duduk di puncak tikungan setelah level ke-i.
+const rewardPos = (i) => {
+    const goingRight = i % 2 === 0;
+    const edge = goingRight ? RIGHT_X : LEFT_X;
+    return { x: edge + (goingRight ? TURN_R : -TURN_R), y: nodePos(i).y + TURN_R };
+};
+
+// Jalur ular: satu baris lurus per level, disambung tikungan setengah lingkaran.
+// Dimulai dari node pertama. Setelah node terakhir jalur tetap lanjut (tikungan lalu
+// keluar lewat sisi peta) supaya terlihat masih ada perjalanan berikutnya.
+function buildPath(count) {
+    if (count < 1) return "";
+    const first = nodePos(0);
+    let d = `M ${first.x} ${first.y}`;
+    for (let i = 0; i < count; i++) {
+        const goingRight = i % 2 === 0;
+        const edge = goingRight ? RIGHT_X : LEFT_X;
+        const y = nodePos(i).y;
+        d += ` L ${edge} ${y} A ${TURN_R} ${TURN_R} 0 0 ${goingRight ? 1 : 0} ${edge} ${y + ROW_GAP}`;
+    }
+    // baris setelah level terakhir: keluar dari peta
+    const exitRight = count % 2 === 0;
+    d += ` L ${exitRight ? MAP_W + 30 : -30} ${nodePos(count).y}`;
+    return d;
+}
+
+// Tiap 2 level selesai membuka klaim EXP, jadi level ke-2, ke-4, dst diberi simpul hadiah.
+const isRewardLevel = (index) => (index + 1) % 2 === 0;
+
+// Kepala panda sederhana (dipakai di progress bar dan di samping level aktif).
+function PandaMark({ className, style }) {
+    return (
+        <svg viewBox="0 0 48 48" className={className} style={style} aria-hidden="true">
+            <circle cx="11" cy="11" r="7" fill="#2b2540" />
+            <circle cx="37" cy="11" r="7" fill="#2b2540" />
+            <circle cx="24" cy="26" r="19" fill="#ffffff" />
+            <ellipse cx="16.5" cy="24" rx="5" ry="6.5" fill="#2b2540" transform="rotate(20 16.5 24)" />
+            <ellipse cx="31.5" cy="24" rx="5" ry="6.5" fill="#2b2540" transform="rotate(-20 31.5 24)" />
+            <circle cx="17" cy="23.5" r="1.8" fill="#ffffff" />
+            <circle cx="31" cy="23.5" r="1.8" fill="#ffffff" />
+            <ellipse cx="24" cy="32" rx="3" ry="2.2" fill="#2b2540" />
+        </svg>
+    );
+}
 
 /* ------------------------------------------------------------------ header */
 
@@ -89,317 +146,561 @@ function DocumentHeader({ doc }) {
     );
 }
 
-/* ------------------------------------------------------------------- tabs */
+/* ----------------------------------------------------------------- panels */
 
-function TabBar({ active, onSelect }) {
+function LevelMap({ levels, selected, onSelect, xp, onClaim, claimingId }) {
+    const completedCount = levels.filter((level) => level.completed).length;
+    const progress = levels.length ? (completedCount / levels.length) * 100 : 0;
+
+    const points = levels.map((_, index) => nodePos(index));
+    const rewardIndexes = levels.map((_, index) => index).filter(isRewardLevel);
+    const lastIndex = levels.length - 1;
+    const targetHasReward = lastIndex >= 0 && isRewardLevel(lastIndex);
+    const mapHeight = Math.max(
+        MAP_MIN_HEIGHT,
+        MAP_TOP + lastIndex * ROW_GAP + (targetHasReward ? TARGET_REWARD_SPACE : MAP_BOTTOM)
+    );
+
     return (
-        <div className="overflow-x-auto rounded-card bg-surface p-1.5 shadow-card dark:ring-1 dark:ring-track">
-            <div role="tablist" aria-label="Bagian study pack" className="flex min-w-max gap-1">
-                {TABS.map((tab) => {
-                    const selected = active === tab.id;
+        <Card as="aside" padding="none" className="h-fit overflow-hidden lg:sticky lg:top-6">
+            <div className="flex items-center justify-between gap-2 border-b border-track px-4 py-3">
+                <div>
+                    <h2 className="text-sm font-semibold text-ink">Peta perjalanan</h2>
+                    <p className="mt-0.5 text-[10px] text-muted">Tap simpul untuk membuka level.</p>
+                </div>
+                <Badge tone="lavender">
+                    {completedCount}/{levels.length}
+                </Badge>
+            </div>
+
+            <div
+                className="relative w-full overflow-hidden"
+                style={{
+                    backgroundColor: "#33b04b",
+                    backgroundImage: `url(${MAP_BG})`,
+                    backgroundSize: mapHeight > MAP_BG_HEIGHT ? "100% 100%" : "100% auto",
+                    backgroundPosition: "center bottom",
+                    backgroundRepeat: "no-repeat",
+                }}
+            >
+                {/* gelapkan sedikit di dark mode */}
+                <div className="pointer-events-none absolute inset-0 bg-black/0 dark:bg-black/35" />
+
+                {/* progress bar perjalanan */}
+                <div className="absolute inset-x-5 top-4 z-20">
+                    <div className="relative h-3 rounded-full bg-[#1f8f3d]/60">
+                        <div
+                            className="h-full rounded-full bg-white/90 transition-all"
+                            style={{ width: `${Math.max(progress, 6)}%` }}
+                        />
+                        {PANDA_SRC ? (
+                            <img
+                                src={PANDA_SRC}
+                                alt=""
+                                className="absolute -top-4 h-8 -translate-x-1/2"
+                                style={{ left: `${Math.min(Math.max(progress, 5), 95)}%` }}
+                            />
+                        ) : (
+                            <PandaMark
+                                className="absolute -top-3.5 h-7 w-7 -translate-x-1/2 drop-shadow"
+                                style={{ left: `${Math.min(Math.max(progress, 5), 95)}%` }}
+                            />
+                        )}
+                    </div>
+                </div>
+
+                {/* tinggi wrapper ditentukan oleh svg ini, jadi posisi % node selalu pas dengan jalur */}
+                <svg viewBox={`0 0 ${MAP_W} ${mapHeight}`} className="relative block h-auto w-full" aria-hidden="true">
+                    <path
+                        d={buildPath(levels.length)}
+                        fill="none"
+                        stroke="#8bd96f"
+                        strokeWidth={PATH_WIDTH}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                </svg>
+
+                {levels.map((level, index) => {
+                    const active = selected === level.number;
+                    const point = points[index];
+                    const pandaOnRight = index % 2 === 0;
+                    const target = index === lastIndex;
                     return (
                         <button
-                            key={tab.id}
+                            key={level.id}
                             type="button"
-                            role="tab"
-                            id={`tab-${tab.id}`}
-                            aria-selected={selected}
-                            aria-controls={`panel-${tab.id}`}
-                            onClick={() => onSelect(tab.id)}
+                            disabled={level.locked}
+                            onClick={() => onSelect(level.number)}
+                            style={{
+                                left: `${(point.x / MAP_W) * 100}%`,
+                                top: `${(point.y / mapHeight) * 100}%`,
+                            }}
                             className={cx(
-                                "relative flex items-center gap-1.5 whitespace-nowrap rounded-control px-4 py-2.5 text-xs font-semibold transition-colors",
-                                selected
-                                    ? "bg-brand text-white shadow-pill dark:bg-lavender dark:text-brand"
-                                    : tab.comingSoon
-                                      ? "text-muted/50 hover:text-muted"
-                                      : "text-muted hover:bg-canvas hover:text-ink"
+                                "absolute z-10 flex w-28 -translate-x-1/2 -translate-y-9 flex-col items-center transition-transform",
+                                active && "scale-110",
+                                level.locked && "cursor-not-allowed"
                             )}
                         >
-                            {tab.comingSoon && (
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-                                    />
-                                </svg>
-                            )}
-                            {tab.label}
-                            {tab.badge && (
+                            {/* maskot berdiri di samping node aktif, di atas jalur */}
+                            {active && (
                                 <span
                                     className={cx(
-                                        "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
-                                        selected ? "bg-surface/20 text-white dark:bg-brand/15 dark:text-brand" : "bg-canvas text-muted"
+                                        "pointer-events-none absolute top-3 z-20",
+                                        pandaOnRight ? "left-full -ml-1" : "right-full -mr-1"
                                     )}
                                 >
-                                    {tab.badge}
+                                    {PANDA_SRC ? (
+                                        <img src={PANDA_SRC} alt="" className="h-12 w-auto drop-shadow-md" />
+                                    ) : (
+                                        <PandaMark className="h-11 w-11 drop-shadow-md" />
+                                    )}
                                 </span>
                             )}
+
+                            <span
+                                className={cx(
+                                    "relative flex h-[72px] w-[72px] items-center justify-center rounded-full border-[6px] border-[#f5f5f5] text-xl font-bold text-white shadow-card",
+                                    level.completed
+                                        ? "bg-[#3b8ef5]"
+                                        : level.locked
+                                          ? "bg-[#9bbce8] text-white/80"
+                                          : "bg-[#2f7fe0]",
+                                    active && "ring-4 ring-white/50"
+                                )}
+                            >
+                                {level.completed && (
+                                    <span className="absolute -left-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#2f9e44] text-white shadow-sm">
+                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3.5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                )}
+                                {level.locked ? (
+                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                                        />
+                                    </svg>
+                                ) : (
+                                    level.number
+                                )}
+                            </span>
+                            <span
+                                className={cx(
+                                    "rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand",
+                                    target && targetHasReward ? "mt-24" : "mt-1.5"
+                                )}
+                            >
+                                {index === 0 ? "Mulai" : target ? "Target" : `Level ${level.number}`}
+                            </span>
+                            <span className="mt-0.5 max-w-[112px] truncate text-[10px] font-semibold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.45)]">
+                                {level.title}
+                            </span>
+                        </button>
+                    );
+                })}
+
+                {rewardIndexes.map((index) => {
+                    const level = levels[index];
+                    const point = rewardPos(index);
+                    const unlocked = level.xp_unlocked;
+                    const claimed = level.xp_claimed;
+                    const canClaim = unlocked && !claimed && Boolean(level.xp_claim_url);
+                    const busy = claimingId === level.id;
+
+                    return (
+                        <button
+                            key={`reward-${index}`}
+                            type="button"
+                            disabled={!canClaim || busy}
+                            onClick={() => onClaim(level)}
+                            style={{
+                                left: `${(point.x / MAP_W) * 100}%`,
+                                top: `${(point.y / mapHeight) * 100}%`,
+                            }}
+                            className={cx(
+                                "absolute z-20 flex w-28 -translate-x-1/2 -translate-y-9 flex-col items-center",
+                                !unlocked && !claimed && "opacity-70",
+                                claimed && "opacity-80",
+                                canClaim && "cursor-pointer transition-transform hover:scale-105",
+                                busy && "cursor-wait opacity-60"
+                            )}
+                            title={claimed ? "EXP sudah diklaim" : `Klaim ${level.xp_points} EXP`}
+                        >
+                            {!claimed && (
+                                <span className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-[#fff4cf] px-2.5 py-0.5 text-[10px] font-extrabold text-[#c77d00] shadow-sm">
+                                    EXP+ {level.xp_points}
+                                </span>
+                            )}
+                            <span
+                                className={cx(
+                                    "relative flex h-[72px] w-[72px] items-center justify-center rounded-full border-[6px] shadow-card",
+                                    claimed
+                                        ? "border-[#e5e7eb] bg-[#9ca3af] text-white"
+                                        : unlocked
+                                          ? "border-[#fff4cf] bg-[#ffc107] text-white"
+                                          : "border-[#fff4cf] bg-[#e0b64a] text-white/90"
+                                )}
+                            >
+                                {claimed && (
+                                    <span className="absolute -left-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#6b7280] text-white shadow-sm">
+                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3.5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </span>
+                                )}
+                                <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 2.5l2.9 5.88 6.49.94-4.7 4.58 1.11 6.46L12 17.31l-5.8 3.05 1.1-6.46-4.69-4.58 6.49-.94L12 2.5z" />
+                                </svg>
+                            </span>
+                            <span
+                                className={cx(
+                                    "mt-1.5 rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                                    claimed ? "text-[#6b7280]" : "text-[#c77d00]"
+                                )}
+                            >
+                                {busy ? "Mengklaim…" : claimed ? "Terklaim" : "Klaim EXP"}
+                            </span>
                         </button>
                     );
                 })}
             </div>
-        </div>
-    );
-}
 
-function Panel({ id, children }) {
-    return (
-        <div role="tabpanel" id={`panel-${id}`} aria-labelledby={`tab-${id}`} tabIndex={0} className="outline-none">
-            {children}
-        </div>
-    );
-}
-
-/* ----------------------------------------------------------------- panels */
-
-function SummaryPanel({ pack }) {
-    return (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div className="space-y-6 xl:col-span-2">
-                <Card as="section">
-                    <h2 className="text-base font-semibold text-ink">Ringkasan bab</h2>
-                    <p className="mt-3 text-sm leading-7 text-ink">
-                        {pack.summary ?? "Ringkasan belum tersedia untuk dokumen ini."}
-                    </p>
-                </Card>
-
-                <Card as="section">
-                    <h2 className="text-base font-semibold text-ink">Poin penting</h2>
-                    <p className="mt-1 text-xs text-muted">Hal yang paling sering terlewat saat mengerjakan soal</p>
-                    <ul className="mt-4 space-y-2.5">
-                        {pack.key_points.length === 0 && (
-                            <li className="rounded-control border border-dashed border-track bg-surface-tint p-3.5 text-xs text-muted">
-                                Belum ada poin penting yang disimpan untuk dokumen ini.
-                            </li>
-                        )}
-                        {pack.key_points.map((point, i) => (
-                            <li
-                                key={point}
-                                className="flex gap-3 rounded-control border border-track bg-surface-tint/60 p-3.5"
-                            >
-                                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand dark:bg-brand/20 dark:text-lavender">
-                                    {i + 1}
-                                </span>
-                                <p className="text-sm leading-relaxed text-ink">{point}</p>
-                            </li>
-                        ))}
-                    </ul>
-                </Card>
-            </div>
-
-            <div className="space-y-6">
-                <Card as="section">
-                    <h2 className="text-base font-semibold text-ink">Isi study pack</h2>
-                    <div className="mt-4 space-y-3">
-                        {[
-                            { label: "Ringkasan", value: "1 bagian", done: true },
-                            { label: "Konsep kunci", value: `${pack.concepts.length} konsep`, done: true },
-                            { label: "Flashcards", value: `${pack.flashcards.length} kartu`, done: pack.flashcards.length > 0 },
-                            { label: "Quiz", value: `${pack.quiz.total_questions} soal`, done: true },
-                        ].map((row) => (
-                            <div key={row.label} className="flex items-center gap-2.5">
-                                <span
-                                    className={cx(
-                                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full",
-                                        row.done ? "bg-sage/15 text-brand" : "bg-canvas text-muted"
-                                    )}
-                                >
-                                    {row.done ? (
-                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                        </svg>
-                                    ) : (
-                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-                                            />
-                                        </svg>
-                                    )}
-                                </span>
-                                <span className="flex-1 text-sm font-medium text-ink">{row.label}</span>
-                                <span className={cx("text-xs", row.done ? "text-muted" : "text-muted/50")}>{row.value}</span>
-                            </div>
-                        ))}
-                    </div>
-                </Card>
-            </div>
-        </div>
-    );
-}
-
-function ConceptsPanel({ pack }) {
-    // Konsep belum diuji (mastery null) diletakkan paling akhir, bukan
-    // dianggap 0% — kalau null di-coerce jadi 0 dia akan salah tampil "lemah".
-    const ordered = [...pack.concepts].sort((a, b) => (a.mastery ?? 101) - (b.mastery ?? 101));
-    return (
-        <Card as="section">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-                <div>
-                    <h2 className="text-base font-semibold text-ink">Konsep kunci</h2>
-                    <p className="mt-1 text-xs text-muted">
-                        Diurutkan dari penguasaan terendah. Konsep di bawah 50% menjadi bahan latihan otomatis.
-                    </p>
-                </div>
-                <Badge>{pack.concepts.length} konsep</Badge>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
-                {ordered.map((c) => {
-                    const untested = c.mastery === null || c.mastery === undefined;
-                    const weak = !untested && c.mastery < WEAK_THRESHOLD;
-                    const imp = importanceBadge(c.importance);
-                    return (
-                        <article
-                            key={c.id}
-                            className="rounded-control border border-track bg-surface-tint/60 p-4 transition-colors hover:border-brand/30"
-                        >
-                            <div className="flex items-start justify-between gap-2">
-                                <h3 className="text-sm font-semibold text-ink">{c.name}</h3>
-                                <span className={cx("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold", imp.className)}>
-                                    {imp.label}
-                                </span>
-                            </div>
-                            <p className="mt-2 text-xs leading-relaxed text-muted">{c.description}</p>
-
-                            <div className="mt-4">
-                                <div className="mb-1.5 flex items-center justify-between">
-                                    <span className="text-xs font-medium text-muted">Penguasaan</span>
-                                    <span
-                                        className={cx(
-                                            "text-xs font-bold",
-                                            untested
-                                                ? "text-muted"
-                                                : weak
-                                                  ? "text-rose-600 dark:text-rose-400"
-                                                  : "text-emerald-600 dark:text-emerald-400"
-                                        )}
-                                    >
-                                        {untested ? "Belum diuji" : `${c.mastery}%`}
-                                    </span>
-                                </div>
-                                <div className="h-2 w-full overflow-hidden rounded-full bg-track">
-                                    <div
-                                        className={cx(
-                                            "h-full rounded-full",
-                                            weak ? "bg-rose-400" : c.mastery < 70 ? "bg-amber-400" : "bg-emerald-500"
-                                        )}
-                                        style={{ width: `${untested ? 0 : c.mastery}%` }}
-                                    />
-                                </div>
-                                {weak && (
-                                    <p className="mt-1.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
-                                        Perlu diperkuat
-                                    </p>
-                                )}
-                            </div>
-                        </article>
-                    );
-                })}
+            <div className="border-t border-track px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Hadiah perjalanan</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                    Tiap 2 level selesai memberi {xp?.per_claim ?? 50} XP. Klaim sekali per level. Tier saat ini: {xp?.tier?.label ?? "Pemula"}.
+                </p>
             </div>
         </Card>
     );
 }
 
-function QuizPanel({ pack }) {
-    const q = pack.quiz;
-    const hasAttempts = q.attempts > 0 && q.best_score !== null && q.best_score !== undefined;
-    const passed = hasAttempts && q.best_score >= q.passing_score;
+function LevelHeader({ level, pack }) {
     return (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div className="space-y-6 xl:col-span-2">
-                <Card as="section">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                        <h2 className="text-base font-semibold text-ink">Quiz bab ini</h2>
-                        <Badge>{q.total_questions} soal tersimpan</Badge>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {[
-                            { label: "Jumlah soal", value: q.total_questions },
-                            { label: "Batas waktu", value: `${q.time_limit_minutes} menit` },
-                            { label: "Nilai minimum", value: `${q.passing_score}%` },
-                            { label: "Percobaan", value: `${q.attempts}×` },
-                        ].map((s) => (
-                            <div key={s.label} className="rounded-control border border-track bg-surface-tint/60 p-3.5">
-                                <p className="text-lg font-bold leading-tight text-ink">{s.value}</p>
-                                <p className="mt-1 text-[11px] text-muted">{s.label}</p>
-                            </div>
-                        ))}
-                    </div>
-
-                    <Link
-                        href={`/documents/${pack.document.id}/quiz`}
-                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-control bg-brand py-3 text-sm font-semibold text-white shadow-pill transition-all hover:bg-brand-600 active:scale-[0.99] dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
+        <Card as="section">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                    <span
+                        className={cx(
+                            "flex h-11 w-11 shrink-0 items-center justify-center rounded-control text-sm font-bold",
+                            level.completed
+                                ? "bg-sage/20 text-brand dark:bg-sage/20 dark:text-sage"
+                                : "bg-brand/10 text-brand dark:bg-lavender/15 dark:text-lavender"
+                        )}
                     >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z"
-                            />
-                        </svg>
-                        Mulai Quiz
-                    </Link>
-                    <p className="mt-2 text-center text-xs text-muted">
-                        Satu soal per layar, langsung dapat penjelasan tiap jawaban. Skor tersimpan per konsep.
-                    </p>
-                </Card>
-
-                <Card as="section">
-                    <h2 className="text-base font-semibold text-ink">Cakupan soal</h2>
-                    <p className="mt-1 text-xs text-muted">Konsep yang akan diuji</p>
-                    <div className="mt-3.5 flex flex-wrap gap-1.5">
-                        {q.covered_concepts.map((id) => {
-                            const c = pack.concepts.find((x) => x.id === id);
-                            if (!c) return null;
-                            return (
-                                <span
-                                    key={id}
-                                    className="rounded-full border border-track bg-surface-tint px-2.5 py-1 text-[11px] font-medium text-ink"
-                                >
-                                    {c.name}
-                                </span>
-                            );
-                        })}
-                    </div>
-                </Card>
-            </div>
-
-            <div className="space-y-6">
-                <Card as="section">
-                    <h2 className="text-base font-semibold text-ink">Riwayat percobaan</h2>
-                    {hasAttempts ? (
-                        <>
-                            <div className="mt-4 flex items-center gap-3.5">
-                                <span className={cx("rounded-control border px-3 py-2 text-lg font-bold", scoreTone(q.best_score))}>
-                                    {q.best_score}%
-                                </span>
-                                <div>
-                                    <p className="text-sm font-semibold text-ink">Skor terbaik</p>
-                                    <p className="mt-0.5 text-xs text-muted">
-                                        {q.attempts} percobaan · {passed ? "lulus" : "belum lulus"} (min. {q.passing_score}%)
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-track">
-                                <div
-                                    className={cx("h-full rounded-full", passed ? "bg-emerald-500" : "bg-rose-400")}
-                                    style={{ width: `${q.best_score}%` }}
-                                />
-                            </div>
-                        </>
-                    ) : (
-                        <p className="mt-4 rounded-control border border-dashed border-track bg-surface-tint p-3.5 text-xs leading-relaxed text-muted">
-                            Belum ada percobaan. Skor terbaik akan muncul di sini setelah kamu menyelesaikan quiz.
+                        {level.number}
+                    </span>
+                    <div className="min-w-0">
+                        <h2 className="text-base font-semibold text-ink">
+                            Level {level.number}: {level.title}
+                        </h2>
+                        <p className="mt-1 text-xs text-muted">
+                            {level.concepts.length} konsep · {level.covered_concepts} konsep teruji · {level.flashcards} flashcard
                         </p>
+                    </div>
+                </div>
+                <Badge tone={level.completed ? "sage" : level.locked ? "neutral" : "lavender"}>
+                    {level.completed ? "Selesai" : level.locked ? "Terkunci" : "Siap dikerjakan"}
+                </Badge>
+            </div>
+            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-track">
+                <div
+                    className="h-full rounded-full bg-brand transition-all dark:bg-lavender"
+                    style={{ width: `${level.mastery ?? 0}%` }}
+                />
+            </div>
+            <p className="mt-2 text-[11px] text-muted">
+                {level.mastery === null
+                    ? `Belum diuji · ${level.tested}/${level.concepts.length} konsep memiliki skor`
+                    : `Penguasaan rata-rata ${level.mastery}% · minimum lulus ${pack.quiz.passing_score}%`}
+            </p>
+        </Card>
+    );
+}
+
+function LevelTabBar({ active, onSelect }) {
+    return (
+        <div className="overflow-x-auto rounded-card bg-surface p-1.5 shadow-card dark:ring-1 dark:ring-track">
+            <div role="tablist" aria-label="Bagian level" className="flex min-w-max gap-1">
+                {LEVEL_TABS.map((tab) => (
+                    <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={active === tab.id}
+                        onClick={() => onSelect(tab.id)}
+                        className={cx(
+                            "rounded-control px-3.5 py-2 text-xs font-semibold transition-colors",
+                            active === tab.id
+                                ? "bg-brand text-white shadow-pill dark:bg-lavender dark:text-brand"
+                                : "text-muted hover:bg-canvas hover:text-ink"
+                        )}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function LevelSummaryTab({ level, pack }) {
+    return (
+        <div className="space-y-4">
+            <Card as="section">
+                <h3 className="text-sm font-semibold text-ink">Ringkasan level</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink">
+                    {level.summary || pack.summary || "Belum ada ringkasan untuk level ini."}
+                </p>
+                {!level.summary && pack.summary && (
+                    <p className="mt-2 text-[11px] text-muted">Ringkasan modul ditampilkan sebagai konteks sementara.</p>
+                )}
+            </Card>
+            <Card as="section">
+                <h3 className="text-sm font-semibold text-ink">Konsep dalam level ini</h3>
+                <div className="mt-3 space-y-2.5">
+                    {level.concepts.map((concept) => (
+                        <div key={concept.id} className="rounded-control border border-track bg-surface-tint/60 p-3.5">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-sm font-semibold text-ink">{concept.name}</p>
+                                <span className="text-[11px] text-muted">
+                                    {concept.mastery === null ? "Belum diuji" : `Penguasaan ${concept.mastery}%`}
+                                </span>
+                            </div>
+                            <p className="mt-1 text-xs leading-relaxed text-muted">{concept.description}</p>
+                        </div>
+                    ))}
+                </div>
+            </Card>
+        </div>
+    );
+}
+
+function LevelKeyPointsTab({ level }) {
+    return (
+        <Card as="section">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3 className="text-sm font-semibold text-ink">Poin kunci level</h3>
+                    <p className="mt-1 text-xs text-muted">Hal yang harus kamu pahami sebelum mengerjakan quiz level.</p>
+                </div>
+                <Badge>{(level.key_points ?? []).length} poin</Badge>
+            </div>
+            <ul className="mt-4 space-y-2.5">
+                {(level.key_points ?? []).length === 0 && (
+                    <li className="rounded-control border border-dashed border-track bg-surface-tint p-3.5 text-xs text-muted">
+                        Belum ada poin kunci untuk level ini.
+                    </li>
+                )}
+                {(level.key_points ?? []).map((point, i) => (
+                    <li key={`${i}-${point}`} className="flex gap-3 rounded-control border border-track bg-surface-tint/60 p-3.5">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand dark:bg-lavender/15 dark:text-lavender">
+                            {i + 1}
+                        </span>
+                        <p className="text-sm leading-relaxed text-ink">{point}</p>
+                    </li>
+                ))}
+            </ul>
+        </Card>
+    );
+}
+
+function LevelQuizTab({ level, pack, onOpenTab }) {
+    return (
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <Card as="section" className="xl:col-span-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-ink">Quiz level {level.number}</h3>
+                    <Badge tone={level.completed ? "sage" : "lavender"}>
+                        {level.completed ? "Lulus" : level.locked ? "Terkunci" : "Belum lulus"}
+                    </Badge>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-muted">
+                    Quiz level menguji {level.concepts.length} konsep di dalam level ini. Skor minimum {pack.quiz.passing_score}%.
+                </p>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {[
+                        { label: "Konsep teruji", value: `${level.covered_concepts}/${level.concepts.length}` },
+                        { label: "Nilai minimum", value: `${pack.quiz.passing_score}%` },
+                        { label: "Penguasaan", value: level.mastery === null ? "—" : `${level.mastery}%` },
+                    ].map((stat) => (
+                        <div key={stat.label} className="rounded-control border border-track bg-surface-tint/60 p-3">
+                            <p className="text-base font-bold text-ink">{stat.value}</p>
+                            <p className="mt-1 text-[10px] text-muted">{stat.label}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-4">
+                    {level.locked ? (
+                        <button
+                            type="button"
+                            disabled
+                            className="flex w-full items-center justify-center gap-1.5 rounded-control bg-canvas py-2.5 text-xs font-semibold text-muted"
+                        >
+                            Selesaikan level sebelumnya dulu
+                        </button>
+                    ) : (
+                        <Link
+                            href={`/documents/${pack.document.id}/quiz?level=${level.number}`}
+                            className="flex w-full items-center justify-center gap-1.5 rounded-control bg-brand py-2.5 text-xs font-semibold text-white shadow-pill transition-all hover:bg-brand-600 active:scale-[0.99] dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
+                        >
+                            {level.completed ? "Ulangi quiz level" : "Kerjakan quiz level"}
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </Link>
                     )}
-                    <p className="mt-3 text-xs leading-relaxed text-muted">
-                        Setiap jawaban dicatat per konsep, jadi Knowledge Gap bisa menunjuk topik yang paling lemah.
-                    </p>
-                </Card>
+                    <button
+                        type="button"
+                        onClick={() => onOpenTab("ask")}
+                        className="mt-2 w-full rounded-control border border-track bg-surface py-2 text-[11px] font-semibold text-muted transition-colors hover:border-brand/30 hover:text-ink"
+                    >
+                        Tanya PANDA soal level ini
+                    </button>
+                </div>
+            </Card>
+
+            <Card as="section">
+                <h3 className="text-sm font-semibold text-ink">Cakupan soal</h3>
+                <p className="mt-1 text-xs text-muted">Konsep yang masuk level ini.</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                    {level.concepts.map((concept) => (
+                        <span
+                            key={concept.id}
+                            className="rounded-full border border-track bg-surface-tint px-2.5 py-1 text-[11px] font-medium text-ink"
+                        >
+                            {concept.name}
+                        </span>
+                    ))}
+                </div>
+            </Card>
+        </div>
+    );
+}
+
+function LevelFlashcardsTab({ level, pack, onOpenTab }) {
+    const [flipped, setFlipped] = useState([]);
+    const cards = pack.flashcards.filter((card) => (level.concept_ids ?? []).includes(card.concept_id));
+
+    if (cards.length === 0) {
+        return (
+            <Card as="section" className="border border-dashed border-track px-6 py-14 text-center">
+                <p className="text-sm font-semibold text-ink">Belum ada flashcard di level ini</p>
+                <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted">
+                    Flashcard dibuat otomatis per konsep saat study pack digenerate.
+                </p>
+            </Card>
+        );
+    }
+
+    return (
+        <Card as="section">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3 className="text-sm font-semibold text-ink">Flashcard level {level.number}</h3>
+                    <p className="mt-1 text-xs text-muted">Klik kartu untuk melihat jawaban.</p>
+                </div>
+                <Badge>{cards.length} kartu</Badge>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                {cards.map((card) => {
+                    const isFlipped = flipped.includes(card.id);
+                    return (
+                        <button
+                            key={card.id}
+                            type="button"
+                            onClick={() =>
+                                setFlipped((prev) =>
+                                    prev.includes(card.id) ? prev.filter((id) => id !== card.id) : [...prev, card.id]
+                                )
+                            }
+                            className="min-h-[140px] rounded-control border border-track bg-surface-tint/60 p-4 text-left transition-colors hover:border-brand/40"
+                        >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                                    {isFlipped ? "Jawaban" : "Pertanyaan"}
+                                </span>
+                                {card.known === true && <Badge tone="sage">Dikuasai</Badge>}
+                                {card.known === false && <Badge tone="peach">Diulang</Badge>}
+                            </div>
+                            <p className="mt-3 text-sm leading-relaxed text-ink">{isFlipped ? card.back : card.front}</p>
+                            <p className="mt-3 text-[10px] text-muted">{card.concept_name}</p>
+                        </button>
+                    );
+                })}
+            </div>
+            <button
+                type="button"
+                onClick={() => onOpenTab("ask")}
+                className="mt-4 w-full rounded-control border border-track bg-surface py-2 text-[11px] font-semibold text-muted transition-colors hover:border-brand/30 hover:text-ink"
+            >
+                Tanya PANDA soal kartu ini
+            </button>
+        </Card>
+    );
+}
+
+function LevelsPanel({ pack }) {
+    const levels = pack.levels ?? [];
+    const [selected, setSelected] = useState(1);
+    const [tab, setTab] = useState("ringkasan");
+    const [claimingId, setClaimingId] = useState(null);
+    const active = levels.find((level) => level.number === selected) ?? levels[0];
+
+    function selectLevel(number) {
+        setSelected(number);
+        setTab("ringkasan");
+    }
+
+    function claimXp(level) {
+        if (!level.xp_claim_url) return;
+
+        router.post(level.xp_claim_url, {}, {
+            preserveScroll: true,
+            onStart: () => setClaimingId(level.id),
+            onFinish: () => setClaimingId(null),
+        });
+    }
+
+    if (levels.length === 0) {
+        return (
+            <Card as="section" className="border border-dashed border-track px-6 py-16 text-center">
+                <p className="text-base font-semibold text-ink">Belum ada level yang bisa disusun</p>
+                <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-muted">
+                    Level dibuat otomatis oleh AI saat study pack digenerate. Generate study pack dulu, lalu halaman ini
+                    akan menampilkan peta levelnya.
+                </p>
+            </Card>
+        );
+    }
+
+    return (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">
+            <LevelMap
+                levels={levels}
+                selected={active.number}
+                onSelect={selectLevel}
+                xp={pack.xp}
+                onClaim={claimXp}
+                claimingId={claimingId}
+            />
+
+            <div className="min-w-0 space-y-4">
+                <LevelHeader level={active} pack={pack} />
+                <LevelTabBar active={tab} onSelect={setTab} />
+                <div role="tabpanel" aria-label={`Isi level ${active.number}`} className="outline-none">
+                    {tab === "ringkasan" && <LevelSummaryTab level={active} pack={pack} />}
+                    {tab === "poin" && <LevelKeyPointsTab level={active} />}
+                    {tab === "quiz" && <LevelQuizTab level={active} pack={pack} onOpenTab={setTab} />}
+                    {tab === "flashcard" && <LevelFlashcardsTab level={active} pack={pack} onOpenTab={setTab} />}
+                    {tab === "ask" && <AskPanel pack={pack} />}
+                </div>
             </div>
         </div>
     );
@@ -537,8 +838,8 @@ function AskPanel({ pack }) {
     }
 
     return (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div className="space-y-6 xl:col-span-2">
+        <div className="space-y-6">
+            <div className="space-y-6">
                 {!open ? (
                     <Card as="section">
                         <div className="mb-4">
@@ -718,267 +1019,25 @@ function AskPanel({ pack }) {
                 )}
             </div>
 
-            <div className="space-y-6">
-                <Card as="section">
-                    <h2 className="text-base font-semibold text-ink">Ask PANDA</h2>
-                    <p className="mt-2 text-xs leading-relaxed text-muted">
-                        Saat dibuka dari Study Pack, PANDA hanya menjawab seputar modul{" "}
-                        <span className="font-semibold text-ink">{doc.title}</span>. Pertanyaan di luar modul tidak akan
-                        dijawab.
+            <Card as="section" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                    <h2 className="text-sm font-semibold text-ink">Butuh tanya di luar modul ini?</h2>
+                    <p className="mt-1 text-xs leading-relaxed text-muted">
+                        Ask PANDA di sini hanya menjawab seputar{" "}
+                        <span className="font-semibold text-ink">{doc.title}</span>. Untuk pertanyaan lain, gunakan tanya
+                        bebas.
                     </p>
-                    <Link
-                        href="/ask-panda"
-                        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-control border border-track bg-surface py-2.5 text-xs font-semibold text-ink transition-colors hover:border-brand/30 hover:bg-surface-tint"
-                    >
-                        Tanya bebas di Ask PANDA
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                        </svg>
-                    </Link>
-                </Card>
-            </div>
-        </div>
-    );
-}
-
-function FlashcardsPanel({ pack }) {
-    const [cards, setCards] = useState(pack.flashcards);
-    const [order, setOrder] = useState(() => pack.flashcards.map((_, i) => i));
-    const [index, setIndex] = useState(0);
-    const [flipped, setFlipped] = useState(false);
-
-    // Study pack bisa digenerate ulang saat halaman terbuka; sinkronkan ulang
-    // kartu tanpa mengubah apa pun kalau isinya sama.
-    useEffect(() => {
-        setCards(pack.flashcards);
-        setOrder(pack.flashcards.map((_, i) => i));
-        setIndex(0);
-        setFlipped(false);
-    }, [pack.flashcards]);
-
-    const total = cards.length;
-    const knownCount = cards.filter((c) => c.known === true).length;
-    const card = total > 0 ? cards[order[index]] : null;
-
-    function go(delta) {
-        if (total === 0) return;
-        setIndex((prev) => (prev + delta + total) % total);
-        setFlipped(false);
-    }
-
-    function shuffle() {
-        setOrder((prev) => {
-            const next = [...prev];
-            for (let i = next.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [next[i], next[j]] = [next[j], next[i]];
-            }
-            return next;
-        });
-        setIndex(0);
-        setFlipped(false);
-    }
-
-    function mark(known) {
-        if (!card) return;
-        const id = card.id;
-        setCards((prev) => prev.map((c) => (c.id === id ? { ...c, known } : c)));
-        // only: [] -> tidak perlu reload props; kartu sudah diperbarui lokal.
-        router.post(`/flashcards/${id}/review`, { known }, { preserveScroll: true, preserveState: true, only: [] });
-    }
-
-    // Panah kiri/kanan untuk pindah kartu, spasi untuk membalik.
-    useEffect(() => {
-        function onKey(e) {
-            if (e.key === "ArrowRight") {
-                e.preventDefault();
-                go(1);
-            } else if (e.key === "ArrowLeft") {
-                e.preventDefault();
-                go(-1);
-            } else if (e.key === " " || e.key === "Enter") {
-                e.preventDefault();
-                setFlipped((f) => !f);
-            }
-        }
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, [total]);
-
-    if (total === 0) {
-        return (
-            <Card as="div" className="border border-dashed border-track px-6 py-16 text-center">
-                <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-canvas text-muted">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25A2.25 2.25 0 018.25 10.5H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 018.25 20.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6A2.25 2.25 0 0115.75 3.75H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
-                        />
+                </div>
+                <Link
+                    href="/ask-panda"
+                    className="flex shrink-0 items-center justify-center gap-1.5 rounded-control border border-track bg-surface px-4 py-2.5 text-xs font-semibold text-ink transition-colors hover:border-brand/30 hover:bg-surface-tint"
+                >
+                    Tanya bebas di Ask PANDA
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                     </svg>
-                </span>
-                <p className="mt-4 text-base font-semibold text-ink">Belum ada kartu belajar</p>
-                <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-muted">
-                    Kartu dibuat otomatis bersama study pack. Coba buat ulang study pack dari halaman detail dokumen
-                    kalau dokumen ini dibuat sebelum fitur flashcards ada.
-                </p>
+                </Link>
             </Card>
-        );
-    }
-
-    const imp = importanceBadge(card.importance);
-    const knownTone =
-        card.known === true
-            ? {
-                  label: "Sudah dikuasai",
-                  className:
-                      "text-emerald-600 border-emerald-200 bg-emerald-50 dark:text-emerald-400 dark:border-emerald-500/30 dark:bg-emerald-500/10",
-              }
-            : card.known === false
-              ? {
-                    label: "Perlu diulang",
-                    className:
-                        "text-amber-600 border-amber-200 bg-amber-50 dark:text-amber-400 dark:border-amber-500/30 dark:bg-amber-500/10",
-                }
-              : {
-                    label: "Belum ditinjau",
-                    className: "text-muted border-track bg-canvas",
-                };
-
-    return (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div className="space-y-4 xl:col-span-2">
-                <Card as="section">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                            <h2 className="text-base font-semibold text-ink">Kartu belajar</h2>
-                            <p className="mt-1 text-xs text-muted">
-                                Klik kartu untuk melihat jawaban. Tandai kartu yang sudah kamu kuasai.
-                            </p>
-                        </div>
-                        <Badge>
-                            {index + 1} / {total}
-                        </Badge>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => setFlipped((f) => !f)}
-                        className="flex min-h-[260px] w-full flex-col items-center justify-center rounded-card border-2 border-dashed border-track bg-surface-tint px-6 py-10 text-center transition-colors hover:border-brand/40"
-                    >
-                        <span className="mb-3 flex flex-wrap items-center justify-center gap-1.5">
-                            <span className={cx("rounded-full border px-2 py-0.5 text-[10px] font-bold", imp.className)}>
-                                {imp.label}
-                            </span>
-                            <span className={cx("rounded-full border px-2 py-0.5 text-[10px] font-bold", knownTone.className)}>
-                                {knownTone.label}
-                            </span>
-                            {card.concept_name && (
-                                <span className="rounded-full border border-track bg-surface px-2 py-0.5 text-[10px] font-semibold text-muted">
-                                    {card.concept_name}
-                                </span>
-                            )}
-                        </span>
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                            {flipped ? "Jawaban" : "Pertanyaan"}
-                        </p>
-                        <p className="mt-3 text-lg font-semibold leading-relaxed text-ink sm:text-xl">
-                            {flipped ? card.back : card.front}
-                        </p>
-                        <p className="mt-4 text-xs text-muted">
-                            {flipped ? "Klik untuk kembali ke pertanyaan" : "Klik untuk melihat jawaban"}
-                        </p>
-                    </button>
-
-                    <div className="mt-4 flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => go(-1)}
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control border border-track bg-surface text-muted transition-colors hover:border-brand/30 hover:text-ink"
-                            aria-label="Kartu sebelumnya"
-                        >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                            </svg>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => mark(false)}
-                            className={cx(
-                                "flex flex-1 items-center justify-center gap-1.5 rounded-control border py-2.5 text-xs font-semibold transition-colors",
-                                card.known === false
-                                    ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
-                                    : "border-track bg-surface text-muted hover:border-amber-300 hover:text-amber-600"
-                            )}
-                        >
-                            Perlu diulang
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => mark(true)}
-                            className={cx(
-                                "flex flex-1 items-center justify-center gap-1.5 rounded-control border py-2.5 text-xs font-semibold transition-colors",
-                                card.known === true
-                                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-400"
-                                    : "border-track bg-surface text-muted hover:border-emerald-300 hover:text-emerald-600"
-                            )}
-                        >
-                            Sudah paham
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => go(1)}
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control border border-track bg-surface text-muted transition-colors hover:border-brand/30 hover:text-ink"
-                            aria-label="Kartu berikutnya"
-                        >
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                            </svg>
-                        </button>
-                    </div>
-                </Card>
-            </div>
-
-            <div className="space-y-6">
-                <Card as="section">
-                    <h2 className="text-base font-semibold text-ink">Progres kartu</h2>
-                    <p className="mt-2 text-xs leading-relaxed text-muted">
-                        Kartu yang ditandai "sudah paham" dihitung di sini.
-                    </p>
-                    <div className="mt-4 flex items-center gap-3.5">
-                        <span className="rounded-control border border-emerald-200 bg-emerald-50 px-3 py-2 text-lg font-bold text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400">
-                            {knownCount}
-                        </span>
-                        <div>
-                            <p className="text-sm font-semibold text-ink">Dikuasai</p>
-                            <p className="text-xs text-muted">dari {total} kartu</p>
-                        </div>
-                    </div>
-                    <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-track">
-                        <div
-                            className="h-full rounded-full bg-emerald-500"
-                            style={{ width: `${total > 0 ? (knownCount / total) * 100 : 0}%` }}
-                        />
-                    </div>
-                    <button
-                        type="button"
-                        onClick={shuffle}
-                        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-control border border-track bg-surface py-2.5 text-xs font-semibold text-ink transition-colors hover:border-brand/30 hover:bg-surface-tint"
-                    >
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3"
-                            />
-                        </svg>
-                        Acak urutan
-                    </button>
-                    <p className="mt-3 text-xs leading-relaxed text-muted">
-                        Tip: gunakan panah kiri/kanan untuk pindah kartu dan spasi untuk membalik.
-                    </p>
-                </Card>
-            </div>
         </div>
     );
 }
@@ -1032,8 +1091,6 @@ function EmptyStudyPack({ documentId }) {
 /* ------------------------------------------------------------------- page */
 
 export default function StudyPack({ pack }) {
-    const [active, setActive] = useState("summary");
-
     // Halaman ini bisa dibuka saat study pack masih dibuat di queue. Selama itu,
     // refresh props `pack` berkala supaya isinya muncul tanpa reload manual.
     const pending =
@@ -1047,7 +1104,8 @@ export default function StudyPack({ pack }) {
     // bukan menampilkan isi bab lain.
     const hasContent =
         pack &&
-        (pack.summary ||
+        ((pack.levels?.length ?? 0) > 0 ||
+            pack.summary ||
             (pack.key_points?.length ?? 0) > 0 ||
             (pack.concepts?.length ?? 0) > 0 ||
             (pack.flashcards?.length ?? 0) > 0 ||
@@ -1064,15 +1122,7 @@ export default function StudyPack({ pack }) {
             <div className="mx-auto max-w-[1400px] space-y-6 p-6 sm:p-7">
                 <DocumentHeader doc={pack.document} />
 
-                <TabBar active={active} onSelect={setActive} />
-
-                <Panel id={active}>
-                    {active === "summary" && <SummaryPanel pack={pack} />}
-                    {active === "concepts" && <ConceptsPanel pack={pack} />}
-                    {active === "flashcards" && <FlashcardsPanel pack={pack} />}
-                    {active === "quiz" && <QuizPanel pack={pack} />}
-                    {active === "ask" && <AskPanel pack={pack} />}
-                </Panel>
+                <LevelsPanel pack={pack} />
             </div>
         </>
     );

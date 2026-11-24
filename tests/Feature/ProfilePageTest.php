@@ -19,9 +19,9 @@ use Tests\TestCase;
  * ke server.
  *
  * Dua hal yang dijaga:
- *  1. statis  - satu-satunya route() yang dipanggil halaman ini tetap dua
- *     route avatar, dan hanya ada dua aksi server (unggah + hapus avatar),
- *     supaya bagian statistik tidak diam-diam menulis ke server.
+ *  1. statis  - satu-satunya route() yang dipanggil halaman ini tetap tiga
+ *     route avatar, dan hanya ada tiga aksi server (unggah, pilih pack, hapus
+ *     avatar), supaya bagian statistik tidak diam-diam menulis ke server.
  *  2. dinamis - angka statistik hanya dari attempt milik user yang login
  *     (lewat course.user_id), dan streak ikut dihitung.
  */
@@ -42,7 +42,7 @@ class ProfilePageTest extends TestCase
         preg_match_all('/route\(\s*[\'"]([^\'"]+)[\'"]\s*\)/', $this->source(), $matches);
 
         $this->assertSame(
-            ['profile.avatar.store', 'profile.avatar.destroy'],
+            ['profile.avatar.store', 'profile.avatar.pack', 'profile.avatar.destroy'],
             array_values(array_unique($matches[1])),
             'halaman Profile hanya boleh memanggil route avatar'
         );
@@ -54,9 +54,9 @@ class ProfilePageTest extends TestCase
 
         $this->assertDoesNotMatchRegularExpression('/router\.(get|put|patch)\b/', $source);
         $this->assertSame(
-            2,
+            3,
             preg_match_all('/router\.(post|delete)\b/', $source),
-            'hanya unggah dan hapus avatar yang boleh menghubungi server'
+            'hanya aksi avatar yang boleh menghubungi server'
         );
     }
 
@@ -121,6 +121,40 @@ class ProfilePageTest extends TestCase
                 ->has('gap.attempts', 1)
                 ->where('gap.attempts.0.quiz_id', $document->id)
                 ->where('gap.attempts.0.document_title', 'bab-a.pdf'));
+    }
+
+    public function test_profil_mengirim_xp_dan_progres_tier(): void
+    {
+        $user = User::factory()->create();
+        $user->forceFill(['xp' => 120])->save();
+
+        $this->actingAs($user)
+            ->get('/profile')
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Profile/Index')
+                ->where('auth.user.xp.balance', 120)
+                ->where('auth.user.xp.tier.id', 'ambisius')
+                ->where('auth.user.xp.tier.pack', 'ambisius')
+                ->where('auth.user.xp.tier.next.label', 'Pakar')
+                ->where('auth.user.xp.tier.progress.percent', 10)
+                ->where('auth.user.xp.tier.progress.remaining', 180)
+                ->has('auth.user.xp.timeline', 5)
+                ->where('auth.user.xp.timeline.0.status', 'achieved')
+                ->where('auth.user.xp.timeline.1.status', 'current')
+                ->where('auth.user.xp.timeline.1.reward', 'Paket Avatar Critters (6)')
+                ->where('auth.user.xp.timeline.1.pack', 'ambisius')
+                ->where('auth.user.xp.timeline.2.label', 'Pakar')
+                ->where('auth.user.xp.timeline.2.status', 'locked')
+                ->has('avatarPacks', 5)
+                ->where('avatarPacks.0.unlocked', true)
+                ->where('avatarPacks.0.claimed', false)
+                ->where('avatarPacks.0.count', 4)
+                ->where('avatarPacks.1.unlocked', true)
+                ->where('avatarPacks.1.claimed', false)
+                ->where('avatarPacks.1.count', 6)
+                ->where('avatarPacks.1.items.0.url', fn ($url) => str_contains($url, '/critters/svg?'))
+                ->where('avatarPacks.1.items.0.url', fn ($url) => str_contains($url, sprintf('seed=sipanda-%d-ambisius-01', $user->id)))
+                ->where('avatarPacks.2.unlocked', false));
     }
 
     public function test_statistik_tidak_menyertakan_data_user_lain(): void

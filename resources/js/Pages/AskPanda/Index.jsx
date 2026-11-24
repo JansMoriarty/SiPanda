@@ -1,12 +1,29 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import ShellLayout from '@/Layouts/ShellLayout';
 import { renderMarkdown } from '@/utils/markdown';
 
+const GREETING_PROMPTS = [
+    { prefix: "How Can I ", highlight: "Assist You Today?" },
+    { prefix: "What Should We ", highlight: "Explore Next?" },
+    { prefix: "Ready To ", highlight: "Learn Something New?" },
+    { prefix: "Let's Dig Into ", highlight: "Your Materials?" },
+];
+
 function TypewriterHeading() {
-    const text1 = "Good Morning, User";
-    const text2Prefix = "How Can I ";
-    const text2Highlight = "Assist You Today?";
+    const user = usePage().props.auth?.user;
+    const firstName = (user?.name ?? "User").trim().split(/\s+/)[0];
+
+    const { text1, text2Prefix, text2Highlight } = useMemo(() => {
+        const hour = new Date().getHours();
+        const greeting = hour < 11 ? "Good Morning" : hour < 15 ? "Good Afternoon" : hour < 18 ? "Good Evening" : "Good Night";
+        const prompt = GREETING_PROMPTS[Math.floor(Math.random() * GREETING_PROMPTS.length)];
+        return {
+            text1: `${greeting}, ${firstName}`,
+            text2Prefix: prompt.prefix,
+            text2Highlight: prompt.highlight,
+        };
+    }, [firstName]);
 
     const [displayedText1, setDisplayedText1] = useState('');
     const [displayedText2Prefix, setDisplayedText2Prefix] = useState('');
@@ -812,13 +829,13 @@ export default function Index({ materials = [] }) {
 
                 {/* Sidebar: daftar modul per mata kuliah */}
                 <aside
-                    className={`z-20 flex shrink-0 flex-col justify-between overflow-hidden border-l border-track bg-surface text-ink transition-all duration-300 ease-in-out ${
+                    className={`absolute bottom-4 right-4 top-4 z-20 flex w-72 shrink-0 flex-col overflow-hidden rounded-card border border-track bg-surface p-5 text-ink shadow-card transition-all duration-300 ease-in-out lg:static lg:bottom-auto lg:right-auto lg:top-auto lg:translate-x-0 ${
                         isHistoryOpen
-                            ? "w-72 p-5 opacity-100"
-                            : "w-0 border-l-0 p-0 opacity-0"
+                            ? "visible translate-x-0 opacity-100 lg:my-4 lg:mr-4 lg:w-72 lg:border lg:p-5 lg:shadow-card"
+                            : "invisible pointer-events-none translate-x-3 opacity-0 lg:m-0 lg:w-0 lg:border-0 lg:p-0 lg:shadow-none"
                     }`}
                 >
-                    <div className="no-scrollbar flex h-full w-60 flex-col space-y-5 overflow-y-auto">
+                    <div className="no-scrollbar flex h-full w-full flex-col space-y-5 overflow-y-auto">
 
                         <div className="flex items-center justify-between pt-1">
                             <div className="flex items-center gap-2.5">
@@ -896,16 +913,6 @@ export default function Index({ materials = [] }) {
                         </div>
 
                         <div className="space-y-2.5">
-
-                            <div className="flex items-center justify-between px-1">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-                                    Materi kamu
-                                </span>
-                                <span className="text-[10px] font-medium text-muted">
-                                    {filteredMaterials.length}
-                                </span>
-                            </div>
-
                             {materials.length === 0 ? (
                                 <p className="rounded-control border border-dashed border-track bg-surface-tint px-3 py-3 text-[11px] leading-relaxed text-muted">
                                     Belum ada materi. Unggah dulu di halaman <span className="font-medium text-ink">Materi</span>.

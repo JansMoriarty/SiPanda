@@ -23,21 +23,36 @@ class QuizController extends Controller
         $this->authorizeDocument($request, $document);
 
         $limit = (int) config('sipanda.quiz.questions_per_session', 10);
+        $levelNumber = $request->integer('level');
+        $level = null;
 
-        $questions = $document->questions()
-            ->with('concept')
-            ->inRandomOrder()
+        if ($levelNumber > 0 && $document->studyLevels()->exists()) {
+            $level = $document->studyLevels()
+                ->where('level_number', $levelNumber)
+                ->firstOrFail();
+        }
+
+        $query = $document->questions()->with('concept');
+
+        if ($level) {
+            $query->where('level_id', $level->id);
+        }
+
+        $questions = $query->inRandomOrder()
             ->limit($limit)
             ->get();
 
         if ($questions->isEmpty()) {
             return redirect()
                 ->route('materials.study-pack', $document)
-                ->with('error', 'Quiz belum tersedia karena belum ada soal untuk materi ini.');
+                ->with('error', $level
+                    ? "Quiz level {$levelNumber} belum tersedia karena belum ada soal untuk level ini."
+                    : 'Quiz belum tersedia karena belum ada soal untuk materi ini.');
         }
 
         $attempt = QuizAttempt::create([
             'document_id' => $document->id,
+            'level_id' => $level?->id,
             'user_id' => $request->user()->id,
             'total_questions' => $questions->count(),
             'started_at' => now(),
@@ -49,7 +64,10 @@ class QuizController extends Controller
             'session' => [
                 'id' => $attempt->id,
                 'kind' => 'quiz',
+                'started_at' => $attempt->started_at?->toISOString(),
                 'document_id' => $document->id,
+                'level_id' => $level?->id,
+                'level_number' => $level?->level_number,
                 'document_title' => $document->original_filename,
                 'course' => [
                     'name' => $course?->name,

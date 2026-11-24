@@ -31,7 +31,7 @@ class DocumentController extends Controller
 
         $file = $request->file('file');
         $extension = strtolower($file->getClientOriginalExtension());
-        $storedFilename = uniqid('doc_') . '.' . $extension;
+        $storedFilename = uniqid('doc_').'.'.$extension;
 
         $file->storeAs('documents', $storedFilename);
 
@@ -53,7 +53,7 @@ class DocumentController extends Controller
     {
         $this->authorizeOwnership($request, $document);
 
-        $path = 'documents/' . $document->stored_filename;
+        $path = 'documents/'.$document->stored_filename;
 
         if (! Storage::exists($path)) {
             abort(404, 'File tidak ditemukan.');
@@ -66,10 +66,10 @@ class DocumentController extends Controller
     {
         $this->authorizeOwnership($request, $document);
 
-        Storage::delete('documents/' . $document->stored_filename);
+        Storage::delete('documents/'.$document->stored_filename);
         $document->delete(); // chunks ikut kehapus otomatis (cascadeOnDelete)
 
-        return redirect()->back();
+        return redirect()->route('materials.index');
     }
 
     protected function authorizeOwnership(Request $request, Document $document): void

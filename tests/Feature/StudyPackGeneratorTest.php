@@ -15,12 +15,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
-/**
- * Generator Study Pack: mengisi summary, key_points, concepts, questions, dan
- * flashcards dari materi dokumen lewat LlmClient. Yang dikunci: hasil tahapan
- * lengkap, idempoten saat di-dispatch ulang, bisa lanjut kalau data sudah ada
- * sebagian, dan menandai failed saat LLM gagal.
- */
 class StudyPackGeneratorTest extends TestCase
 {
     use RefreshDatabase;
@@ -61,41 +55,61 @@ class StudyPackGeneratorTest extends TestCase
         ]]];
     }
 
-    private function fakeLlm(): void
+    private function defaultLevels(): array
     {
-        Http::fake(function ($request) {
+        return [
+            [
+                'title' => 'Dasar Limit',
+                'summary' => 'Level dasar membahas limit.',
+                'key_points' => ['Paham limit'],
+                'concepts' => [
+                    ['name' => 'Limit', 'description' => 'Dasar limit', 'importance' => 'high'],
+                ],
+            ],
+            [
+                'title' => 'Turunan',
+                'summary' => 'Level lanjutan membahas turunan.',
+                'key_points' => ['Paham turunan'],
+                'concepts' => [
+                    ['name' => 'Turunan', 'description' => 'Dasar turunan', 'importance' => 'medium'],
+                ],
+            ],
+        ];
+    }
+
+    private function fakeLlm(?array $levels = null): void
+    {
+        $levels = $levels ?? $this->defaultLevels();
+
+        Http::fake(function ($request) use ($levels) {
             $body = $request->body();
 
-            if (str_contains($body, 'TUGAS_RINGKASAN')) {
+            if (str_contains($body, 'TUGAS_OUTLINE_LEVEL')) {
                 return Http::response($this->gemini([
                     'summary' => 'Ringkasan materi.',
                     'key_points' => ['Limit', 'Turunan'],
+                    'levels' => $levels,
                 ]));
             }
 
-            if (str_contains($body, 'TUGAS_KONSEP')) {
-                return Http::response($this->gemini([
-                    'concepts' => [
-                        ['name' => 'Limit', 'description' => 'Dasar limit', 'importance' => 'high'],
-                        ['name' => 'Turunan', 'description' => 'Dasar turunan', 'importance' => 'medium'],
-                    ],
-                ]));
-            }
-
-            if (str_contains($body, 'TUGAS_SOAL')) {
+            if (str_contains($body, 'TUGAS_SOAL_LEVEL')) {
                 return Http::response($this->gemini([
                     'questions' => [
-                        ['question' => 'q1', 'options' => ['a', 'b', 'c', 'd'], 'correct_index' => 1, 'explanation' => 'e', 'source_label' => 'Slide 1'],
-                        ['question' => 'q2', 'options' => ['a', 'b', 'c', 'd'], 'correct_index' => 0, 'explanation' => 'e2'],
+                        ['level' => 1, 'concept' => 'Limit', 'question' => 'q1-limit', 'options' => ['a', 'b', 'c', 'd'], 'correct_index' => 1, 'explanation' => 'e', 'source_label' => 'Slide 1'],
+                        ['level' => 1, 'concept' => 'Limit', 'question' => 'q2-limit', 'options' => ['a', 'b', 'c', 'd'], 'correct_index' => 0, 'explanation' => 'e2'],
+                        ['level' => 2, 'concept' => 'Turunan', 'question' => 'q1-turunan', 'options' => ['a', 'b', 'c', 'd'], 'correct_index' => 2, 'explanation' => 'e3'],
+                        ['level' => 2, 'concept' => 'Turunan', 'question' => 'q2-turunan', 'options' => ['a', 'b', 'c', 'd'], 'correct_index' => 3, 'explanation' => 'e4'],
                     ],
                 ]));
             }
 
-            if (str_contains($body, 'TUGAS_FLASHCARD')) {
+            if (str_contains($body, 'TUGAS_FLASHCARD_LEVEL')) {
                 return Http::response($this->gemini([
                     'flashcards' => [
-                        ['front' => 'f1', 'back' => 'b1'],
-                        ['front' => 'f2', 'back' => 'b2'],
+                        ['level' => 1, 'concept' => 'Limit', 'front' => 'f1-limit', 'back' => 'b1'],
+                        ['level' => 1, 'concept' => 'Limit', 'front' => 'f2-limit', 'back' => 'b2'],
+                        ['level' => 2, 'concept' => 'Turunan', 'front' => 'f1-turunan', 'back' => 'b3'],
+                        ['level' => 2, 'concept' => 'Turunan', 'front' => 'f2-turunan', 'back' => 'b4'],
                     ],
                 ]));
             }
@@ -116,13 +130,17 @@ class StudyPackGeneratorTest extends TestCase
         $this->assertNotNull($document->study_pack_generated_at);
         $this->assertSame('Ringkasan materi.', $document->summary);
         $this->assertSame(['Limit', 'Turunan'], $document->key_points);
+        $this->assertSame(2, $document->studyLevels()->count());
+        $this->assertSame(['Dasar Limit', 'Turunan'], $document->studyLevels()->orderBy('level_number')->pluck('title')->all());
         $this->assertSame(['Limit', 'Turunan'], $document->concepts()->orderBy('sort_order')->pluck('name')->all());
         $this->assertSame(4, $document->questions()->count());
+        $this->assertTrue($document->questions()->whereNotNull('level_id')->exists());
         $this->assertTrue($document->concepts->every(fn ($concept) => $concept->questions()->count() === 2));
         $this->assertSame(['a', 'b', 'c', 'd'], $document->questions()->first()->options);
         $this->assertSame(4, $document->flashcards()->count());
+        $this->assertTrue($document->flashcards()->whereNotNull('level_id')->exists());
         $this->assertTrue($document->concepts->every(fn ($concept) => $concept->flashcards()->count() === 2));
-        $this->assertSame('f1', $document->flashcards()->orderBy('id')->first()->front);
+        Http::assertSentCount(3);
     }
 
     public function test_dispatch_ulang_tidak_memanggil_llm_lagi(): void
@@ -140,7 +158,7 @@ class StudyPackGeneratorTest extends TestCase
         $this->assertSame(4, $document->questions()->count());
     }
 
-    public function test_data_yang_sudah_ada_dilewati(): void
+    public function test_dokumen_legacy_dapat_peta_level_tanpa_menggandakan_data(): void
     {
         $document = $this->document();
         $document->update(['summary' => 'Sudah ada', 'key_points' => ['K1']]);
@@ -161,16 +179,26 @@ class StudyPackGeneratorTest extends TestCase
             'sort_order' => 0,
         ]);
 
-        Http::fake();
+        $this->fakeLlm([
+            [
+                'title' => 'Dasar Limit',
+                'summary' => 'Level dasar.',
+                'key_points' => ['Limit'],
+                'concepts' => [
+                    ['name' => 'Limit', 'description' => 'Dasar limit', 'importance' => 'high'],
+                ],
+            ],
+        ]);
 
         app(StudyPackGenerator::class)->generate($document);
 
         $document->refresh();
         $this->assertSame('ready', $document->study_pack_status);
+        $this->assertSame(1, $document->studyLevels()->count());
         $this->assertSame(1, $document->concepts()->count());
         $this->assertSame(1, $document->questions()->count());
         $this->assertSame(1, $document->flashcards()->count());
-        Http::assertNothingSent();
+        Http::assertSentCount(1);
     }
 
     public function test_tahap_flashcard_melengkapi_konsep_yang_belum_punya_kartu(): void
@@ -187,15 +215,24 @@ class StudyPackGeneratorTest extends TestCase
             'correct_index' => 0,
         ]);
 
-        $this->fakeLlm();
+        $this->fakeLlm([
+            [
+                'title' => 'Dasar Limit',
+                'summary' => 'Level dasar.',
+                'key_points' => ['Limit'],
+                'concepts' => [
+                    ['name' => 'Limit', 'description' => 'Dasar limit', 'importance' => 'high'],
+                ],
+            ],
+        ]);
 
         app(StudyPackGenerator::class)->generate($document);
 
         $document->refresh();
         $this->assertSame('ready', $document->study_pack_status);
-        // Summary/konsep/soal tidak digandakan, hanya kartu yang diisi.
         $this->assertSame(1, $document->questions()->count());
         $this->assertSame(2, $document->flashcards()->count());
+        Http::assertSentCount(2);
     }
 
     public function test_kegagalan_llm_menandai_failed(): void

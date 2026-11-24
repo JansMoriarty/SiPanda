@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cx } from "@/utils/format";
 
 /**
@@ -16,10 +16,19 @@ import { cx } from "@/utils/format";
 
 const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F"];
 
-function ProgressHeader({ session, index, answers, conceptName }) {
+const formatClock = (seconds) => {
+    const total = Math.max(0, Math.floor(seconds));
+    const minutes = String(Math.floor(total / 60)).padStart(2, "0");
+    const rest = String(total % 60).padStart(2, "0");
+    return `${minutes}:${rest}`;
+};
+
+function ProgressHeader({ session, index, answers, conceptName, remainingSeconds }) {
     const { questions } = session;
     const current = questions[index];
     const pct = Math.round((answers.length / session.total_questions) * 100);
+    const timeLimited = Number(session.time_limit_minutes) > 0;
+    const seconds = remainingSeconds ?? Number(session.time_limit_minutes ?? 0) * 60;
 
     return (
         <div className="space-y-3">
@@ -32,7 +41,21 @@ function ProgressHeader({ session, index, answers, conceptName }) {
                         {conceptName(current.concept, current)}
                     </span>
                 </div>
-                <span className="text-xs font-semibold text-brand dark:text-lavender">{pct}% selesai</span>
+                <div className="flex items-center gap-2">
+                    {timeLimited ? (
+                        <span
+                            className={cx(
+                                "rounded-full border px-2.5 py-1 text-xs font-bold tabular-nums",
+                                seconds <= 60
+                                    ? "border-rose-300 bg-rose-50 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300"
+                                    : "border-brand/20 bg-brand/5 text-brand dark:border-brand/30 dark:bg-brand/10 dark:text-lavender"
+                            )}
+                        >
+                            Sisa {formatClock(seconds)}
+                        </span>
+                    ) : null}
+                    <span className="text-xs font-semibold text-brand dark:text-lavender">{pct}% selesai</span>
+                </div>
             </div>
 
             <div className="h-2 w-full overflow-hidden rounded-full bg-track">
@@ -155,15 +178,29 @@ function Feedback({ correct, chosenText, correctText, explanation }) {
     );
 }
 
-export default function QuizRunner({ session, context, conceptName, onFinish, renderResult }) {
+export default function QuizRunner({ session, context, conceptName, onFinish, renderResult, layout = "stacked" }) {
     const [index, setIndex] = useState(0);
     const [selected, setSelected] = useState(null);
     const [revealed, setRevealed] = useState(false);
     const [answers, setAnswers] = useState([]);
     const [result, setResult] = useState(null);
 
+    const limitSeconds = Math.max(0, Number(session.time_limit_minutes ?? 0) * 60);
+    const deadlineRef = useRef(
+        session.started_at
+            ? new Date(session.started_at).getTime() + limitSeconds * 1000
+            : Date.now() + limitSeconds * 1000
+    );
+    const [remaining, setRemaining] = useState(() =>
+        Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000))
+    );
+    const answersRef = useRef(answers);
+    const finishRef = useRef(null);
+    const timedOutRef = useRef(false);
+
     const question = session.questions[index];
     const isLast = index === session.questions.length - 1;
+    const timeUp = limitSeconds > 0 && remaining <= 0;
 
     const finish = useMemo(
         () => (finalAnswers) => {
@@ -177,8 +214,43 @@ export default function QuizRunner({ session, context, conceptName, onFinish, re
         [onFinish]
     );
 
+    finishRef.current = finish;
+
+    useEffect(() => {
+        answersRef.current = answers;
+    }, [answers]);
+
+    useEffect(() => {
+        if (!limitSeconds || result) return;
+
+        const tick = () => {
+            const left = Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000));
+            setRemaining(left);
+
+            if (left === 0 && !timedOutRef.current) {
+                timedOutRef.current = true;
+                const byId = new Map(answersRef.current.map((answer) => [answer.question_id, answer]));
+                finishRef.current?.(
+                    session.questions.map((item) => {
+                        const answer = byId.get(item.id);
+                        return {
+                            ...answer,
+                            question_id: item.id,
+                            chosen: answer?.chosen ?? null,
+                            correct: answer?.correct ?? false,
+                        };
+                    })
+                );
+            }
+        };
+
+        tick();
+        const timer = window.setInterval(tick, 1000);
+        return () => window.clearInterval(timer);
+    }, [limitSeconds, result, session.questions]);
+
     const submit = () => {
-        if (selected === null || revealed) return;
+        if (selected === null || revealed || timeUp) return;
         setAnswers((prev) => [
             ...prev,
             {
@@ -192,6 +264,7 @@ export default function QuizRunner({ session, context, conceptName, onFinish, re
     };
 
     const next = () => {
+        if (timeUp) return;
         if (isLast) {
             // Jawaban soal terakhir sudah masuk `answers` waktu submit, dan
             // closure ini sudah melihat state terbaru. Menambahkannya lagi
@@ -215,65 +288,98 @@ export default function QuizRunner({ session, context, conceptName, onFinish, re
         return renderResult(result, { session, context });
     }
 
-    return (
-        <div className="space-y-5">
-            <ProgressHeader session={session} index={index} answers={answers} conceptName={conceptName} />
+    const progressHeader = (
+        <ProgressHeader
+            session={session}
+            index={index}
+            answers={answers}
+            conceptName={conceptName}
+            remainingSeconds={remaining}
+        />
+    );
 
-            <section className="rounded-card bg-surface p-5 shadow-card dark:ring-1 dark:ring-track sm:p-6">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                    Soal {index + 1} · {conceptName(question.concept, question)}
-                </p>
-                <p className="mt-2 text-base font-semibold leading-relaxed text-ink">{question.question}</p>
+    const note = (
+        <>
+            {answers.length} dari {session.total_questions} soal terjawab. {context.note}
+        </>
+    );
 
-                <div className="mt-5 space-y-2.5">
-                    {question.options.map((opt, i) => (
-                        <button
-                            key={opt}
-                            type="button"
-                            disabled={revealed}
-                            onClick={() => setSelected(i)}
-                            className="block w-full text-left disabled:cursor-default"
-                            aria-pressed={selected === i}
-                        >
-                            <Option letter={OPTION_LETTERS[i]} text={opt} state={optionState(i)} />
-                        </button>
-                    ))}
-                </div>
+    const questionCard = (
+        <section className="rounded-card bg-surface p-5 shadow-card dark:ring-1 dark:ring-track sm:p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                Soal {index + 1} · {conceptName(question.concept, question)}
+            </p>
+            <p className="mt-2 text-base font-semibold leading-relaxed text-ink">{question.question}</p>
 
-                {!revealed ? (
+            <div className="mt-5 space-y-2.5">
+                {question.options.map((opt, i) => (
+                    <button
+                        key={opt}
+                        type="button"
+                        disabled={revealed || timeUp}
+                        onClick={() => setSelected(i)}
+                        className="block w-full text-left disabled:cursor-default"
+                        aria-pressed={selected === i}
+                    >
+                        <Option letter={OPTION_LETTERS[i]} text={opt} state={optionState(i)} />
+                    </button>
+                ))}
+            </div>
+
+            {!revealed ? (
+                <button
+                    type="button"
+                    onClick={submit}
+                    disabled={selected === null || timeUp}
+                    className="mt-5 w-full rounded-control bg-brand py-3 text-sm font-semibold text-white shadow-pill transition-all hover:bg-brand-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-track disabled:text-muted disabled:shadow-none dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
+                >
+                    {timeUp ? "Waktu habis" : selected === null ? "Pilih jawaban dulu" : "Kirim jawaban"}
+                </button>
+            ) : (
+                <div className="mt-5 space-y-3">
+                    <Feedback
+                        correct={selected === question.correct_index}
+                        chosenText={question.options[selected]}
+                        correctText={question.options[question.correct_index]}
+                        explanation={question.explanation}
+                    />
                     <button
                         type="button"
-                        onClick={submit}
-                        disabled={selected === null}
-                        className="mt-5 w-full rounded-control bg-brand py-3 text-sm font-semibold text-white shadow-pill transition-all hover:bg-brand-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-track disabled:text-muted disabled:shadow-none dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
+                        onClick={next}
+                        disabled={timeUp}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-control bg-brand py-3 text-sm font-semibold text-white shadow-pill transition-all hover:bg-brand-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-track disabled:text-muted disabled:shadow-none dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
                     >
-                        {selected === null ? "Pilih jawaban dulu" : "Kirim jawaban"}
+                        {timeUp ? "Waktu habis" : isLast ? context.finishLabel ?? "Selesai & lihat hasil" : "Soal berikutnya"}
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
                     </button>
-                ) : (
-                    <div className="mt-5 space-y-3">
-                        <Feedback
-                            correct={selected === question.correct_index}
-                            chosenText={question.options[selected]}
-                            correctText={question.options[question.correct_index]}
-                            explanation={question.explanation}
-                        />
-                        <button
-                            type="button"
-                            onClick={next}
-                            className="flex w-full items-center justify-center gap-1.5 rounded-control bg-brand py-3 text-sm font-semibold text-white shadow-pill transition-all hover:bg-brand-600 active:scale-[0.99] dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
-                        >
-                            {isLast ? context.finishLabel ?? "Selesai & lihat hasil" : "Soal berikutnya"}
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                            </svg>
-                        </button>
-                    </div>
-                )}
-            </section>
+                </div>
+            )}
+        </section>
+    );
 
-            <p className="text-center text-xs text-muted">
-                {answers.length} dari {session.total_questions} soal terjawab. {context.note}
-            </p>
+    if (layout === "split") {
+        return (
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
+                <aside className="space-y-4 lg:sticky lg:top-0">
+                    <div className="rounded-card bg-surface p-5 shadow-card dark:ring-1 dark:ring-track">
+                        {progressHeader}
+                    </div>
+                    <p className="rounded-card border border-track bg-surface-tint px-4 py-3 text-xs leading-relaxed text-muted">
+                        {note}
+                    </p>
+                </aside>
+                <div className="min-w-0">{questionCard}</div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-5">
+            {progressHeader}
+            {questionCard}
+            <p className="text-center text-xs text-muted">{note}</p>
         </div>
     );
 }

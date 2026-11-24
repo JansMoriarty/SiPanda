@@ -10,6 +10,7 @@ use App\Models\Flashcard;
 use App\Models\FlashcardReview;
 use App\Models\Question;
 use App\Models\QuizAttempt;
+use App\Models\StudyLevel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -113,6 +114,49 @@ class StudyPackPageTest extends TestCase
                 ->where('pack.key_points.1', 'Poin dua')
                 ->has('pack.flashcards', 0)
                 ->where('pack.quiz.total_questions', 0));
+    }
+
+    public function test_level_dari_ai_dikirim_dan_level_berikutnya_terkunci(): void
+    {
+        [$user, $document] = $this->document('a');
+
+        $first = StudyLevel::create([
+            'document_id' => $document->id,
+            'level_number' => 1,
+            'title' => 'Fondasi Limit',
+            'summary' => 'Level dasar.',
+            'key_points' => ['Paham limit'],
+            'sort_order' => 0,
+        ]);
+        StudyLevel::create([
+            'document_id' => $document->id,
+            'level_number' => 2,
+            'title' => 'Turunan',
+            'summary' => 'Level lanjutan.',
+            'key_points' => ['Paham turunan'],
+            'sort_order' => 1,
+        ]);
+
+        $concept = $this->concept($document, 'Limit', 0);
+        $concept->update(['level_id' => $first->id]);
+
+        $this->actingAs($user)
+            ->get(route('materials.study-pack', $document))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('pack.levels', 2)
+                ->where('pack.xp.balance', 0)
+                ->where('pack.xp.tier.id', 'pemula')
+                ->where('pack.levels.0.number', 1)
+                ->where('pack.levels.0.title', 'Fondasi Limit')
+                ->where('pack.levels.0.key_points.0', 'Paham limit')
+                ->where('pack.levels.0.concepts.0.name', 'Limit')
+                ->where('pack.levels.0.completed', false)
+                ->where('pack.levels.0.xp_points', 0)
+                ->where('pack.levels.1.locked', true)
+                ->where('pack.levels.1.xp_points', 50)
+                ->where('pack.levels.1.xp_unlocked', false)
+                ->where('pack.levels.1.xp_claimed', false));
     }
 
     public function test_flashcards_dikirim_dengan_status_review_user(): void

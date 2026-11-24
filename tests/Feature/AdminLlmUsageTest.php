@@ -126,17 +126,39 @@ class AdminLlmUsageTest extends TestCase
         Http::fake(function ($request) {
             $body = $request->body();
 
-            if (str_contains($body, 'TUGAS_RINGKASAN')) {
-                return Http::response($this->gemini(['summary' => 'R', 'key_points' => ['Limit']]));
+            if (str_contains($body, 'TUGAS_OUTLINE_LEVEL')) {
+                return Http::response($this->gemini([
+                    'summary' => 'R',
+                    'key_points' => ['Limit'],
+                    'levels' => [[
+                        'title' => 'Dasar Limit',
+                        'summary' => 'Level dasar.',
+                        'key_points' => ['Limit'],
+                        'concepts' => [['name' => 'Limit', 'description' => 'd', 'importance' => 'high']],
+                    ]],
+                ]));
             }
-            if (str_contains($body, 'TUGAS_KONSEP')) {
-                return Http::response($this->gemini(['concepts' => [['name' => 'Limit', 'description' => 'd', 'importance' => 'high']]]));
+            if (str_contains($body, 'TUGAS_SOAL_LEVEL')) {
+                return Http::response($this->gemini([
+                    'questions' => [[
+                        'level' => 1,
+                        'concept' => 'Limit',
+                        'question' => 'q',
+                        'options' => ['a', 'b'],
+                        'correct_index' => 0,
+                        'explanation' => 'e',
+                    ]],
+                ]));
             }
-            if (str_contains($body, 'TUGAS_SOAL')) {
-                return Http::response($this->gemini(['questions' => [['question' => 'q', 'options' => ['a', 'b'], 'correct_index' => 0, 'explanation' => 'e']]]));
-            }
-            if (str_contains($body, 'TUGAS_FLASHCARD')) {
-                return Http::response($this->gemini(['flashcards' => [['front' => 'f', 'back' => 'b']]]));
+            if (str_contains($body, 'TUGAS_FLASHCARD_LEVEL')) {
+                return Http::response($this->gemini([
+                    'flashcards' => [[
+                        'level' => 1,
+                        'concept' => 'Limit',
+                        'front' => 'f',
+                        'back' => 'b',
+                    ]],
+                ]));
             }
 
             return Http::response('unexpected', 500);
@@ -149,11 +171,11 @@ class AdminLlmUsageTest extends TestCase
 
         $rows = LlmUsage::where('feature', LlmUsage::FEATURE_STUDY_PACK)->get();
 
-        // summary + konsep + soal + flashcard = 4 panggilan.
-        $this->assertCount(4, $rows);
+        // outline + soal + flashcard = 3 panggilan.
+        $this->assertCount(3, $rows);
         $this->assertTrue($rows->every(fn ($row) => $row->user_id === $owner->id));
         $this->assertTrue($rows->every(fn ($row) => $row->document_id === $document->id));
-        $this->assertSame(400, (int) $rows->sum('total_tokens'));
+        $this->assertSame(300, (int) $rows->sum('total_tokens'));
     }
 
     public function test_admin_melihat_halaman_pemakaian_ai(): void

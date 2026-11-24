@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
 import Avatar from "@/Components/Avatar";
+import XpMedal from "@/Components/XpMedal";
 import { buildCourseGapSummaries, masteryOf } from "@/utils/gap";
 import { cx, formatDate, formatDateTime, scoreTone, WEAK_THRESHOLD } from "@/utils/format";
 
@@ -52,6 +53,204 @@ function StatCard({ icon, tone, label, value, hint }) {
 const AVATAR_ACCEPT = "image/jpeg,image/png,image/webp";
 const AVATAR_MIME = ["image/jpeg", "image/png", "image/webp"];
 const AVATAR_MAX_KB = 2048;
+
+function AvatarPickerModal({
+    open,
+    packs,
+    currentAvatar,
+    busy,
+    error,
+    initialPackId,
+    onClose,
+    onSelect,
+    onUpload,
+}) {
+    const fileRef = useRef(null);
+
+    useEffect(() => {
+        if (!open) return;
+        function onKey(event) {
+            if (event.key === "Escape" && !busy) onClose();
+        }
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+    }, [open, busy, onClose]);
+
+    if (!open) return null;
+
+    const orderedPacks = [...packs].sort(
+        (a, b) => Number(b.id === initialPackId) - Number(a.id === initialPackId)
+    );
+
+    return createPortal(
+        <div
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 font-['Outfit',sans-serif]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="avatar-picker-title"
+        >
+            <div
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={() => !busy && onClose()}
+            />
+            <div className="relative flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-card bg-surface shadow-card dark:ring-1 dark:ring-track">
+                <div className="flex items-start justify-between gap-3 border-b border-track px-5 py-4">
+                    <div>
+                        <h3 id="avatar-picker-title" className="text-lg font-semibold text-ink">
+                            Edit avatar
+                        </h3>
+                        <p className="mt-0.5 text-xs text-muted">
+                            Pilih dari avatar pack yang sudah terbuka, atau unggah foto sendiri.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={busy}
+                        aria-label="Tutup"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-canvas hover:text-ink disabled:opacity-60"
+                    >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M18 6L6 18" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div className="space-y-5 overflow-y-auto px-5 py-4">
+                    <section>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-xs font-semibold text-ink">Avatar pack</p>
+                            <p className="text-[10px] text-muted">Dibuat oleh DiceBear</p>
+                        </div>
+                        <div className="mt-3 space-y-3">
+                            {orderedPacks.map((pack) => {
+                                const selectedInPack = pack.items.some((item) => item.url === currentAvatar);
+
+                                return (
+                                    <div
+                                        key={pack.id}
+                                        className={cx(
+                                            "rounded-control border p-3",
+                                            selectedInPack ? "border-brand/40 bg-brand/5" : "border-track bg-canvas/50"
+                                        )}
+                                    >
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <div>
+                                                <p className="text-xs font-semibold text-ink">{pack.label}</p>
+                                                <p className="mt-0.5 text-[10px] text-muted">
+                                                    {pack.tier_label} · {pack.count} avatar · {pack.style}
+                                                </p>
+                                            </div>
+                                            <span
+                                                className={cx(
+                                                    "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                                                    pack.unlocked
+                                                        ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                                                        : "bg-surface-tint text-muted"
+                                                )}
+                                            >
+                                                {pack.unlocked
+                                                    ? selectedInPack
+                                                        ? "Dipakai"
+                                                        : pack.claimed
+                                                          ? "Sudah diklaim"
+                                                          : "Tersedia"
+                                                    : `Kunci · ${pack.remaining} XP`}
+                                            </span>
+                                        </div>
+                                        <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6">
+                                            {pack.items.map((item) => {
+                                                const selected = item.url === currentAvatar;
+
+                                                return (
+                                                    <button
+                                                        key={item.id}
+                                                        type="button"
+                                                        disabled={!pack.unlocked || busy}
+                                                        onClick={() => onSelect(pack.id, item.index)}
+                                                        aria-label={`Pakai ${pack.label} avatar ${item.index}`}
+                                                        className={cx(
+                                                            "relative rounded-full transition-all",
+                                                            selected
+                                                                ? "ring-2 ring-brand ring-offset-2 ring-offset-surface"
+                                                                : "hover:scale-105",
+                                                            !pack.unlocked && "cursor-not-allowed opacity-40 grayscale"
+                                                        )}
+                                                    >
+                                                        <img
+                                                            src={item.url}
+                                                            alt=""
+                                                            loading="lazy"
+                                                            referrerPolicy="no-referrer"
+                                                            className="h-12 w-12 rounded-full object-cover"
+                                                        />
+                                                        {selected ? (
+                                                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-brand px-1.5 py-0.5 text-[8px] font-bold text-white">
+                                                                Dipakai
+                                                            </span>
+                                                        ) : null}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+
+                    <section className="border-t border-track pt-4">
+                        <p className="text-xs font-semibold text-ink">Unggah dari perangkat</p>
+                        <p className="mt-0.5 text-[10px] text-muted">JPG, PNG, atau WebP. Maksimal 2 MB.</p>
+                        <input
+                            ref={fileRef}
+                            type="file"
+                            accept={AVATAR_ACCEPT}
+                            className="hidden"
+                            onChange={(event) => {
+                                const file = event.target.files?.[0];
+                                event.target.value = "";
+                                if (file) onUpload(file);
+                            }}
+                        />
+                        <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => fileRef.current?.click()}
+                            className="mt-3 inline-flex items-center gap-2 rounded-control border border-track bg-canvas px-3 py-2 text-xs font-semibold text-ink transition-colors hover:bg-surface-tint disabled:opacity-60"
+                        >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M12 16.5V4.5m0 0L7.5 9M12 4.5 16.5 9M4.5 16.5v1.5A2.25 2.25 0 006.75 20.25h10.5A2.25 2.25 0 0019.5 18v-1.5"
+                                />
+                            </svg>
+                            Pilih foto
+                        </button>
+                        {error ? (
+                            <p className="mt-2 rounded-control border border-rose-200 bg-rose-50/70 px-3 py-2 text-xs font-medium text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-300">
+                                {error}
+                            </p>
+                        ) : null}
+                    </section>
+                </div>
+
+                <div className="flex justify-end border-t border-track px-5 py-3">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={busy}
+                        className="rounded-control bg-brand px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-60 dark:bg-lavender dark:text-brand"
+                    >
+                        Selesai
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+}
 
 function RemoveAvatarModal({ open, busy, onClose, onConfirm }) {
     useEffect(() => {
@@ -121,22 +320,25 @@ function RemoveAvatarModal({ open, busy, onClose, onConfirm }) {
     );
 }
 
-function IdentityCard({ user }) {
-    const inputRef = useRef(null);
+function IdentityCard({
+    user,
+    avatarPacks,
+    pickerOpen,
+    focusedPackId,
+    onOpenPicker,
+    onClosePicker,
+}) {
     const [isUploading, setIsUploading] = useState(false);
+    const [isApplyingPack, setIsApplyingPack] = useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [isRemoving, setIsRemoving] = useState(false);
     const [localError, setLocalError] = useState(null);
 
     const serverError = usePage().props.errors?.avatar;
     const hasAvatar = Boolean(user?.avatar);
-    const busy = isUploading || isRemoving;
+    const busy = isUploading || isApplyingPack || isRemoving;
 
-    const handleFile = (event) => {
-        const file = event.target.files?.[0];
-        // Kosongkan nilainya sekarang juga, supaya memilih berkas yang sama
-        // dua kali berturut-turut tetap memicu onChange.
-        event.target.value = "";
+    const uploadFile = (file) => {
         if (!file) return;
 
         if (!AVATAR_MIME.includes(file.type)) {
@@ -156,8 +358,18 @@ function IdentityCard({ user }) {
 
         router.post(route("profile.avatar.store"), form, {
             forceFormData: true,
+            preserveScroll: true,
             onStart: () => setIsUploading(true),
             onFinish: () => setIsUploading(false),
+        });
+    };
+
+    const handlePackSelect = (packId, index) => {
+        setLocalError(null);
+        router.post(route("profile.avatar.pack"), { pack: packId, index }, {
+            preserveScroll: true,
+            onStart: () => setIsApplyingPack(true),
+            onFinish: () => setIsApplyingPack(false),
         });
     };
 
@@ -172,20 +384,16 @@ function IdentityCard({ user }) {
     };
 
     return (
-        <section className="overflow-hidden rounded-card bg-surface shadow-card dark:ring-1 dark:ring-track">
-            {/*
-              Banner dekoratif: gradient ungu primer SiPanda, bukan foto, dan
-              sengaja tanpa tombol ganti cover. aria-hidden karena murni hiasan.
-            */}
-            <div
-                aria-hidden="true"
-                className="relative h-32 bg-gradient-to-br from-brand-400 via-brand to-brand-950 sm:h-36"
-            >
-                <span className="absolute -right-8 -top-12 h-44 w-44 rounded-full bg-white/10" />
-                <span className="absolute bottom-1 left-10 h-20 w-20 rounded-full bg-white/10" />
+        <section className="flex h-full flex-col overflow-hidden rounded-card bg-surface shadow-card dark:ring-1 dark:ring-track">
+            <div aria-hidden="true" className="relative h-32 overflow-hidden sm:h-36">
+                <img
+                    src="/images/banner-bg.jpg"
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover object-center"
+                />
             </div>
 
-            <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+            <div className="flex flex-1 flex-col px-5 pb-5 sm:px-6 sm:pb-6">
                 <div className="relative -mt-14 w-fit">
                     <Avatar
                         src={user?.avatar}
@@ -196,23 +404,25 @@ function IdentityCard({ user }) {
                             backgroundImage: "linear-gradient(135deg, #9679d6 0%, #5b4b8a 60%, #3f3a5a 100%)",
                         }}
                     />
-                    {isUploading ? (
+                    {busy ? (
                         <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-track bg-surface px-2 py-0.5 text-[10px] font-bold text-muted">
-                            Mengunggah…
+                            Memperbarui…
                         </span>
                     ) : null}
                 </div>
 
                 <div className="mt-3 min-w-0">
-                    <h1 className="truncate text-xl font-bold tracking-tight text-ink">
-                        {user?.name ?? "—"}
-                    </h1>
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                        <h1 className="min-w-0 truncate text-xl font-bold tracking-tight text-ink">
+                            {user?.name ?? "—"}
+                        </h1>
+                        {user?.created_at ? (
+                            <span className="shrink-0 text-xs text-muted">
+                                {formatDate(user.created_at)}
+                            </span>
+                        ) : null}
+                    </div>
                     <p className="mt-0.5 truncate text-sm text-muted">{user?.email ?? "—"}</p>
-                    {user?.created_at ? (
-                        <p className="mt-2 text-xs text-muted">
-                            Bergabung sejak {formatDate(user.created_at)}
-                        </p>
-                    ) : null}
                 </div>
 
                 {localError || serverError ? (
@@ -221,17 +431,10 @@ function IdentityCard({ user }) {
                     </p>
                 ) : null}
 
-                <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-track pt-4">
-                    <input
-                        ref={inputRef}
-                        type="file"
-                        accept={AVATAR_ACCEPT}
-                        onChange={handleFile}
-                        className="hidden"
-                    />
+                <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-track pt-4">
                     <button
                         type="button"
-                        onClick={() => inputRef.current?.click()}
+                        onClick={onOpenPicker}
                         disabled={busy}
                         className="inline-flex items-center gap-2 rounded-control bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-pill transition-all hover:bg-brand-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-lavender dark:text-brand dark:hover:bg-lavender-soft"
                     >
@@ -239,10 +442,10 @@ function IdentityCard({ user }) {
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                d="M12 16.5V4.5m0 0L7.5 9M12 4.5 16.5 9M4.5 16.5v1.5A2.25 2.25 0 006.75 20.25h10.5A2.25 2.25 0 0019.5 18v-1.5"
+                                d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
                             />
                         </svg>
-                        {hasAvatar ? "Ganti foto" : "Unggah foto"}
+                        Edit avatar
                     </button>
 
                     {hasAvatar ? (
@@ -262,12 +465,20 @@ function IdentityCard({ user }) {
                             Hapus foto
                         </button>
                     ) : null}
-
-                    <p className="text-[11px] leading-relaxed text-muted">
-                        JPG, PNG, atau WebP. Maksimal 2 MB.
-                    </p>
                 </div>
             </div>
+
+            <AvatarPickerModal
+                open={pickerOpen}
+                packs={avatarPacks}
+                currentAvatar={user?.avatar}
+                busy={busy}
+                error={localError ?? serverError}
+                initialPackId={focusedPackId}
+                onClose={onClosePicker}
+                onSelect={handlePackSelect}
+                onUpload={uploadFile}
+            />
 
             <RemoveAvatarModal
                 open={isConfirmOpen}
@@ -275,6 +486,141 @@ function IdentityCard({ user }) {
                 onClose={() => setIsConfirmOpen(false)}
                 onConfirm={handleRemove}
             />
+        </section>
+    );
+}
+
+function TierProgressCard({ xp, avatarPacks, currentAvatar, onUsePack }) {
+    const tier = xp?.tier ?? {
+        label: "Pemula",
+        color: "#94A3B8",
+        pack: null,
+        next: null,
+        progress: { earned: 0, target: 0, percent: 0, remaining: 0 },
+    };
+    const balance = xp?.balance ?? 0;
+    const progress = tier.progress ?? { earned: 0, target: 0, percent: 0, remaining: 0 };
+    const next = tier.next;
+    const currentPack = avatarPacks.find((pack) => pack.id === tier.pack);
+    const packInUse = currentPack?.items.some((item) => item.url === currentAvatar) ?? false;
+    const claimed = currentPack?.claimed ?? false;
+    const unlocked = currentPack?.unlocked ?? true;
+
+    return (
+        <section className="flex h-full flex-col rounded-card bg-surface p-5 shadow-card dark:ring-1 dark:ring-track">
+            <div className="flex items-start gap-4">
+                <div
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control border border-track"
+                    style={{ backgroundColor: `${tier.color}1a` }}
+                >
+                    <XpMedal color={tier.color} className="h-8 w-8" />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p className="text-xs font-medium text-muted">Tier belajarmu</p>
+                            <p className="mt-0.5 text-lg font-bold leading-tight" style={{ color: tier.color }}>
+                                {tier.label}
+                            </p>
+                        </div>
+                        <span className="rounded-full border border-track bg-canvas px-2.5 py-1 text-xs font-bold text-ink">
+                            {balance} XP
+                        </span>
+                    </div>
+
+                    <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-track">
+                        <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${progress.percent}%`, backgroundColor: tier.color }}
+                        />
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted">
+                        <span>
+                            {next
+                                ? `${progress.earned}/${progress.target} XP · ${progress.remaining} XP lagi menuju ${next.label}.`
+                                : "Tier tertinggi tercapai. Pertahankan!"}
+                        </span>
+                        <span>{progress.percent}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-5 rounded-card border border-brand/20 bg-gradient-to-br from-brand/10 via-lavender-soft/60 to-surface p-4 dark:border-brand/30 dark:from-brand/15 dark:via-lavender/10">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-brand dark:text-lavender">
+                            Reward tier kamu
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-ink">
+                            {currentPack?.label ?? "Belum ada reward"}
+                        </p>
+                    </div>
+                    <span
+                        className={cx(
+                            "rounded-full px-2.5 py-1 text-[10px] font-bold",
+                            claimed
+                                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                                : unlocked
+                                  ? "bg-brand/10 text-brand dark:bg-lavender/15 dark:text-lavender"
+                                  : "bg-canvas text-muted"
+                        )}
+                    >
+                        {claimed ? "Sudah diklaim" : unlocked ? "Belum diklaim" : `Kunci · ${progress.remaining} XP`}
+                    </span>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                    {currentPack ? (
+                        <div className="flex shrink-0 -space-x-2">
+                            {currentPack.items.slice(0, 4).map((item) => (
+                                <img
+                                    key={item.id}
+                                    src={item.url}
+                                    alt=""
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                    className="h-12 w-12 rounded-full border-2 border-surface object-cover"
+                                />
+                            ))}
+                        </div>
+                    ) : null}
+                    <p className="min-w-[140px] flex-1 text-xs leading-relaxed text-muted">
+                        {claimed
+                            ? packInUse
+                                ? "Avatar dari pack ini sedang kamu pakai."
+                                : "Pack sudah diklaim dan bisa dipakai lagi kapan saja lewat Edit avatar."
+                            : unlocked
+                              ? `${currentPack?.count ?? 0} avatar siap dipilih.`
+                              : `${progress.remaining} XP lagi untuk membuka pack ini.`}
+                    </p>
+                    <button
+                        type="button"
+                        disabled={!unlocked || !currentPack}
+                        onClick={() => onUsePack(currentPack.id)}
+                        className={cx(
+                            "shrink-0 rounded-full px-3 py-2 text-[11px] font-bold transition-colors",
+                            unlocked && currentPack
+                                ? "bg-brand text-white hover:bg-brand-600 dark:bg-lavender dark:text-brand"
+                                : "bg-canvas text-muted"
+                        )}
+                    >
+                        {claimed ? "Ganti avatar" : unlocked ? "Klaim & pakai" : "Kunci"}
+                    </button>
+                </div>
+            </div>
+
+            {next ? (
+                <div className="mt-3 flex items-center gap-3 rounded-control border border-dashed border-track bg-canvas/60 p-3">
+                    <XpMedal color={next.color} className="h-7 w-7 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Tier berikutnya</p>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-ink">
+                            {next.label} · {progress.remaining} XP lagi
+                        </p>
+                    </div>
+                    <span className="shrink-0 text-[10px] font-bold text-muted">{next.min} XP</span>
+                </div>
+            ) : null}
         </section>
     );
 }
@@ -519,8 +865,16 @@ function buildProfileStats(attempts) {
     };
 }
 
-export default function Index({ gap, streak }) {
+export default function Index({ gap, streak, avatarPacks }) {
     const user = usePage().props.auth?.user;
+    const packs = avatarPacks ?? [];
+    const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+    const [focusedPackId, setFocusedPackId] = useState(null);
+
+    const openAvatarPicker = (packId = null) => {
+        setFocusedPackId(packId);
+        setAvatarPickerOpen(true);
+    };
 
     const stats = {
         ...buildProfileStats(gap.attempts),
@@ -542,7 +896,23 @@ export default function Index({ gap, streak }) {
                     </p>
                 </div>
 
-                <IdentityCard user={user} />
+                <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.3fr)]">
+                    <IdentityCard
+                        user={user}
+                        avatarPacks={packs}
+                        pickerOpen={avatarPickerOpen}
+                        focusedPackId={focusedPackId}
+                        onOpenPicker={() => openAvatarPicker()}
+                        onClosePicker={() => setAvatarPickerOpen(false)}
+                    />
+
+                    <TierProgressCard
+                        xp={user?.xp}
+                        avatarPacks={packs}
+                        currentAvatar={user?.avatar}
+                        onUsePack={(packId) => openAvatarPicker(packId)}
+                    />
+                </div>
 
                 <StudyStats stats={stats} />
 

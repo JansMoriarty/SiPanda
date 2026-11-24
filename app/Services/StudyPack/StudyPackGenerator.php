@@ -8,28 +8,16 @@ use App\Models\Document;
 use App\Models\Flashcard;
 use App\Models\LlmUsage;
 use App\Models\Question;
+use App\Models\StudyLevel;
 use App\Services\Llm\LlmUsageRecorder;
 use Illuminate\Support\Collection;
 
-/**
- * Menghasilkan Study Pack sebuah dokumen dengan memanggil LLM secara bertahap:
- * 1) summary + key points, 2) daftar konsep, 3) soal per konsep, 4) kartu belajar
- * (flashcard) per konsep.
- *
- * Idempoten & bisa lanjut: tahap yang datanya sudah ada dilewati, dan soal/kartu
- * hanya dibuat untuk konsep yang belum punya. Jadi retry tidak menggandakan data
- * dan tidak membuang token untuk yang sudah selesai. Tahap kartu yang terpisah
- * ini jugalah yang membuat dokumen lama bisa mengisi flashcard lewat "Buat ulang"
- * tanpa mengulang summary/konsep/soal.
- */
 class StudyPackGenerator
 {
     public function __construct(protected LlmClient $llm, protected LlmUsageRecorder $usage) {}
 
     public function generate(Document $document): void
     {
-        // Kepemilikan dokumen lewat course (documents tidak punya user_id),
-        // supaya pemakaian token bisa diatribusikan ke mahasiswa pemiliknya.
         $ownerId = $document->course()->value('user_id');
 
         $this->usage->run(
@@ -45,23 +33,20 @@ class StudyPackGenerator
         $document->update([
             'study_pack_status' => 'generating',
             'study_pack_progress' => 5,
-            'study_pack_step' => 'summary',
+            'study_pack_step' => 'outline',
             'error_message' => null,
         ]);
 
         try {
             $text = $this->sourceText($document);
 
-            $this->generateSummaryAndKeyPoints($document, $text);
-            $this->progress($document, 'concepts', 20);
-
-            $concepts = $this->generateConcepts($document, $text);
+            $outline = $this->generateOutline($document, $text);
             $this->progress($document, 'questions', 35);
 
-            $this->generateQuestions($document, $concepts, $text);
+            $this->generateQuestions($document, $outline, $text);
             $this->progress($document, 'flashcards', 75);
 
-            $this->generateFlashcards($document, $concepts, $text);
+            $this->generateFlashcards($document, $outline, $text);
 
             $document->update([
                 'study_pack_status' => 'ready',
@@ -79,11 +64,6 @@ class StudyPackGenerator
         }
     }
 
-    /**
-     * Simpan progres tahap study pack. Boleh dipanggil berkali-kali; nilainya
-     * dibatasi 99 selama proses berjalan supaya 100% hanya muncul saat benar-benar
-     * 'ready'.
-     */
     protected function progress(Document $document, string $step, int $percent): void
     {
         $document->update([
@@ -106,23 +86,70 @@ class StudyPackGenerator
         return mb_substr($text, 0, (int) config('sipanda.study_pack.max_input_chars', 20000));
     }
 
-    protected function generateSummaryAndKeyPoints(Document $document, string $text): void
+    protected function outlineExists(Document $document): bool
     {
-        if (! empty($document->summary) && ! empty($document->key_points)) {
-            return;
+        return ! empty($document->summary)
+            && ! empty($document->key_points)
+            && $document->studyLevels()->exists()
+            && $document->concepts()->exists();
+    }
+
+    protected function generateOutline(Document $document, string $text): Collection
+    {
+        if ($this->outlineExists($document)) {
+            return $document->studyLevels()->with('concepts')->get()->map(fn ($level) => [
+                'number' => (int) $level->level_number,
+                'title' => $level->title,
+                'summary' => $level->summary,
+                'key_points' => $level->key_points ?? [],
+                'concepts' => $level->concepts->map(fn ($concept) => [
+                    'id' => $concept->id,
+                    'name' => $concept->name,
+                    'description' => $concept->description,
+                    'importance' => $concept->importance,
+                ])->values()->all(),
+            ]);
         }
+
+        $maxLevels = max(1, (int) config('sipanda.study_pack.max_levels', 3));
+        $perLevel = max(1, (int) config('sipanda.study_pack.concepts_per_level', 3));
+        $maxConcepts = max(1, (int) config('sipanda.study_pack.max_concepts', 8));
 
         $schema = [
             'type' => 'OBJECT',
             'properties' => [
                 'summary' => ['type' => 'STRING'],
                 'key_points' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
+                'levels' => [
+                    'type' => 'ARRAY',
+                    'items' => [
+                        'type' => 'OBJECT',
+                        'properties' => [
+                            'title' => ['type' => 'STRING'],
+                            'summary' => ['type' => 'STRING'],
+                            'key_points' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
+                            'concepts' => [
+                                'type' => 'ARRAY',
+                                'items' => [
+                                    'type' => 'OBJECT',
+                                    'properties' => [
+                                        'name' => ['type' => 'STRING'],
+                                        'description' => ['type' => 'STRING'],
+                                        'importance' => ['type' => 'STRING', 'enum' => ['high', 'medium', 'low']],
+                                    ],
+                                    'required' => ['name', 'description', 'importance'],
+                                ],
+                            ],
+                        ],
+                        'required' => ['title', 'summary', 'key_points', 'concepts'],
+                    ],
+                ],
             ],
-            'required' => ['summary', 'key_points'],
+            'required' => ['summary', 'key_points', 'levels'],
         ];
 
         $result = $this->llm->generateJson(
-            $this->summaryPrompt($text),
+            $this->outlinePrompt($text, $maxLevels, $perLevel, $maxConcepts),
             $schema,
             $this->systemInstruction()
         );
@@ -134,76 +161,101 @@ class StudyPackGenerator
             'summary' => $summary !== '' ? $summary : $document->summary,
             'key_points' => $keyPoints !== [] ? $keyPoints : $document->key_points,
         ]);
-    }
 
-    /**
-     * @return Collection<int, Concept>
-     */
-    protected function generateConcepts(Document $document, string $text): Collection
-    {
-        if ($document->concepts()->exists()) {
-            return $document->concepts()->get();
-        }
+        $seen = [];
+        $total = 0;
+        $outline = collect();
+        $rawLevels = array_slice((array) ($result['levels'] ?? []), 0, $maxLevels);
 
-        $schema = [
-            'type' => 'OBJECT',
-            'properties' => [
-                'concepts' => [
-                    'type' => 'ARRAY',
-                    'items' => [
-                        'type' => 'OBJECT',
-                        'properties' => [
-                            'name' => ['type' => 'STRING'],
-                            'description' => ['type' => 'STRING'],
-                            'importance' => ['type' => 'STRING', 'enum' => ['high', 'medium', 'low']],
-                        ],
-                        'required' => ['name', 'description', 'importance'],
-                    ],
-                ],
-            ],
-            'required' => ['concepts'],
-        ];
-
-        $result = $this->llm->generateJson(
-            $this->conceptsPrompt($text, (int) config('sipanda.study_pack.max_concepts', 8)),
-            $schema,
-            $this->systemInstruction()
-        );
-
-        $max = (int) config('sipanda.study_pack.max_concepts', 8);
-        $rows = array_slice((array) ($result['concepts'] ?? []), 0, $max);
-
-        foreach ($rows as $index => $row) {
-            $name = trim((string) ($row['name'] ?? ''));
-
-            if ($name === '') {
-                continue;
+        foreach ($rawLevels as $index => $row) {
+            if ($total >= $maxConcepts) {
+                break;
             }
 
-            $importance = in_array($row['importance'] ?? 'medium', ['high', 'medium', 'low'], true)
-                ? $row['importance']
-                : 'medium';
-
-            Concept::updateOrCreate(
-                ['document_id' => $document->id, 'name' => $name],
+            $level = StudyLevel::updateOrCreate(
+                ['document_id' => $document->id, 'level_number' => $index + 1],
                 [
-                    'description' => trim((string) ($row['description'] ?? '')) ?: null,
-                    'importance' => $importance,
+                    'title' => trim((string) ($row['title'] ?? '')) ?: 'Level '.($index + 1),
+                    'summary' => trim((string) ($row['summary'] ?? '')) ?: null,
+                    'key_points' => $this->cleanStringList((array) ($row['key_points'] ?? [])),
                     'sort_order' => $index,
                 ]
             );
+
+            $concepts = collect();
+
+            foreach (array_slice((array) ($row['concepts'] ?? []), 0, $perLevel) as $conceptIndex => $conceptRow) {
+                if ($total >= $maxConcepts) {
+                    break;
+                }
+
+                $name = trim((string) ($conceptRow['name'] ?? ''));
+
+                if ($name === '' || isset($seen[$name])) {
+                    continue;
+                }
+
+                $seen[$name] = true;
+                $total++;
+
+                $importance = in_array($conceptRow['importance'] ?? 'medium', ['high', 'medium', 'low'], true)
+                    ? $conceptRow['importance']
+                    : 'medium';
+
+                $concept = Concept::updateOrCreate(
+                    ['document_id' => $document->id, 'name' => $name],
+                    [
+                        'level_id' => $level->id,
+                        'description' => trim((string) ($conceptRow['description'] ?? '')) ?: null,
+                        'importance' => $importance,
+                        'sort_order' => $conceptIndex,
+                    ]
+                );
+
+                $concepts->push([
+                    'id' => $concept->id,
+                    'name' => $concept->name,
+                    'description' => $concept->description,
+                    'importance' => $concept->importance,
+                ]);
+            }
+
+            if ($concepts->isEmpty()) {
+                $level->delete();
+
+                continue;
+            }
+
+            $outline->push([
+                'number' => (int) $level->level_number,
+                'title' => $level->title,
+                'summary' => $level->summary,
+                'key_points' => $level->key_points ?? [],
+                'concepts' => $concepts->all(),
+            ]);
         }
 
-        return $document->concepts()->get();
+        if ($outline->isEmpty()) {
+            throw new \RuntimeException('LLM tidak menghasilkan level study pack yang valid.');
+        }
+
+        return $outline;
     }
 
-    /**
-     * @param  Collection<int, Concept>  $concepts
-     */
-    protected function generateQuestions(Document $document, Collection $concepts, string $text): void
+    protected function generateQuestions(Document $document, Collection $outline, string $text): void
     {
-        $perConcept = (int) config('sipanda.study_pack.questions_per_concept', 2);
-        $optionsCount = (int) config('sipanda.study_pack.options_count', 4);
+        $perConcept = max(1, (int) config('sipanda.study_pack.questions_per_concept', 2));
+        $optionsCount = max(2, (int) config('sipanda.study_pack.options_count', 4));
+
+        $targets = $outline->flatMap(fn ($level) => collect($level['concepts'])->map(fn ($concept) => [
+            'level' => (int) $level['number'],
+            'concept' => $concept['name'],
+            'id' => $concept['id'],
+        ]))->filter(fn ($target) => ! Question::where('concept_id', $target['id'])->exists())->values();
+
+        if ($targets->isEmpty()) {
+            return;
+        }
 
         $schema = [
             'type' => 'OBJECT',
@@ -213,73 +265,78 @@ class StudyPackGenerator
                     'items' => [
                         'type' => 'OBJECT',
                         'properties' => [
+                            'level' => ['type' => 'INTEGER'],
+                            'concept' => ['type' => 'STRING'],
                             'question' => ['type' => 'STRING'],
                             'options' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
                             'correct_index' => ['type' => 'INTEGER'],
                             'explanation' => ['type' => 'STRING'],
                             'source_label' => ['type' => 'STRING'],
                         ],
-                        'required' => ['question', 'options', 'correct_index', 'explanation'],
+                        'required' => ['level', 'concept', 'question', 'options', 'correct_index', 'explanation'],
                     ],
                 ],
             ],
             'required' => ['questions'],
         ];
 
-        $total = max(1, $concepts->count());
-        $done = 0;
+        $result = $this->llm->generateJson(
+            $this->questionsPrompt($text, $targets, $perConcept, $optionsCount),
+            $schema,
+            $this->systemInstruction()
+        );
 
-        foreach ($concepts as $concept) {
-            if (! $concept->questions()->exists()) {
-                $result = $this->llm->generateJson(
-                    $this->questionsPrompt($concept->name, $perConcept, $optionsCount, $text),
-                    $schema,
-                    $this->systemInstruction()
-                );
+        $levelIds = StudyLevel::where('document_id', $document->id)
+            ->pluck('id', 'level_number');
 
-                $rows = array_slice((array) ($result['questions'] ?? []), 0, $perConcept);
+        $targetByKey = $targets->keyBy(fn ($target) => $target['level'].'|'.$target['concept']);
+        $counts = [];
+        $limit = $targets->count() * $perConcept;
 
-                foreach ($rows as $row) {
-                    $question = trim((string) ($row['question'] ?? ''));
-                    $options = $this->cleanStringList((array) ($row['options'] ?? []));
-                    $correctIndex = (int) ($row['correct_index'] ?? 0);
+        foreach (array_slice((array) ($result['questions'] ?? []), 0, $limit) as $row) {
+            $levelNumber = (int) ($row['level'] ?? 0);
+            $conceptName = trim((string) ($row['concept'] ?? ''));
+            $key = $levelNumber.'|'.$conceptName;
+            $target = $targetByKey->get($key);
 
-                    if ($question === '' || count($options) < 2) {
-                        continue;
-                    }
-
-                    if ($correctIndex < 0 || $correctIndex >= count($options)) {
-                        continue;
-                    }
-
-                    Question::create([
-                        'document_id' => $document->id,
-                        'concept_id' => $concept->id,
-                        'question' => $question,
-                        'options' => $options,
-                        'correct_index' => $correctIndex,
-                        'explanation' => trim((string) ($row['explanation'] ?? '')) ?: null,
-                        'source_label' => trim((string) ($row['source_label'] ?? '')) ?: null,
-                    ]);
-                }
+            if (! $target || ($counts[$key] ?? 0) >= $perConcept || ! $levelIds->has($levelNumber)) {
+                continue;
             }
 
-            $done++;
-            $this->progress($document, 'questions', 35 + (int) floor(($done / $total) * 40));
+            $question = trim((string) ($row['question'] ?? ''));
+            $options = $this->cleanStringList((array) ($row['options'] ?? []));
+            $correctIndex = (int) ($row['correct_index'] ?? 0);
+
+            if ($question === '' || count($options) < 2 || $correctIndex < 0 || $correctIndex >= count($options)) {
+                continue;
+            }
+
+            Question::create([
+                'document_id' => $document->id,
+                'level_id' => $levelIds->get($levelNumber),
+                'concept_id' => $target['id'],
+                'question' => $question,
+                'options' => $options,
+                'correct_index' => $correctIndex,
+                'explanation' => trim((string) ($row['explanation'] ?? '')) ?: null,
+                'source_label' => trim((string) ($row['source_label'] ?? '')) ?: null,
+            ]);
+
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
         }
     }
 
-    /**
-     * Buat kartu belajar per konsep. Dilewati kalau konsep sudah punya kartu,
-     * jadi retry hanya melengkapi konsep yang belum selesai.
-     *
-     * @param  Collection<int, Concept>  $concepts
-     */
-    protected function generateFlashcards(Document $document, Collection $concepts, string $text): void
+    protected function generateFlashcards(Document $document, Collection $outline, string $text): void
     {
-        $perConcept = (int) config('sipanda.study_pack.flashcards_per_concept', 3);
+        $perConcept = max(1, (int) config('sipanda.study_pack.flashcards_per_concept', 3));
 
-        if ($perConcept < 1) {
+        $targets = $outline->flatMap(fn ($level) => collect($level['concepts'])->map(fn ($concept) => [
+            'level' => (int) $level['number'],
+            'concept' => $concept['name'],
+            'id' => $concept['id'],
+        ]))->filter(fn ($target) => ! Flashcard::where('concept_id', $target['id'])->exists())->values();
+
+        if ($targets->isEmpty()) {
             return;
         }
 
@@ -291,56 +348,61 @@ class StudyPackGenerator
                     'items' => [
                         'type' => 'OBJECT',
                         'properties' => [
+                            'level' => ['type' => 'INTEGER'],
+                            'concept' => ['type' => 'STRING'],
                             'front' => ['type' => 'STRING'],
                             'back' => ['type' => 'STRING'],
                         ],
-                        'required' => ['front', 'back'],
+                        'required' => ['level', 'concept', 'front', 'back'],
                     ],
                 ],
             ],
             'required' => ['flashcards'],
         ];
 
-        $total = max(1, $concepts->count());
-        $done = 0;
+        $result = $this->llm->generateJson(
+            $this->flashcardsPrompt($text, $targets, $perConcept),
+            $schema,
+            $this->systemInstruction()
+        );
 
-        foreach ($concepts as $concept) {
-            if (! $concept->flashcards()->exists()) {
-                $result = $this->llm->generateJson(
-                    $this->flashcardsPrompt($concept->name, $perConcept, $text),
-                    $schema,
-                    $this->systemInstruction()
-                );
+        $levelIds = StudyLevel::where('document_id', $document->id)
+            ->pluck('id', 'level_number');
 
-                $rows = array_slice((array) ($result['flashcards'] ?? []), 0, $perConcept);
+        $targetByKey = $targets->keyBy(fn ($target) => $target['level'].'|'.$target['concept']);
+        $counts = [];
+        $limit = $targets->count() * $perConcept;
 
-                foreach ($rows as $index => $row) {
-                    $front = trim((string) ($row['front'] ?? ''));
-                    $back = trim((string) ($row['back'] ?? ''));
+        foreach (array_slice((array) ($result['flashcards'] ?? []), 0, $limit) as $row) {
+            $levelNumber = (int) ($row['level'] ?? 0);
+            $conceptName = trim((string) ($row['concept'] ?? ''));
+            $key = $levelNumber.'|'.$conceptName;
+            $target = $targetByKey->get($key);
 
-                    if ($front === '' || $back === '') {
-                        continue;
-                    }
-
-                    Flashcard::create([
-                        'document_id' => $document->id,
-                        'concept_id' => $concept->id,
-                        'front' => $front,
-                        'back' => $back,
-                        'sort_order' => $index,
-                    ]);
-                }
+            if (! $target || ($counts[$key] ?? 0) >= $perConcept || ! $levelIds->has($levelNumber)) {
+                continue;
             }
 
-            $done++;
-            $this->progress($document, 'flashcards', 75 + (int) floor(($done / $total) * 20));
+            $front = trim((string) ($row['front'] ?? ''));
+            $back = trim((string) ($row['back'] ?? ''));
+
+            if ($front === '' || $back === '') {
+                continue;
+            }
+
+            Flashcard::create([
+                'document_id' => $document->id,
+                'level_id' => $levelIds->get($levelNumber),
+                'concept_id' => $target['id'],
+                'front' => $front,
+                'back' => $back,
+                'sort_order' => $counts[$key] ?? 0,
+            ]);
+
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
         }
     }
 
-    /**
-     * @param  array<int, mixed>  $values
-     * @return array<int, string>
-     */
     protected function cleanStringList(array $values): array
     {
         return array_values(array_filter(
@@ -352,31 +414,40 @@ class StudyPackGenerator
     protected function systemInstruction(): string
     {
         return 'Kamu membantu mahasiswa belajar. Balas HANYA JSON valid sesuai skema, '
-            . 'tanpa penjelasan tambahan, dan jangan mengarang di luar materi yang diberikan.';
+            .'tanpa penjelasan tambahan, jangan mengarang di luar materi, '
+            .'dan gunakan hanya nomor level serta nama konsep yang tercantum di prompt.';
     }
 
-    protected function summaryPrompt(string $text): string
+    protected function outlinePrompt(string $text, int $maxLevels, int $perLevel, int $maxConcepts): string
     {
-        return "TUGAS_RINGKASAN\nBuat ringkasan singkat (2-4 paragraf) dan 3-6 key points dari materi berikut.\n\nMATERI:\n{$text}";
+        return "TUGAS_OUTLINE_LEVEL\nSusun study pack bertahap dari materi berikut. "
+            ."Buat maksimal {$maxLevels} level, tiap level berisi {$perLevel} konsep, total maksimal {$maxConcepts} konsep. "
+            .'Level harus berurutan dari yang paling dasar ke yang paling kompleks sesuai key point materi. '
+            .'Tiap level wajib punya title, summary, key_points (3-5), dan concepts dengan name unik, description singkat, importance (high/medium/low). '
+            ."Jangan mengulang nama konsep antar level.\n\nMATERI:\n{$text}";
     }
 
-    protected function conceptsPrompt(string $text, int $max): string
+    protected function questionsPrompt(string $text, Collection $targets, int $perConcept, int $optionsCount): string
     {
-        return "TUGAS_KONSEP\nAmbil maksimal {$max} konsep penting dari materi berikut. "
-            . "Untuk setiap konsep isi name, description singkat, dan importance (high/medium/low).\n\nMATERI:\n{$text}";
+        $lines = $targets
+            ->map(fn ($target) => "Level {$target['level']} | {$target['concept']}")
+            ->implode("\n");
+
+        return "TUGAS_SOAL_LEVEL\nBuat {$perConcept} soal pilihan ganda untuk setiap target di bawah. "
+            ."Setiap soal punya {$optionsCount} opsi, correct_index (0-based), explanation, dan source_label bila ada. "
+            ."Pakai persis nilai level dan concept dari daftar target.\n\n"
+            ."DAFTAR TARGET (level | konsep):\n{$lines}\n\nMATERI:\n{$text}";
     }
 
-    protected function questionsPrompt(string $concept, int $count, int $optionsCount, string $text): string
+    protected function flashcardsPrompt(string $text, Collection $targets, int $perConcept): string
     {
-        return "TUGAS_SOAL\nBuat {$count} soal pilihan ganda tentang konsep \"{$concept}\" "
-            . "berdasarkan materi. Setiap soal punya {$optionsCount} opsi, correct_index (0-based), "
-            . "explanation, dan source_label bila ada.\n\nMATERI:\n{$text}";
-    }
+        $lines = $targets
+            ->map(fn ($target) => "Level {$target['level']} | {$target['concept']}")
+            ->implode("\n");
 
-    protected function flashcardsPrompt(string $concept, int $count, string $text): string
-    {
-        return "TUGAS_FLASHCARD\nBuat {$count} kartu belajar (flashcard) tentang konsep \"{$concept}\" "
-            . "berdasarkan materi. Setiap kartu punya front (istilah atau pertanyaan singkat) "
-            . "dan back (jawaban atau penjelasan singkat).\n\nMATERI:\n{$text}";
+        return "TUGAS_FLASHCARD_LEVEL\nBuat {$perConcept} kartu belajar untuk setiap target di bawah. "
+            .'Setiap kartu punya front (istilah atau pertanyaan singkat) dan back (jawaban atau penjelasan singkat). '
+            ."Pakai persis nilai level dan concept dari daftar target.\n\n"
+            ."DAFTAR TARGET (level | konsep):\n{$lines}\n\nMATERI:\n{$text}";
     }
 }

@@ -3,19 +3,19 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\AvatarStorage;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class ProfileAvatarController extends Controller
 {
-    public function store(Request $request)
+    public function store(Request $request, AvatarStorage $avatars)
     {
         $request->validate([
             'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
         $user = $request->user();
-        $this->deleteOld($user->getRawOriginal('avatar'));
+        $avatars->deletePrevious($user);
 
         $user->update([
             'avatar' => $request->file('avatar')->store('avatars', 'public'),
@@ -24,20 +24,12 @@ class ProfileAvatarController extends Controller
         return back();
     }
 
-    public function destroy(Request $request)
+    public function destroy(Request $request, AvatarStorage $avatars)
     {
         $user = $request->user();
-        $this->deleteOld($user->getRawOriginal('avatar'));
+        $avatars->deletePrevious($user);
         $user->update(['avatar' => null]);
 
         return back();
-    }
-
-    private function deleteOld(?string $path): void
-    {
-        // hanya hapus file lokal, bukan URL Google
-        if ($path && ! str_starts_with($path, 'http')) {
-            Storage::disk('public')->delete($path);
-        }
     }
 }

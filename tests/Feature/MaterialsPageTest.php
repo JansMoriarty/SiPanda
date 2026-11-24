@@ -115,6 +115,18 @@ class MaterialsPageTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_hapus_materi_diarahkan_ke_daftar_materi(): void
+    {
+        [$user, , $document] = $this->material('a');
+
+        $this->actingAs($user)
+            ->from(route('materials.show', $document))
+            ->delete(route('documents.destroy', $document))
+            ->assertRedirect(route('materials.index'));
+
+        $this->assertDatabaseMissing('documents', ['id' => $document->id]);
+    }
+
     public function test_buat_ulang_study_pack_mendispatch_job(): void
     {
         Bus::fake();

@@ -48,6 +48,11 @@ class Document extends Model
         return $this->hasMany(Chunk::class);
     }
 
+    public function studyLevels(): HasMany
+    {
+        return $this->hasMany(StudyLevel::class)->orderBy('level_number');
+    }
+
     public function concepts(): HasMany
     {
         return $this->hasMany(Concept::class)->orderBy('sort_order');

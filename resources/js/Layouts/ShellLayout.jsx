@@ -23,7 +23,7 @@ function InnerShell({ children }) {
         <Backdrop />
 
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-surface-tint lg:rounded-shell lg:shadow-card">
-          <div className="shrink-0 pb-4">
+          <div className="shrink-0">
             <ShellTopbar />
           </div>
 

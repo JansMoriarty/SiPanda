@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Document;
+use App\Services\AvatarPackService;
 use App\Services\Progress\ProgressData;
 use App\Services\Progress\StudyStreak;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ use Inertia\Inertia;
  */
 class ProfileController extends Controller
 {
-    public function index(Request $request, ProgressData $progressData, StudyStreak $streak)
+    public function index(Request $request, ProgressData $progressData, StudyStreak $streak, AvatarPackService $packs)
     {
         $user = $request->user();
 
@@ -29,6 +30,7 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Index', [
             'gap' => $progressData->forUser($user),
             'streak' => $streak->forUser($user->id, $documentIds),
+            'avatarPacks' => $packs->forUser($user),
         ]);
     }
 }

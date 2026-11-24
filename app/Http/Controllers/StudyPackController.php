@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AttemptAnswer;
 use App\Models\Document;
 use App\Models\FlashcardReview;
 use App\Models\QuizAttempt;
+use App\Models\XpClaim;
+use App\Services\LevelProgress;
+use App\Services\XpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -31,6 +33,11 @@ class StudyPackController extends Controller
 
         $masteryByConcept = $this->masteryByConcept($request, $document);
 
+        $xpService = app(XpService::class);
+        $claimedLevelIds = XpClaim::query()
+            ->where('user_id', $request->user()->id)
+            ->pluck('level_id');
+
         $questions = $document->questions()->get(['id', 'concept_id']);
 
         $flashcards = $document->flashcards()
@@ -55,6 +62,17 @@ class StudyPackController extends Controller
             ->whereNotNull('completed_at');
 
         $bestScore = (clone $attempts)->max('score');
+        $passingScore = (int) config('sipanda.quiz.passing_score', 70);
+
+        $levels = $this->levelsPayload(
+            $document,
+            $concepts,
+            $questions,
+            $flashcards,
+            $masteryByConcept,
+            $passingScore,
+            $claimedLevelIds
+        );
 
         return Inertia::render('Materials/StudyPack', [
             'pack' => [
@@ -76,6 +94,8 @@ class StudyPackController extends Controller
                         'generated_at' => $document->study_pack_generated_at?->toISOString(),
                     ],
                 ],
+                'levels' => $levels,
+                'xp' => $xpService->snapshot($request->user()),
                 'summary' => $document->summary,
                 'key_points' => $document->key_points ?? [],
                 'concepts' => $concepts->map(function ($concept) use ($masteryByConcept) {
@@ -124,6 +144,117 @@ class StudyPackController extends Controller
         ]);
     }
 
+    private function levelsPayload(
+        Document $document,
+        Collection $concepts,
+        Collection $questions,
+        Collection $flashcards,
+        Collection $masteryByConcept,
+        int $passingScore,
+        Collection $claimedLevelIds
+    ): array {
+        $rawLevels = $document->studyLevels()->with('concepts')->get();
+        $rawLevels = $rawLevels->isEmpty()
+            ? $this->legacyLevelRows($concepts)
+            : $rawLevels->map(fn ($level) => [
+                'id' => $level->id,
+                'title' => $level->title,
+                'summary' => $level->summary,
+                'key_points' => $level->key_points ?? [],
+                'concepts' => $level->concepts->map(fn ($concept) => [
+                    'id' => $concept->id,
+                    'name' => $concept->name,
+                    'description' => $concept->description,
+                    'importance' => $concept->importance,
+                ])->values()->all(),
+            ]);
+
+        $questionConcepts = $questions->pluck('concept_id')->unique();
+        $progress = app(LevelProgress::class);
+        $previousCompleted = true;
+        $payload = [];
+
+        foreach ($rawLevels as $index => $level) {
+            $levelConcepts = collect($level['concepts']);
+            $ids = $levelConcepts->pluck('id');
+
+            $conceptRows = $levelConcepts->map(function ($concept) use ($masteryByConcept) {
+                $bucket = $masteryByConcept->get($concept['id']);
+
+                return [
+                    'id' => $concept['id'],
+                    'name' => $concept['name'],
+                    'description' => $concept['description'],
+                    'importance' => $concept['importance'],
+                    'mastery' => $bucket === null
+                        ? null
+                        : (int) round($bucket['correct'] / $bucket['answered'] * 100),
+                ];
+            })->values();
+
+            $result = $progress->evaluate($levelConcepts, $masteryByConcept, $passingScore);
+            $mastery = $result['mastery'];
+            $completed = $result['completed'];
+            $locked = $index > 0 && ! $previousCompleted;
+
+            $levelId = $level['id'];
+            $isReward = ($index + 1) % 2 === 0;
+            $canClaim = $isReward && is_numeric($levelId);
+            $claimed = $canClaim && $claimedLevelIds->contains((int) $levelId);
+            $xpPoints = (int) config('sipanda.xp.per_claim', 50);
+
+            $payload[] = [
+                'id' => $levelId,
+                'number' => $index + 1,
+                'title' => $level['title'],
+                'summary' => $level['summary'],
+                'key_points' => $level['key_points'],
+                'concepts' => $conceptRows,
+                'concept_ids' => $ids->values()->all(),
+                'flashcards' => $flashcards->filter(fn ($card) => $ids->contains($card->concept_id))->count(),
+                'covered_concepts' => $ids->filter(fn ($id) => $questionConcepts->contains($id))->count(),
+                'mastery' => $mastery,
+                'tested' => $result['tested'],
+                'completed' => $completed,
+                'locked' => $locked,
+                'xp_points' => $isReward ? $xpPoints : 0,
+                'xp_unlocked' => $canClaim && $completed,
+                'xp_claimed' => $claimed,
+                'xp_claim_url' => $canClaim ? route('xp.claims.store', (int) $levelId) : null,
+            ];
+
+            $previousCompleted = $completed;
+        }
+
+        return $payload;
+    }
+
+    private function legacyLevelRows(Collection $concepts): Collection
+    {
+        if ($concepts->isEmpty()) {
+            return collect();
+        }
+
+        $target = $concepts->count() <= 3 ? 1 : (int) ceil($concepts->count() / 3);
+        $size = (int) ceil($concepts->count() / $target);
+        $titles = ['Fondasi', 'Penguatan', 'Pendalaman', 'Penguasaan'];
+
+        return $concepts->chunk($size)->map(function ($group, $index) use ($titles) {
+            return [
+                'id' => 'legacy-'.($index + 1),
+                'title' => $titles[$index] ?? 'Level '.($index + 1),
+                'summary' => $group->pluck('description')->filter()->implode(' '),
+                'key_points' => $group->pluck('name')->values()->all(),
+                'concepts' => $group->map(fn ($concept) => [
+                    'id' => $concept->id,
+                    'name' => $concept->name,
+                    'description' => $concept->description,
+                    'importance' => $concept->importance,
+                ])->values()->all(),
+            ];
+        })->values();
+    }
+
     /**
      * concept_id => ['answered' => int, 'correct' => int] untuk attempt milik
      * user ini pada dokumen ini.
@@ -132,20 +263,7 @@ class StudyPackController extends Controller
      */
     private function masteryByConcept(Request $request, Document $document): Collection
     {
-        return AttemptAnswer::query()
-            ->join('questions', 'questions.id', '=', 'attempt_answers.question_id')
-            ->join('quiz_attempts', 'quiz_attempts.id', '=', 'attempt_answers.quiz_attempt_id')
-            ->where('quiz_attempts.user_id', $request->user()->id)
-            ->where('quiz_attempts.document_id', $document->id)
-            ->whereNotNull('quiz_attempts.completed_at')
-            ->groupBy('questions.concept_id')
-            ->selectRaw('questions.concept_id as concept_id, COUNT(*) as answered, SUM(attempt_answers.is_correct) as correct')
-            ->get()
-            ->keyBy('concept_id')
-            ->map(fn ($row) => [
-                'answered' => (int) $row->answered,
-                'correct' => (int) $row->correct,
-            ]);
+        return app(LevelProgress::class)->masteryByConcept($request->user(), $document);
     }
 
     private function authorizeOwnership(Request $request, Document $document): void

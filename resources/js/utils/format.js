@@ -52,13 +52,28 @@ export const scoreTone = (score) => {
     return "text-rose-600 bg-rose-50 border-rose-200/80 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20";
 };
 
-/** Warna ikon berkas menurut ekstensi. */
-export const fileTone = (type) =>
-    type === "pdf"
-        ? "bg-rose-50 border-rose-200/60 text-rose-500 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400"
-        : type === "pptx"
-        ? "bg-amber-50 border-amber-200/60 text-amber-500 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400"
-        : "bg-canvas border-track text-muted dark:bg-surface-tint";
+/** Kelompokkan ekstensi berkas ke kind yang dipakai ikon & warna. */
+export const fileKind = (type) => {
+    const t = (type || "").toLowerCase();
+    if (t === "pdf") return "pdf";
+    if (t === "ppt" || t === "pptx") return "ppt";
+    if (["doc", "docx", "txt"].includes(t)) return "doc";
+    return "other";
+};
+
+/** Warna chip berkas: wrapper 20%, teks/ikon 100%. */
+export const fileTone = (type) => {
+    switch (fileKind(type)) {
+        case "pdf":
+            return "border-file-pdf/20 bg-file-pdf/20 text-file-pdf";
+        case "ppt":
+            return "border-file-ppt/20 bg-file-ppt/20 text-file-ppt";
+        case "doc":
+            return "border-file-doc/20 bg-file-doc/20 text-file-doc";
+        default:
+            return "border-file-other/20 bg-file-other/20 text-file-other";
+    }
+};
 
 export const fileLabel = (type) => (type === "pdf" ? "PDF" : type === "pptx" ? "PPT" : (type || "FILE").toUpperCase());
 

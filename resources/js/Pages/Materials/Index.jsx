@@ -6,7 +6,7 @@ import Button from "@/Components/ui/Button";
 import Badge from "@/Components/ui/Badge";
 import IconChip from "@/Components/ui/IconChip";
 import useRefreshWhile from "@/hooks/useRefreshWhile";
-import { cx, fileLabel, formatDate, formatSize, packBadge, scoreTone } from "@/utils/format";
+import { cx, fileKind, fileLabel, formatDate, formatSize, packBadge, scoreTone } from "@/utils/format";
 
 const STATUS_FILTERS = [
     { id: "all", label: "Semua" },
@@ -26,11 +26,17 @@ const DROPDOWN_CLASS =
 
 const MAX_STORAGE_BYTES = 100 * 1024 * 1024; // Batas penyimpanan 100 MB.
 
-const DOCUMENT_ICON =
-    "M19.5 14.25v-2.625A3.375 3.375 0 0016.125 8.25h-1.5A1.125 1.125 0 0013.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z";
-
 const AI_ICON =
     "M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z";
+
+const iconUrl = (name, color) => `https://api.iconify.design/${name}.svg?color=${encodeURIComponent(color)}`;
+
+const FILE_ICONS = {
+    pdf: iconUrl("mdi/file-pdf-outline", "#5b4b8a"),
+    ppt: iconUrl("mdi/file-powerpoint-outline", "#c2512b"),
+    doc: iconUrl("mdi/file-word-outline", "#b7a6e6"),
+    other: iconUrl("mdi/file-outline", "#a3a1b5"),
+};
 
 const isProcessing = (doc) =>
     doc.status === "processing" || doc.study_pack.status === "generating" || doc.study_pack.status === "queued";
@@ -40,13 +46,12 @@ const isFailed = (doc) => doc.status === "failed" || doc.study_pack.status === "
 // pending supaya UI ikut ter-refresh sampai status benar-benar tuntas.
 const isPending = (doc) => doc.status === "uploaded" || isProcessing(doc);
 
-function FileIcon({ size = "md" }) {
-    const glyph = size === "lg" ? "h-6 w-6" : "h-5 w-5";
+function FileIcon({ type, size = "md" }) {
+    const kind = fileKind(type);
+    const glyph = size === "lg" ? "h-7 w-7" : "h-6 w-6";
     return (
-        <IconChip tone="lavender" size={size}>
-            <svg className={glyph} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                <path strokeLinecap="round" strokeLinejoin="round" d={DOCUMENT_ICON} />
-            </svg>
+        <IconChip tone={kind} size={size}>
+            <img className={glyph} src={FILE_ICONS[kind]} alt="" aria-hidden="true" />
         </IconChip>
     );
 }
@@ -213,7 +218,7 @@ function MaterialCard({ doc }) {
     return (
         <article className="group flex flex-col rounded-card bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover dark:ring-1 dark:ring-track">
             <div className="flex items-start gap-3.5">
-                <FileIcon size="lg" />
+                <FileIcon type={doc.file_type} size="lg" />
 
                 <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
@@ -223,7 +228,7 @@ function MaterialCard({ doc }) {
                         >
                             {doc.title}
                         </Link>
-                        <Badge tone="lavender" className="mt-0.5 shrink-0 px-2 py-0 text-[10px]">
+                        <Badge tone={fileKind(doc.file_type)} className="mt-0.5 shrink-0 px-2 py-0 text-[10px]">
                             {fileLabel(doc.file_type)}
                         </Badge>
                     </div>
@@ -247,7 +252,7 @@ function MaterialRow({ doc }) {
     return (
         <article className="group flex flex-col gap-3 rounded-card bg-surface p-4 shadow-card transition-all duration-200 hover:shadow-card-hover dark:ring-1 dark:ring-track sm:flex-row sm:items-center">
             <div className="flex min-w-0 flex-1 items-start gap-3.5">
-                <FileIcon />
+                <FileIcon type={doc.file_type} />
 
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -257,7 +262,7 @@ function MaterialRow({ doc }) {
                         >
                             {doc.title}
                         </Link>
-                        <Badge tone="lavender" className="shrink-0 px-2 py-0 text-[10px]">
+                        <Badge tone={fileKind(doc.file_type)} className="shrink-0 px-2 py-0 text-[10px]">
                             {fileLabel(doc.file_type)}
                         </Badge>
                     </div>
@@ -427,9 +432,9 @@ function CourseFilterDropdown({ courses, selected, onChange }) {
 function StoragePanel({ materials, onUpload }) {
     const stats = useMemo(() => {
         const buckets = {
-            pdf: { label: "PDF", dot: "bg-lavender", count: 0, size: 0 },
-            ppt: { label: "Presentasi", dot: "bg-peach", count: 0, size: 0 },
-            doc: { label: "Dokumen", dot: "bg-sage", count: 0, size: 0 },
+            pdf: { label: "PDF", dot: "bg-file-pdf", count: 0, size: 0 },
+            ppt: { label: "Presentasi", dot: "bg-file-ppt", count: 0, size: 0 },
+            doc: { label: "Dokumen", dot: "bg-file-doc", count: 0, size: 0 },
             other: { label: "Lainnya", dot: "bg-muted/40", count: 0, size: 0 },
         };
 
@@ -520,10 +525,8 @@ function StoragePanel({ materials, onUpload }) {
 function EmptyState({ hasMaterials, onReset }) {
     return (
         <div className="rounded-card border border-dashed border-track bg-surface px-6 py-16 text-center">
-            <IconChip tone="lavender" shape="circle" size="lg" className="mx-auto">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                    <path strokeLinecap="round" strokeLinejoin="round" d={DOCUMENT_ICON} />
-                </svg>
+            <IconChip tone="other" shape="circle" size="lg" className="mx-auto">
+                <img className="h-7 w-7" src={FILE_ICONS.other} alt="" aria-hidden="true" />
             </IconChip>
             <p className="mt-4 text-base font-semibold text-ink">
                 {hasMaterials ? "Tidak ada materi yang cocok" : "Belum ada materi"}

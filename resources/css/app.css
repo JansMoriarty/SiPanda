@@ -20,6 +20,10 @@
   --color-surface-tint: #f7f6fc;
   --color-surface-raised: #ffffff;
   --color-track: #e6e3f1;
+  --color-file-pdf: var(--color-brand);
+  --color-file-ppt: var(--color-peach-strong);
+  --color-file-doc: var(--color-lavender);
+  --color-file-other: var(--color-muted);
   --color-ink: #2b2840;
   --color-muted: #a3a1b5;
   --color-brand: #5b4b8a;

@@ -1,23 +1,25 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\CourseController;
-use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\FlashcardReviewController;
-use App\Http\Controllers\QuizController;
-use App\Http\Controllers\ProgressController;
-use App\Http\Controllers\PracticeController;
-use App\Http\Controllers\MaterialsController;
-use App\Http\Controllers\StudyPackController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\LandingController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AskPandaController;
-use App\Http\Controllers\Auth\ProfileAvatarController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\LlmUsageController as AdminLlmUsageController;
 use App\Http\Controllers\Admin\OnlineController as AdminOnlineController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\AskPandaController;
+use App\Http\Controllers\Auth\AvatarPackController;
+use App\Http\Controllers\Auth\ProfileAvatarController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\FlashcardReviewController;
+use App\Http\Controllers\LandingController;
+use App\Http\Controllers\MaterialsController;
+use App\Http\Controllers\PracticeController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProgressController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\StudyPackController;
+use App\Http\Controllers\XpClaimController;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 /*
@@ -31,17 +33,17 @@ use Inertia\Inertia;
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 
 Route::middleware(['auth', 'student'])->group(function () {
-    // Rumah student V2. Dulu '/' merender Materials/Index; sekarang pindah ke
-    // '/student' karena '/' dipakai landing page publik.
-    Route::get('/student', [MaterialsController::class, 'index'])->name('home');
+    // Rumah student V2 adalah dashboard. '/student' tetap dipertahankan sebagai
+    // alias lama supaya bookmark/link lama tidak menuju ke halaman materi.
+    Route::get('/student', fn () => redirect()->route('dashboard'))->name('home');
     Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
     Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
     Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
     Route::get('/ask-panda', [AskPandaController::class, 'index'])->name('ask-panda.index');
     Route::post('/ask-panda', [AskPandaController::class, 'ask'])->name('ask-panda.ask');
-    Route::get('/settings', fn() => Inertia::render('Settings/Index'))->name('settings.index');
-    Route::get('/pricing', fn() => Inertia::render('Pricing/Index'))->name('pricing.index');
+    Route::get('/settings', fn () => Inertia::render('Settings/Index'))->name('settings.index');
+    Route::get('/pricing', fn () => Inertia::render('Pricing/Index'))->name('pricing.index');
 
     /*
     |--------------------------------------------------------------------------
@@ -58,6 +60,7 @@ Route::middleware(['auth', 'student'])->group(function () {
     */
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/avatar', [ProfileAvatarController::class, 'store'])->name('profile.avatar.store');
+    Route::post('/profile/avatar/pack', [AvatarPackController::class, 'store'])->name('profile.avatar.pack');
     Route::delete('/profile/avatar', [ProfileAvatarController::class, 'destroy'])->name('profile.avatar.destroy');
 
     /*
@@ -71,8 +74,9 @@ Route::middleware(['auth', 'student'])->group(function () {
     | Query yang menyentuh documents/concepts/questions/attempts WAJIB lewat
     | course.user_id = auth()->id(); documents tidak punya user_id sendiri.
     |
-    | Catatan: halaman "Documents" V1 sudah dilebur ke Materials. '/' dan
-    | '/materials' sama-sama merender Materials/Index.
+    | Catatan: halaman "Documents" V1 sudah dilebur ke Materials. Rumah student
+    | ('/student' dan redirect login) kini mengarah ke Dashboard; '/materials'
+    | tetap menjadi daftar materi.
     */
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/materials', [MaterialsController::class, 'index'])->name('materials.index');
@@ -80,6 +84,7 @@ Route::middleware(['auth', 'student'])->group(function () {
     Route::get('/documents/{document}', [MaterialsController::class, 'show'])->name('materials.show');
     Route::post('/documents/{document}/study-pack', [MaterialsController::class, 'generateStudyPack'])->name('materials.study-pack.generate');
     Route::get('/documents/{document}/study-pack', [StudyPackController::class, 'show'])->name('materials.study-pack');
+    Route::post('/study-levels/{studyLevel}/claim-xp', [XpClaimController::class, 'store'])->name('xp.claims.store');
     Route::post('/flashcards/{flashcard}/review', [FlashcardReviewController::class, 'store'])->name('flashcards.review');
     Route::get('/documents/{document}/quiz', [QuizController::class, 'start'])->name('materials.quiz');
     Route::post('/quiz/{attempt}/submit', [QuizController::class, 'submit'])->name('materials.quiz.submit');
@@ -114,4 +119,4 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/llm-usage', [AdminLlmUsageController::class, 'index'])->name('llm-usage.index');
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

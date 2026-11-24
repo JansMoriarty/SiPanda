@@ -4,6 +4,10 @@ const TONES = {
   peach: "bg-peach-soft text-brand dark:bg-peach/15 dark:text-peach",
   lavender: "bg-lavender-soft text-brand dark:bg-lavender/15 dark:text-lavender",
   sage: "bg-sage/15 text-brand dark:bg-sage/20 dark:text-sage",
+  pdf: "bg-file-pdf/20 text-file-pdf",
+  ppt: "bg-file-ppt/20 text-file-ppt",
+  doc: "bg-file-doc/20 text-file-doc",
+  other: "bg-file-other/20 text-file-other",
   brand: "bg-brand/10 text-brand dark:bg-brand/30 dark:text-ink",
 };
 

@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\Document;
 use App\Models\Question;
 use App\Models\QuizAttempt;
+use App\Models\StudyLevel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -79,7 +80,9 @@ class QuizFlowTest extends TestCase
                 ->component('Quiz/Index')
                 ->has('session.questions', 3)
                 ->where('session.total_questions', 3)
-                ->where('session.passing_score', 70));
+                ->where('session.passing_score', 70)
+                ->where('session.time_limit_minutes', config('sipanda.quiz.time_limit_minutes'))
+                ->where('session.started_at', fn ($value) => is_string($value)));
 
         $this->assertDatabaseCount('quiz_attempts', 1);
 
@@ -87,6 +90,65 @@ class QuizFlowTest extends TestCase
         $this->assertSame($user->id, $attempt->user_id);
         $this->assertSame($document->id, $attempt->document_id);
         $this->assertNotNull($attempt->started_at);
+    }
+
+    public function test_halaman_quiz_memiliki_peringatan_keluar_dan_countdown(): void
+    {
+        $quizPage = file_get_contents(resource_path('js/Pages/Quiz/Index.jsx'));
+        $runner = file_get_contents(resource_path('js/Components/QuizRunner.jsx'));
+
+        $this->assertStringContainsString('Perubahan anda tidak akan tersimpan', $quizPage);
+        $this->assertStringContainsString('inertia:before', $quizPage);
+        $this->assertStringContainsString('beforeunload', $quizPage);
+        $this->assertStringContainsString('popstate', $quizPage);
+        $this->assertStringContainsString('Sisa {formatClock(seconds)}', $runner);
+        $this->assertStringContainsString('setInterval', $runner);
+    }
+
+    public function test_start_dengan_level_hanya_memilih_soal_level_tersebut(): void
+    {
+        [$user, $document, $concept] = $this->material(0);
+
+        $first = StudyLevel::create([
+            'document_id' => $document->id,
+            'level_number' => 1,
+            'title' => 'Dasar',
+            'sort_order' => 0,
+        ]);
+        $second = StudyLevel::create([
+            'document_id' => $document->id,
+            'level_number' => 2,
+            'title' => 'Lanjutan',
+            'sort_order' => 1,
+        ]);
+
+        Question::create([
+            'document_id' => $document->id,
+            'concept_id' => $concept->id,
+            'level_id' => $first->id,
+            'question' => 'Soal level 1',
+            'options' => ['A', 'B', 'C', 'D'],
+            'correct_index' => 0,
+        ]);
+
+        Question::create([
+            'document_id' => $document->id,
+            'concept_id' => $concept->id,
+            'level_id' => $second->id,
+            'question' => 'Soal level 2',
+            'options' => ['A', 'B', 'C', 'D'],
+            'correct_index' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('materials.quiz', $document).'?level=2')
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Quiz/Index')
+                ->has('session.questions', 1)
+                ->where('session.questions.0.question', 'Soal level 2')
+                ->where('session.level_number', 2));
+
+        $this->assertSame($second->id, QuizAttempt::first()->level_id);
     }
 
     public function test_start_tanpa_soal_diarahkan_ke_study_pack(): void
