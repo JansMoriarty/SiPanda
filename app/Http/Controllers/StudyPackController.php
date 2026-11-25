@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Document;
 use App\Models\FlashcardReview;
 use App\Models\QuizAttempt;
-use App\Models\XpClaim;
 use App\Services\LevelProgress;
 use App\Services\XpService;
 use Illuminate\Http\Request;
@@ -34,9 +33,7 @@ class StudyPackController extends Controller
         $masteryByConcept = $this->masteryByConcept($request, $document);
 
         $xpService = app(XpService::class);
-        $claimedLevelIds = XpClaim::query()
-            ->where('user_id', $request->user()->id)
-            ->pluck('level_id');
+        $claimedLevelIds = $xpService->claimedRewardLevelIds($request->user());
 
         $questions = $document->questions()->get(['id', 'concept_id']);
 
@@ -153,25 +150,14 @@ class StudyPackController extends Controller
         int $passingScore,
         Collection $claimedLevelIds
     ): array {
-        $rawLevels = $document->studyLevels()->with('concepts')->get();
-        $rawLevels = $rawLevels->isEmpty()
-            ? $this->legacyLevelRows($concepts)
-            : $rawLevels->map(fn ($level) => [
-                'id' => $level->id,
-                'title' => $level->title,
-                'summary' => $level->summary,
-                'key_points' => $level->key_points ?? [],
-                'concepts' => $level->concepts->map(fn ($concept) => [
-                    'id' => $concept->id,
-                    'name' => $concept->name,
-                    'description' => $concept->description,
-                    'importance' => $concept->importance,
-                ])->values()->all(),
-            ]);
-
-        $questionConcepts = $questions->pluck('concept_id')->unique();
         $progress = app(LevelProgress::class);
+        $rawLevels = $progress->levelRows($document, $concepts);
+        $questionConcepts = $questions->pluck('concept_id')->unique();
         $previousCompleted = true;
+        $targetIndex = count($rawLevels) - 1;
+        $allCompleted = $rawLevels->every(function (array $row) use ($progress, $masteryByConcept, $passingScore): bool {
+            return $progress->evaluate(collect($row['concepts']), $masteryByConcept, $passingScore)['completed'];
+        });
         $payload = [];
 
         foreach ($rawLevels as $index => $level) {
@@ -198,9 +184,9 @@ class StudyPackController extends Controller
             $locked = $index > 0 && ! $previousCompleted;
 
             $levelId = $level['id'];
-            $isReward = ($index + 1) % 2 === 0;
-            $canClaim = $isReward && is_numeric($levelId);
-            $claimed = $canClaim && $claimedLevelIds->contains((int) $levelId);
+            $isReward = $index === $targetIndex && is_numeric($levelId);
+            $canClaim = $isReward && $allCompleted;
+            $claimed = $isReward && $claimedLevelIds->contains((int) $levelId);
             $xpPoints = (int) config('sipanda.xp.per_claim', 50);
 
             $payload[] = [
@@ -227,32 +213,6 @@ class StudyPackController extends Controller
         }
 
         return $payload;
-    }
-
-    private function legacyLevelRows(Collection $concepts): Collection
-    {
-        if ($concepts->isEmpty()) {
-            return collect();
-        }
-
-        $target = $concepts->count() <= 3 ? 1 : (int) ceil($concepts->count() / 3);
-        $size = (int) ceil($concepts->count() / $target);
-        $titles = ['Fondasi', 'Penguatan', 'Pendalaman', 'Penguasaan'];
-
-        return $concepts->chunk($size)->map(function ($group, $index) use ($titles) {
-            return [
-                'id' => 'legacy-'.($index + 1),
-                'title' => $titles[$index] ?? 'Level '.($index + 1),
-                'summary' => $group->pluck('description')->filter()->implode(' '),
-                'key_points' => $group->pluck('name')->values()->all(),
-                'concepts' => $group->map(fn ($concept) => [
-                    'id' => $concept->id,
-                    'name' => $concept->name,
-                    'description' => $concept->description,
-                    'importance' => $concept->importance,
-                ])->values()->all(),
-            ];
-        })->values();
     }
 
     /**

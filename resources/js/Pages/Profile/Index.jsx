@@ -387,7 +387,7 @@ function IdentityCard({
         <section className="flex h-full flex-col overflow-hidden rounded-card bg-surface shadow-card dark:ring-1 dark:ring-track">
             <div aria-hidden="true" className="relative h-32 overflow-hidden sm:h-36">
                 <img
-                    src="/images/banner-bg.jpg"
+                    src="/images/banner-bg.webp"
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover object-center"
                 />
@@ -896,7 +896,7 @@ export default function Index({ gap, streak, avatarPacks }) {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.3fr)]">
+                <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,1.3fr)]">
                     <IdentityCard
                         user={user}
                         avatarPacks={packs}
@@ -916,7 +916,7 @@ export default function Index({ gap, streak, avatarPacks }) {
 
                 <StudyStats stats={stats} />
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                     <CourseMastery summaries={summaries} />
                     <QuizHistory attempts={gap.attempts} courses={gap.courses} />
                 </div>

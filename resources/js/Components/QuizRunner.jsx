@@ -114,7 +114,7 @@ function Option({ letter, text, state }) {
             <span className={cx("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold", letterTone)}>
                 {letter}
             </span>
-            <span className="flex-1 pt-0.5 text-sm font-medium leading-relaxed text-ink">{text}</span>
+            <span className="min-w-0 flex-1 pt-0.5 text-sm font-medium leading-relaxed text-ink">{text}</span>
             {state === "correct" && (
                 <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -361,7 +361,7 @@ export default function QuizRunner({ session, context, conceptName, onFinish, re
 
     if (layout === "split") {
         return (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start xl:grid-cols-[240px_minmax(0,1fr)]">
                 <aside className="space-y-4 lg:sticky lg:top-0">
                     <div className="rounded-card bg-surface p-5 shadow-card dark:ring-1 dark:ring-track">
                         {progressHeader}

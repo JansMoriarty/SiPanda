@@ -12,8 +12,8 @@ class XpClaimController extends Controller
 
     public function store(Request $request, StudyLevel $studyLevel)
     {
-        $claim = $this->xp->claimLevel($request->user(), $studyLevel);
+        $this->xp->claimLevel($request->user(), $studyLevel);
 
-        return back()->with('success', "EXP berhasil diklaim! +{$claim->points} XP.");
+        return back()->with('success', 'EXP berhasil diklaim! +'.(int) config('sipanda.xp.per_claim', 50).' XP.');
     }
 }

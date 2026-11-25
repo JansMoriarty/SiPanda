@@ -31,6 +31,8 @@ return [
     ],
 
     'xp' => [
+        'per_quiz' => (int) env('XP_PER_QUIZ', 10),
+        'per_level' => (int) env('XP_PER_LEVEL', 5),
         'per_claim' => (int) env('XP_PER_CLAIM', 50),
         'tiers' => [
             ['id' => 'pemula', 'label' => 'Pemula', 'min' => 0, 'color' => '#94A3B8', 'reward' => 'Paket Avatar Notionists (4)', 'avatar_pack' => 'pemula'],

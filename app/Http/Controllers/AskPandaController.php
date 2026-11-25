@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Contracts\LlmClient;
 use App\Models\Document;
 use App\Models\LlmUsage;
+use App\Services\Llm\LlmRateLimit;
 use App\Services\Llm\LlmUsageRecorder;
 use App\Services\RetrievalService;
+use App\Services\TextSanitizer;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -88,9 +90,10 @@ TXT;
             $scopeInstruction = 'Tidak ada materi kuliah yang relevan dengan pertanyaan ini. Jawab dengan pengetahuan umummu secara akurat dan ramah, serta sebutkan secukupnya bahwa jawaban ini TIDAK bersumber dari materi yang diunggah.';
         }
 
-        $grouped = collect($chunks)->groupBy(fn($item) => $item['chunk']->document_id);
+        $grouped = collect($chunks)->groupBy(fn ($item) => $item['chunk']->document_id);
         $sources = $grouped->map(function ($items) {
             $firstChunk = $items->first()['chunk'];
+
             return [
                 'document_id' => $firstChunk->document_id,
                 'document' => $firstChunk->document->original_filename,
@@ -105,7 +108,7 @@ TXT;
 
         return response()->stream(function () use ($llm, $question, $chunks, $history, $sources, $userId, $scope, $scopeInstruction, $needsGeneralConfirm) {
             if ($needsGeneralConfirm) {
-                echo "data: " . json_encode(['type' => 'no_context', 'data' => ['question' => $question]]) . "\n\n";
+                echo 'data: '.json_encode(TextSanitizer::sanitizeArray(['type' => 'no_context', 'data' => ['question' => $question]]))."\n\n";
                 $this->flushOutput();
 
                 echo "data: [DONE]\n\n";
@@ -115,11 +118,11 @@ TXT;
             }
 
             if ($scope !== null) {
-                echo "data: " . json_encode(['type' => 'scope', 'data' => $scope]) . "\n\n";
+                echo 'data: '.json_encode(TextSanitizer::sanitizeArray(['type' => 'scope', 'data' => $scope]))."\n\n";
                 $this->flushOutput();
             }
 
-            echo "data: " . json_encode(['type' => 'sources', 'data' => $sources]) . "\n\n";
+            echo 'data: '.json_encode(TextSanitizer::sanitizeArray(['type' => 'sources', 'data' => $sources]))."\n\n";
             $this->flushOutput();
 
             try {
@@ -127,22 +130,22 @@ TXT;
                     $userId,
                     LlmUsage::FEATURE_ASK_PANDA,
                     fn () => $llm->generateStreamAnswer($question, $chunks, $history, function ($chunkText) {
-                        echo "data: " . json_encode(['type' => 'text', 'data' => $chunkText]) . "\n\n";
+                        echo 'data: '.json_encode(TextSanitizer::sanitizeArray(['type' => 'text', 'data' => $chunkText]))."\n\n";
                         $this->flushOutput();
                     }, $scopeInstruction),
                 );
             } catch (\Throwable $e) {
-                $isRateLimit = $e->getCode() === 429;
+                $isRateLimit = LlmRateLimit::is($e);
 
                 $errorMessage = $isRateLimit
-                    ? 'Kamu sudah mencapai batas pesan harian untuk Ask PANDA. Coba lagi besok, atau hubungi admin untuk menaikkan kuota.'
+                    ? LlmRateLimit::MESSAGE
                     : 'Terjadi kesalahan pada server. Coba lagi dalam beberapa saat.';
 
-                echo "data: " . json_encode([
+                echo 'data: '.json_encode(TextSanitizer::sanitizeArray([
                     'type' => 'error',
                     'rate_limited' => $isRateLimit,
                     'message' => $errorMessage,
-                ]) . "\n\n";
+                ]))."\n\n";
                 $this->flushOutput();
             }
 

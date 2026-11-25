@@ -115,7 +115,9 @@ export default function Index({ materials = [] }) {
     const [question, setQuestion] = useState('');
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [isHistoryOpen, setIsHistoryOpen] = useState(true);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(
+        () => typeof window === 'undefined' || window.matchMedia('(min-width: 1280px)').matches
+    );
     const [copiedIndex, setCopiedIndex] = useState(null);
     const [activeModule, setActiveModule] = useState(null);
     const [moduleQuery, setModuleQuery] = useState('');
@@ -179,6 +181,15 @@ export default function Index({ materials = [] }) {
             searchInputRef.current?.focus();
         }
     }, [isSearchOpen]);
+
+    useEffect(() => {
+        const desktopQuery = window.matchMedia('(min-width: 1280px)');
+        const syncHistorySidebar = (event) => setIsHistoryOpen(event.matches);
+
+        setIsHistoryOpen(desktopQuery.matches);
+        desktopQuery.addEventListener('change', syncHistorySidebar);
+        return () => desktopQuery.removeEventListener('change', syncHistorySidebar);
+    }, []);
 
     function handleNewChat() {
         setMessages([]);
@@ -454,8 +465,8 @@ export default function Index({ materials = [] }) {
                 />
             </div>
 
-            <div className="mt-2 flex items-center justify-between border-t border-track pt-3">
-                <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto py-0.5">
+            <div className="mt-2 flex min-w-0 items-center justify-between border-t border-track pt-3">
+                <div className="no-scrollbar flex min-w-0 items-center gap-1.5 overflow-x-auto py-0.5">
                     <button
                         type="button"
                         onClick={() => triggerToast('Upload File')}
@@ -576,10 +587,10 @@ export default function Index({ materials = [] }) {
                 </div>
             )}
 
-            <div className="relative flex h-full flex-1 overflow-hidden bg-canvas text-ink">
+            <div className="relative flex h-full min-w-0 flex-1 overflow-hidden bg-canvas text-ink">
 
                 {/* Main Content Area */}
-                <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-canvas">
+                <div className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
 
                     {/* Header */}
                     <div className="z-10 flex items-center justify-end bg-transparent px-6 py-3">
@@ -829,10 +840,10 @@ export default function Index({ materials = [] }) {
 
                 {/* Sidebar: daftar modul per mata kuliah */}
                 <aside
-                    className={`absolute bottom-4 right-4 top-4 z-20 flex w-72 shrink-0 flex-col overflow-hidden rounded-card border border-track bg-surface p-5 text-ink shadow-card transition-all duration-300 ease-in-out lg:static lg:bottom-auto lg:right-auto lg:top-auto lg:translate-x-0 ${
+                    className={`absolute bottom-4 right-4 top-4 z-20 flex w-72 shrink-0 flex-col overflow-hidden rounded-card border border-track bg-surface p-5 text-ink shadow-card transition-all duration-300 ease-in-out xl:static xl:bottom-auto xl:right-auto xl:top-auto xl:translate-x-0 ${
                         isHistoryOpen
-                            ? "visible translate-x-0 opacity-100 lg:my-4 lg:mr-4 lg:w-72 lg:border lg:p-5 lg:shadow-card"
-                            : "invisible pointer-events-none translate-x-3 opacity-0 lg:m-0 lg:w-0 lg:border-0 lg:p-0 lg:shadow-none"
+                            ? "visible translate-x-0 opacity-100 xl:my-4 xl:mr-4 xl:w-72 xl:border xl:p-5 xl:shadow-card"
+                            : "invisible pointer-events-none translate-x-3 opacity-0 xl:m-0 xl:w-0 xl:border-0 xl:p-0 xl:shadow-none"
                     }`}
                 >
                     <div className="no-scrollbar flex h-full w-full flex-col space-y-5 overflow-y-auto">

@@ -3,6 +3,8 @@
 namespace App\Services\Llm;
 
 use App\Contracts\LlmClient;
+use App\Services\TextSanitizer;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -25,16 +27,17 @@ class GeminiLlmClient implements LlmClient
 
     public function generateAnswer(string $question, array $chunks, array $history = [], ?string $scopeInstruction = null): array
     {
-        $hasContext = !empty($chunks);
+        $hasContext = ! empty($chunks);
 
         $context = $hasContext
             ? collect($chunks)->map(function ($item) {
                 $chunk = $item['chunk'];
+
                 return "[{$chunk->source_location}]\n{$chunk->content}";
             })->implode("\n\n---\n\n")
             : '(Tidak ada materi yang relevan ditemukan untuk pertanyaan ini)';
 
-        $systemPrompt = <<<PROMPT
+        $systemPrompt = <<<'PROMPT'
 Kamu adalah "Ask PANDA", asisten belajar yang ramah, santun, dan komunikatif untuk mahasiswa. Kamu membantu mahasiswa memahami materi kuliah yang sudah mereka upload.
 
 CARA MERESPON & FORMAT TEKS:
@@ -107,10 +110,12 @@ PROMPT;
         $this->recordUsage($response, $response->failed() ? $response->body() : null);
 
         if ($response->failed()) {
-            throw new \RuntimeException('Gemini Generate API error: ' . $response->body());
+            LlmRateLimit::throwIfMatched($response->status(), $response->body());
+
+            throw new \RuntimeException('Gemini Generate API error: '.$response->body());
         }
 
-        $rawText = $response->json('candidates.0.content.parts.0.text') ?? '';
+        $rawText = TextSanitizer::sanitize((string) ($response->json('candidates.0.content.parts.0.text') ?? ''));
 
         Log::debug('Gemini raw response', [
             'rawText' => $rawText,
@@ -124,9 +129,9 @@ PROMPT;
             $decoded = json_decode($cleanText, true);
         }
 
-        if (!is_array($decoded) || !isset($decoded['answer'])) {
+        if (! is_array($decoded) || ! isset($decoded['answer'])) {
             return [
-                'answer' => !empty($rawText) ? trim($rawText) : 'Terjadi kesalahan saat memproses jawaban. Coba tanya ulang dengan kalimat lain.',
+                'answer' => ! empty($rawText) ? trim($rawText) : 'Terjadi kesalahan saat memproses jawaban. Coba tanya ulang dengan kalimat lain.',
                 'grounded' => false,
             ];
         }
@@ -139,16 +144,17 @@ PROMPT;
 
     public function generateStreamAnswer(string $question, array $chunks, array $history, callable $onChunk, ?string $scopeInstruction = null): void
     {
-        $hasContext = !empty($chunks);
+        $hasContext = ! empty($chunks);
 
         $context = $hasContext
             ? collect($chunks)->map(function ($item) {
                 $chunk = $item['chunk'];
+
                 return "[{$chunk->source_location}]\n{$chunk->content}";
             })->implode("\n\n---\n\n")
             : '(Tidak ada materi yang relevan ditemukan untuk pertanyaan ini)';
 
-        $systemPrompt = <<<PROMPT
+        $systemPrompt = <<<'PROMPT'
 Kamu adalah "Ask PANDA", asisten belajar yang ramah, santun, dan komunikatif untuk mahasiswa. Kamu membantu mahasiswa memahami materi kuliah yang sudah mereka upload.
 
 CARA MERESPON & FORMAT TEKS:
@@ -197,21 +203,24 @@ PROMPT;
         $buffer = '';
         $hasReceivedText = false;
         $usageMetadata = null;
+        $apiErrorMessage = null;
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
+            CURLOPT_POSTFIELDS => json_encode(TextSanitizer::sanitizeArray($payload)),
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_RETURNTRANSFER => false,
-            CURLOPT_WRITEFUNCTION => function ($ch, $data) use ($onChunk, &$buffer, &$hasReceivedText, &$usageMetadata) {
+            CURLOPT_WRITEFUNCTION => function ($ch, $data) use ($onChunk, &$buffer, &$hasReceivedText, &$usageMetadata, &$apiErrorMessage) {
                 $buffer .= $data;
                 $lines = explode("\n", $buffer);
                 $buffer = array_pop($lines);
 
                 foreach ($lines as $line) {
                     $line = trim($line);
-                    if (empty($line)) continue;
+                    if (empty($line)) {
+                        continue;
+                    }
 
                     if (str_starts_with($line, 'data: ')) {
                         $jsonStr = substr($line, 6);
@@ -229,11 +238,11 @@ PROMPT;
                     } else {
                         $json = json_decode($line, true);
                         if (isset($json['error']['message'])) {
-                            $hasReceivedText = true;
-                            $onChunk("⚠️ Error Gemini API: " . $json['error']['message']);
+                            $apiErrorMessage = TextSanitizer::sanitize((string) $json['error']['message']);
                         }
                     }
                 }
+
                 return strlen($data);
             },
         ]);
@@ -248,16 +257,17 @@ PROMPT;
             $this->model,
             $usageMetadata,
             $hasReceivedText,
-            $hasReceivedText ? null : ($curlErr ?: 'Stream Gemini gagal (HTTP ' . $httpCode . ')'),
+            $hasReceivedText ? null : ($curlErr ?: $apiErrorMessage ?: 'Stream Gemini gagal (HTTP '.$httpCode.')'),
         );
 
-        if (!$hasReceivedText) {
+        LlmRateLimit::throwIfMatched($httpCode, $apiErrorMessage);
+
+        if (! $hasReceivedText) {
             if ($curlErr) {
-                throw new \RuntimeException('Kesalahan koneksi ke Gemini: ' . $curlErr, 500);
-            } elseif ($httpCode === 429) {
-                throw new \RuntimeException('Rate limit tercapai', 429);
+                throw new \RuntimeException('Kesalahan koneksi ke Gemini: '.$curlErr, 500);
             } elseif ($httpCode !== 200) {
-                throw new \RuntimeException('Server Gemini merespon status HTTP ' . $httpCode, $httpCode);
+
+                throw new \RuntimeException('Server Gemini merespon status HTTP '.$httpCode, $httpCode);
             } else {
                 throw new \RuntimeException('Tidak ada respons teks dari Gemini', 500);
             }
@@ -291,10 +301,12 @@ PROMPT;
         $this->recordUsage($response, $response->failed() ? $response->body() : null);
 
         if ($response->failed()) {
-            throw new \RuntimeException('Gemini Generate API error: ' . $response->body());
+            LlmRateLimit::throwIfMatched($response->status(), $response->body());
+
+            throw new \RuntimeException('Gemini Generate API error: '.$response->body());
         }
 
-        $rawText = $response->json('candidates.0.content.parts.0.text') ?? '';
+        $rawText = TextSanitizer::sanitize((string) ($response->json('candidates.0.content.parts.0.text') ?? ''));
 
         $decoded = json_decode($rawText, true);
 
@@ -303,7 +315,7 @@ PROMPT;
         }
 
         if (! is_array($decoded)) {
-            throw new \RuntimeException('Respons LLM bukan JSON valid: ' . $rawText);
+            throw new \RuntimeException('Respons LLM bukan JSON valid: '.$rawText);
         }
 
         return $decoded;
@@ -319,14 +331,14 @@ PROMPT;
 
         return $scopeInstruction === ''
             ? $systemPrompt
-            : $systemPrompt . "\n\n" . $scopeInstruction;
+            : $systemPrompt."\n\n".$scopeInstruction;
     }
 
     /**
      * Catat pemakaian token dari usageMetadata untuk response non-streaming.
      * Non-fatal: kalau gagal mencatat, pemanggilan LLM tetap lanjut.
      */
-    protected function recordUsage(\Illuminate\Http\Client\Response $response, ?string $error = null): void
+    protected function recordUsage(Response $response, ?string $error = null): void
     {
         $this->usageRecorder()->record(
             $this->name(),
@@ -353,14 +365,14 @@ PROMPT;
      *
      * @param  array<string, mixed>  $payload
      */
-    protected function postWithRetry(string $url, array $payload, int $timeout = 90): \Illuminate\Http\Client\Response
+    protected function postWithRetry(string $url, array $payload, int $timeout = 90): Response
     {
         $attempts = max(1, (int) config('llm.retry.attempts', 3));
         $sleepMs = max(0, (int) config('llm.retry.sleep_ms', 1500));
         $retryable = [500, 502, 503, 504];
 
         for ($attempt = 1; ; $attempt++) {
-            $response = Http::timeout($timeout)->post($url, $payload);
+            $response = Http::timeout($timeout)->post($url, TextSanitizer::sanitizeArray($payload));
 
             if ($response->successful() || $attempt >= $attempts || ! in_array($response->status(), $retryable, true)) {
                 return $response;

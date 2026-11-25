@@ -201,6 +201,46 @@ class QuizFlowTest extends TestCase
         $this->assertDatabaseCount('attempt_answers', 2);
     }
 
+    public function test_submit_memberi_10_xp_satu_kali_per_attempt(): void
+    {
+        [$user, $document] = $this->material(2);
+
+        $attempt = QuizAttempt::create([
+            'document_id' => $document->id,
+            'user_id' => $user->id,
+            'total_questions' => 2,
+            'started_at' => now(),
+        ]);
+
+        $questions = $document->questions()->orderBy('id')->get();
+        $answers = $questions
+            ->map(fn ($question) => [
+                'question_id' => $question->id,
+                'chosen' => $question->correct_index,
+            ])
+            ->all();
+
+        $this->actingAs($user)
+            ->post(route('materials.quiz.submit', $attempt), ['answers' => $answers])
+            ->assertRedirect(route('quiz.results', $attempt));
+
+        $user->refresh();
+
+        $this->assertSame(10, $user->xp);
+
+        $this->actingAs($user)
+            ->get(route('quiz.results', $attempt))
+            ->assertInertia(fn (Assert $page) => $page->where('result.xp_awarded', 10));
+
+        $this->actingAs($user)
+            ->post(route('materials.quiz.submit', $attempt), ['answers' => $answers])
+            ->assertRedirect(route('quiz.results', $attempt));
+
+        $user->refresh();
+
+        $this->assertSame(10, $user->xp);
+    }
+
     public function test_tidak_bisa_submit_attempt_orang_lain(): void
     {
         [$owner, $document] = $this->material(1);

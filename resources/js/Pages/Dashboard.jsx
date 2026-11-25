@@ -6,8 +6,8 @@ import IconChip from "@/Components/ui/IconChip";
 import SectionHeader from "@/Components/ui/SectionHeader";
 import Badge from "@/Components/ui/Badge";
 import Button from "@/Components/ui/Button";
-import { buildWeakestConcepts } from "@/utils/gap";
-import { formatSize } from "@/utils/format";
+import { buildWeakConcepts } from "@/utils/gap";
+import { WEAK_THRESHOLD, formatSize } from "@/utils/format";
 
 const WEEKDAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const CONTINUE_TONES = ["peach", "sage", "lavender"];
@@ -230,7 +230,7 @@ function ActivityPills({ data = [], total = 0 }) {
     );
 }
 
-function ProgressRing({ value, target = 70 }) {
+function ProgressRing({ value, completed = 0, total = 0 }) {
     const size = 152;
     const strokeWidth = 10;
     const radius = (size - strokeWidth) / 2;
@@ -240,11 +240,11 @@ function ProgressRing({ value, target = 70 }) {
 
     return (
         <UICard padding="md" className="flex flex-col">
-            <SectionHeader title="Progress" subtitle="Rata-rata skor vs target" />
+            <SectionHeader title="Progress belajar" subtitle={`${completed}/${total} level selesai`} />
 
             <div className="flex flex-1 items-center justify-center py-4">
                 <div className="relative">
-                    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="block">
+                    <svg viewBox={`0 0 ${size} ${size}`} className="block h-auto w-full max-w-[152px]">
                         <circle
                             cx={size / 2}
                             cy={size / 2}
@@ -271,7 +271,9 @@ function ProgressRing({ value, target = 70 }) {
                         <span className="text-3xl font-bold leading-none text-ink">
                             {value === null || value === undefined ? "—" : `${value}%`}
                         </span>
-                        <span className="mt-2 text-[11px] font-medium text-muted">Target {target}%</span>
+                        <span className="mt-2 text-[11px] font-medium text-muted">
+                            {total > 0 ? `${completed}/${total} level` : "Belum ada level"}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -521,7 +523,7 @@ export default function Dashboard({
     score_trend = [],
     study_dates = [],
 }) {
-    const knowledge_gap_preview = buildWeakestConcepts(gap).slice(0, 3);
+    const knowledge_gap_preview = buildWeakConcepts(gap).slice(0, 3);
 
     return (
         <>
@@ -551,7 +553,7 @@ export default function Dashboard({
                                 </svg>
                             </div>
 
-                            <div className="pointer-events-none absolute -bottom-3 right-4 z-0 hidden h-[125%] aspect-square md:block lg:right-7">
+                            <div className="pointer-events-none absolute -bottom-3 right-4 z-0 hidden h-[110%] aspect-square md:block lg:right-7 xl:h-[125%]">
                                 <img
                                     src="/images/reading-boy.png"
                                     alt="Ilustrasi belajar"
@@ -559,7 +561,7 @@ export default function Dashboard({
                                 />
                             </div>
 
-                            <div className="relative z-10 md:pr-64">
+                            <div className="relative z-10 md:pr-40 xl:pr-52 2xl:pr-64">
                                 <div className="min-w-0">
                                     <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70">Dashboard</p>
                                     <h1 className="mt-1 text-xl font-semibold tracking-tight sm:text-2xl">
@@ -582,9 +584,13 @@ export default function Dashboard({
 
                         <ScoreChart data={score_trend} target={stats.passing_score} />
 
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                             <ActivityPills data={weekly_activity} total={stats.questions_this_week} />
-                            <ProgressRing value={stats.average_score} target={stats.passing_score} />
+                            <ProgressRing
+                                value={stats.level_progress_percent}
+                                completed={stats.levels_completed}
+                                total={stats.levels_total}
+                            />
                         </div>
 
                         <UICard padding="md">
@@ -595,25 +601,31 @@ export default function Dashboard({
                             />
 
                             <div className="mt-4 space-y-3">
-                                {knowledge_gap_preview.map((gap) => (
-                                    <div key={gap.concept_id} className="rounded-2xl bg-surface-tint p-3.5">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-semibold text-ink">{gap.name}</p>
-                                                <p className="mt-0.5 truncate text-xs text-muted">{gap.course_name}</p>
+                                {knowledge_gap_preview.length === 0 ? (
+                                    <p className="rounded-2xl border border-dashed border-track p-4 text-center text-xs text-muted">
+                                        Belum ada topik dengan nilai di bawah {WEAK_THRESHOLD}%.
+                                    </p>
+                                ) : (
+                                    knowledge_gap_preview.map((gap) => (
+                                        <div key={gap.concept_id} className="rounded-2xl bg-surface-tint p-3.5">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-semibold text-ink">{gap.name}</p>
+                                                    <p className="mt-0.5 truncate text-xs text-muted">{gap.course_name}</p>
+                                                </div>
+                                                <span className="shrink-0 text-sm font-semibold text-peach-strong dark:text-peach">
+                                                    {gap.mastery}%
+                                                </span>
                                             </div>
-                                            <span className="shrink-0 text-sm font-semibold text-peach-strong dark:text-peach">
-                                                {gap.mastery}%
-                                            </span>
+                                            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-track">
+                                                <div
+                                                    className="h-full rounded-full bg-peach-strong dark:bg-peach"
+                                                    style={{ width: `${gap.mastery}%` }}
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-track">
-                                            <div
-                                                className="h-full rounded-full bg-peach-strong dark:bg-peach"
-                                                style={{ width: `${gap.mastery}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
 
                             <Button

@@ -150,43 +150,39 @@ function FileActions({ doc }) {
     const ready = doc.study_pack.status === "ready";
 
     return (
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
             <Link
                 href={`/documents/${doc.id}`}
                 aria-label={`Lihat detail ${doc.title}`}
-                title="Lihat detail"
-                className="flex h-8 w-8 items-center justify-center rounded-control bg-surface-tint text-muted transition-all hover:bg-lavender-soft hover:text-brand active:scale-95 dark:bg-surface dark:hover:bg-lavender/15 dark:hover:text-lavender"
+                className="flex h-8 items-center gap-1.5 rounded-control bg-surface-tint px-2.5 text-[11px] font-semibold text-muted transition-all hover:bg-lavender-soft hover:text-brand active:scale-95 dark:bg-surface dark:hover:bg-lavender/15 dark:hover:text-lavender"
             >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
                 </svg>
+                <span>Detail</span>
             </Link>
 
             {ready ? (
-                <div className="group/ai relative">
-                    <Link
-                        href={`/documents/${doc.id}/study-pack`}
-                        aria-label={`Buka Study Pack ${doc.title}`}
-                        title="Buka Study Pack AI"
-                        className="flex h-8 w-8 items-center justify-center rounded-control bg-lavender-soft text-brand transition-all hover:bg-lavender/50 active:scale-95 dark:bg-lavender/15 dark:text-lavender dark:hover:bg-lavender/25"
-                    >
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
-                            <path strokeLinecap="round" strokeLinejoin="round" d={AI_ICON} />
-                        </svg>
-                    </Link>
-                    <span className="pointer-events-none absolute bottom-full right-0 z-20 mb-1.5 whitespace-nowrap rounded-lg bg-brand px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-card transition-opacity group-hover/ai:opacity-100 dark:bg-surface-raised dark:text-ink">
-                        Buka Study Pack AI
-                    </span>
-                </div>
+                <Link
+                    href={`/documents/${doc.id}/study-pack`}
+                    aria-label={`Buka Study Pack ${doc.title}`}
+                    className="flex h-8 items-center gap-1.5 rounded-control bg-lavender-soft px-2.5 text-[11px] font-semibold text-brand transition-all hover:bg-lavender/50 active:scale-95 dark:bg-lavender/15 dark:text-lavender dark:hover:bg-lavender/25"
+                >
+                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                        <path strokeLinecap="round" strokeLinejoin="round" d={AI_ICON} />
+                    </svg>
+                    <span>Study Pack</span>
+                </Link>
             ) : (
                 <span
                     aria-hidden="true"
                     title="Study pack belum siap"
-                    className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-control bg-surface-tint text-muted/50 dark:bg-surface"
+                    className="flex h-8 cursor-not-allowed items-center gap-1.5 rounded-control bg-surface-tint px-2.5 text-[11px] font-semibold text-muted/50 dark:bg-surface"
                 >
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
+                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
                         <path strokeLinecap="round" strokeLinejoin="round" d={AI_ICON} />
                     </svg>
+                    <span>Study Pack</span>
                 </span>
             )}
         </div>
@@ -240,7 +236,7 @@ function MaterialCard({ doc }) {
 
             <MaterialProgress doc={doc} />
 
-            <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+            <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-4">
                 <MaterialStatus doc={doc} />
                 <FileActions doc={doc} />
             </div>
@@ -273,7 +269,7 @@ function MaterialRow({ doc }) {
                 </div>
             </div>
 
-            <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+            <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
                 <MaterialStatus doc={doc} />
                 <FileActions doc={doc} />
             </div>
@@ -789,7 +785,7 @@ export default function Index({ materials = [], courses = [] }) {
 
                         {/* ----------------------------------------------------------- toolbar */}
                         <Card padding="sm" className="space-y-3">
-                            <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center">
+                            <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center">
                                 <div className="relative min-w-0 flex-1">
                                     <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
                                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -895,7 +891,7 @@ export default function Index({ materials = [], courses = [] }) {
                                     onChange={setCourseIds}
                                 />
 
-                                <div className="inline-flex shrink-0 gap-1 rounded-control bg-surface-tint p-1 dark:bg-surface">
+                                <div className="inline-flex min-w-0 flex-wrap gap-1 rounded-control bg-surface-tint p-1 dark:bg-surface">
                                     {STATUS_FILTERS.map((f) => (
                                         <button
                                             key={f.id}
@@ -914,7 +910,7 @@ export default function Index({ materials = [], courses = [] }) {
                                     ))}
                                 </div>
 
-                                <div className="ml-auto flex shrink-0 items-center gap-2.5">
+                                <div className="ml-auto flex min-w-0 items-center gap-2.5">
                                     <p className="text-[11px] text-muted">
                                         <span className="font-semibold text-ink">{results.length}</span> materi
                                     </p>

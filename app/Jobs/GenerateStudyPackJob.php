@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Document;
+use App\Services\Llm\LlmRateLimit;
 use App\Services\StudyPack\StudyPackGenerator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -61,7 +62,7 @@ class GenerateStudyPackJob implements ShouldQueue
     {
         $this->document->fresh()?->update([
             'study_pack_status' => 'failed',
-            'error_message' => $e?->getMessage(),
+            'error_message' => $e !== null && LlmRateLimit::is($e) ? LlmRateLimit::MESSAGE : $e?->getMessage(),
         ]);
     }
 }

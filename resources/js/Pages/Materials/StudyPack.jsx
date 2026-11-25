@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Head, Link, router } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import ShellLayout from "@/Layouts/ShellLayout";
 import useRefreshWhile from "@/hooks/useRefreshWhile";
+import Avatar from "@/Components/Avatar";
 import Badge from "@/Components/ui/Badge";
 import Card from "@/Components/ui/Card";
 import { cx, fileLabel, fileTone, formatDateTime, formatSize } from "@/utils/format";
@@ -21,12 +22,8 @@ const LEVEL_TABS = [
 const MAP_BG = "/images/study-map-bg.png";
 // Tinggi gambar background kalau lebarnya 400px (2576 / 1185 * 400).
 const MAP_BG_HEIGHT = 870;
-// Gambar maskot panda (PNG/SVG transparan), contoh: "/images/panda-walk.png".
-// Selama null, dipakai panda SVG bawaan di bawah (PandaMark).
-const PANDA_SRC = null;
-
 const MAP_W = 400; // lebar viewBox, harus sama dengan lebar card peta (400px di desktop)
-const MAP_TOP = 96; // y node pertama (ruang untuk progress bar di atasnya)
+const MAP_TOP = 96; // y node pertama (ruang atas biar tidak sumpek)
 const MAP_BOTTOM = 140; // ruang di bawah node terakhir (jalur lanjutan keluar lewat sini)
 const MAP_MIN_HEIGHT = 520; // tinggi minimum peta kalau levelnya sedikit
 const ROW_GAP = 160; // jarak vertikal antar level (satu level = satu baris jalur)
@@ -49,7 +46,7 @@ const rewardPos = (i) => {
 // Jalur ular: satu baris lurus per level, disambung tikungan setengah lingkaran.
 // Dimulai dari node pertama. Setelah node terakhir jalur tetap lanjut (tikungan lalu
 // keluar lewat sisi peta) supaya terlihat masih ada perjalanan berikutnya.
-function buildPath(count) {
+function buildPath(count, includeExit = true) {
     if (count < 1) return "";
     const first = nodePos(0);
     let d = `M ${first.x} ${first.y}`;
@@ -59,37 +56,23 @@ function buildPath(count) {
         const y = nodePos(i).y;
         d += ` L ${edge} ${y} A ${TURN_R} ${TURN_R} 0 0 ${goingRight ? 1 : 0} ${edge} ${y + ROW_GAP}`;
     }
-    // baris setelah level terakhir: keluar dari peta
-    const exitRight = count % 2 === 0;
-    d += ` L ${exitRight ? MAP_W + 30 : -30} ${nodePos(count).y}`;
+    if (includeExit) {
+        // baris setelah level terakhir: keluar dari peta
+        const exitRight = count % 2 === 0;
+        d += ` L ${exitRight ? MAP_W + 30 : -30} ${nodePos(count).y}`;
+    }
     return d;
 }
 
-// Tiap 2 level selesai membuka klaim EXP, jadi level ke-2, ke-4, dst diberi simpul hadiah.
-const isRewardLevel = (index) => (index + 1) % 2 === 0;
-
-// Kepala panda sederhana (dipakai di progress bar dan di samping level aktif).
-function PandaMark({ className, style }) {
-    return (
-        <svg viewBox="0 0 48 48" className={className} style={style} aria-hidden="true">
-            <circle cx="11" cy="11" r="7" fill="#2b2540" />
-            <circle cx="37" cy="11" r="7" fill="#2b2540" />
-            <circle cx="24" cy="26" r="19" fill="#ffffff" />
-            <ellipse cx="16.5" cy="24" rx="5" ry="6.5" fill="#2b2540" transform="rotate(20 16.5 24)" />
-            <ellipse cx="31.5" cy="24" rx="5" ry="6.5" fill="#2b2540" transform="rotate(-20 31.5 24)" />
-            <circle cx="17" cy="23.5" r="1.8" fill="#ffffff" />
-            <circle cx="31" cy="23.5" r="1.8" fill="#ffffff" />
-            <ellipse cx="24" cy="32" rx="3" ry="2.2" fill="#2b2540" />
-        </svg>
-    );
-}
+// Hadiah hanya ada di simpul target (level terakhir).
+const isRewardLevel = (index, total) => total > 0 && index === total - 1;
 
 /* ------------------------------------------------------------------ header */
 
 function DocumentHeader({ doc }) {
     return (
         <Card as="section" className="sm:p-6">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-center">
                 <div
                     className={cx(
                         "flex h-14 w-14 shrink-0 items-center justify-center rounded-control border",
@@ -124,7 +107,7 @@ function DocumentHeader({ doc }) {
                     </p>
                 </div>
 
-                <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col lg:items-end">
+                <div className="flex shrink-0 flex-col gap-2 sm:flex-row xl:flex-col xl:items-end">
                     <Link
                         href="/materials"
                         className="flex items-center justify-center gap-1.5 rounded-control border border-track bg-surface px-3.5 py-2 text-xs font-semibold text-ink transition-colors hover:border-brand/30 hover:bg-surface-tint"
@@ -150,19 +133,21 @@ function DocumentHeader({ doc }) {
 
 function LevelMap({ levels, selected, onSelect, xp, onClaim, claimingId }) {
     const completedCount = levels.filter((level) => level.completed).length;
-    const progress = levels.length ? (completedCount / levels.length) * 100 : 0;
+    const { props } = usePage();
+    const user = props.auth?.user;
+    const displayName = user?.name ?? "Kamu";
 
     const points = levels.map((_, index) => nodePos(index));
-    const rewardIndexes = levels.map((_, index) => index).filter(isRewardLevel);
+    const rewardIndexes = levels.map((_, index) => index).filter((index) => isRewardLevel(index, levels.length));
     const lastIndex = levels.length - 1;
-    const targetHasReward = lastIndex >= 0 && isRewardLevel(lastIndex);
+    const targetHasReward = isRewardLevel(lastIndex, levels.length);
     const mapHeight = Math.max(
         MAP_MIN_HEIGHT,
         MAP_TOP + lastIndex * ROW_GAP + (targetHasReward ? TARGET_REWARD_SPACE : MAP_BOTTOM)
     );
 
     return (
-        <Card as="aside" padding="none" className="h-fit overflow-hidden lg:sticky lg:top-6">
+        <Card as="aside" padding="none" className="h-fit overflow-hidden xl:sticky xl:top-6">
             <div className="flex items-center justify-between gap-2 border-b border-track px-4 py-3">
                 <div>
                     <h2 className="text-sm font-semibold text-ink">Peta perjalanan</h2>
@@ -186,29 +171,6 @@ function LevelMap({ levels, selected, onSelect, xp, onClaim, claimingId }) {
                 {/* gelapkan sedikit di dark mode */}
                 <div className="pointer-events-none absolute inset-0 bg-black/0 dark:bg-black/35" />
 
-                {/* progress bar perjalanan */}
-                <div className="absolute inset-x-5 top-4 z-20">
-                    <div className="relative h-3 rounded-full bg-[#1f8f3d]/60">
-                        <div
-                            className="h-full rounded-full bg-white/90 transition-all"
-                            style={{ width: `${Math.max(progress, 6)}%` }}
-                        />
-                        {PANDA_SRC ? (
-                            <img
-                                src={PANDA_SRC}
-                                alt=""
-                                className="absolute -top-4 h-8 -translate-x-1/2"
-                                style={{ left: `${Math.min(Math.max(progress, 5), 95)}%` }}
-                            />
-                        ) : (
-                            <PandaMark
-                                className="absolute -top-3.5 h-7 w-7 -translate-x-1/2 drop-shadow"
-                                style={{ left: `${Math.min(Math.max(progress, 5), 95)}%` }}
-                            />
-                        )}
-                    </div>
-                </div>
-
                 {/* tinggi wrapper ditentukan oleh svg ini, jadi posisi % node selalu pas dengan jalur */}
                 <svg viewBox={`0 0 ${MAP_W} ${mapHeight}`} className="relative block h-auto w-full" aria-hidden="true">
                     <path
@@ -219,12 +181,22 @@ function LevelMap({ levels, selected, onSelect, xp, onClaim, claimingId }) {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                     />
+                    {completedCount > 0 && (
+                        <path
+                            d={buildPath(completedCount, false)}
+                            fill="none"
+                            stroke="#fff4cf"
+                            strokeWidth={PATH_WIDTH - 6}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    )}
                 </svg>
 
                 {levels.map((level, index) => {
                     const active = selected === level.number;
                     const point = points[index];
-                    const pandaOnRight = index % 2 === 0;
+                    const avatarOnRight = index % 2 === 0;
                     const target = index === lastIndex;
                     return (
                         <button
@@ -242,19 +214,31 @@ function LevelMap({ levels, selected, onSelect, xp, onClaim, claimingId }) {
                                 level.locked && "cursor-not-allowed"
                             )}
                         >
-                            {/* maskot berdiri di samping node aktif, di atas jalur */}
+                            {target && targetHasReward && (
+                                <span className="pointer-events-none absolute -top-7 left-1/2 z-20 -translate-x-1/2 rounded-full bg-white/95 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-brand shadow-sm">
+                                    Target
+                                </span>
+                            )}
+                            {level.completed && (
+                                <span className="pointer-events-none absolute -top-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-[#fff4cf] px-2 py-0.5 text-[10px] font-extrabold text-[#c77d00] shadow-sm">
+                                    +{xp?.per_level ?? 5} XP
+                                </span>
+                            )}
+
+                            {/* avatar user berdiri di samping node aktif, di atas jalur */}
                             {active && (
                                 <span
                                     className={cx(
-                                        "pointer-events-none absolute top-3 z-20",
-                                        pandaOnRight ? "left-full -ml-1" : "right-full -mr-1"
+                                        "pointer-events-none absolute top-3 z-20 inline-flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-brand shadow-md drop-shadow-md",
+                                        avatarOnRight ? "left-full -ml-1" : "right-full -mr-1"
                                     )}
                                 >
-                                    {PANDA_SRC ? (
-                                        <img src={PANDA_SRC} alt="" className="h-12 w-auto drop-shadow-md" />
-                                    ) : (
-                                        <PandaMark className="h-11 w-11 drop-shadow-md" />
-                                    )}
+                                    <Avatar
+                                        src={user?.avatar}
+                                        name={displayName}
+                                        className="h-full w-full"
+                                        textClass="text-sm"
+                                    />
                                 </span>
                             )}
 
@@ -288,13 +272,8 @@ function LevelMap({ levels, selected, onSelect, xp, onClaim, claimingId }) {
                                     level.number
                                 )}
                             </span>
-                            <span
-                                className={cx(
-                                    "rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand",
-                                    target && targetHasReward ? "mt-24" : "mt-1.5"
-                                )}
-                            >
-                                {index === 0 ? "Mulai" : target ? "Target" : `Level ${level.number}`}
+                            <span className="mt-1.5 rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand">
+                                {index === 0 ? "Mulai" : `Level ${level.number}`}
                             </span>
                             <span className="mt-0.5 max-w-[112px] truncate text-[10px] font-semibold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.45)]">
                                 {level.title}
@@ -372,7 +351,7 @@ function LevelMap({ levels, selected, onSelect, xp, onClaim, claimingId }) {
             <div className="border-t border-track px-4 py-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">Hadiah perjalanan</p>
                 <p className="mt-1 text-[11px] leading-relaxed text-muted">
-                    Tiap 2 level selesai memberi {xp?.per_claim ?? 50} XP. Klaim sekali per level. Tier saat ini: {xp?.tier?.label ?? "Pemula"}.
+                    Selesaikan semua level sampai target untuk klaim +{xp?.per_claim ?? 50} XP. Klaim sekali per materi. Tier saat ini: {xp?.tier?.label ?? "Pemula"}.
                 </p>
             </div>
         </Card>
@@ -681,7 +660,7 @@ function LevelsPanel({ pack }) {
     }
 
     return (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[400px_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(240px,320px)_minmax(0,1fr)]">
             <LevelMap
                 levels={levels}
                 selected={active.number}

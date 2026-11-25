@@ -50,8 +50,10 @@ export default function ShellTopbar() {
   const xpRemaining = xpTier.progress?.remaining ?? 0;
 
   const inputRef = useRef(null);
-  const profileMenuRef = useRef(null);
+  const profileTriggerRef = useRef(null);
+  const profileDropdownRef = useRef(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [profileMenuPosition, setProfileMenuPosition] = useState(null);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -90,13 +92,46 @@ export default function ShellTopbar() {
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
-        setIsProfileMenuOpen(false);
+      const target = e.target;
+      if (
+        profileTriggerRef.current?.contains(target) ||
+        profileDropdownRef.current?.contains(target)
+      ) {
+        return;
       }
+      setIsProfileMenuOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isProfileMenuOpen) {
+      setProfileMenuPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const rect = profileTriggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const menuWidth = Math.min(240, window.innerWidth - 32);
+      const right = Math.min(
+        Math.max(8, window.innerWidth - rect.right),
+        Math.max(8, window.innerWidth - menuWidth - 8)
+      );
+
+      setProfileMenuPosition({ top: rect.bottom + 8, right });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isProfileMenuOpen]);
 
   useEffect(() => {
     if (!isProfileMenuOpen) return;
@@ -117,9 +152,9 @@ export default function ShellTopbar() {
   }, [isLogoutModalOpen, loggingOut]);
 
   return (
-    <header className="relative z-10 flex h-14 w-full items-center px-4 lg:px-6">
+    <header className="relative z-10 flex h-14 w-full items-center px-3 xl:px-6">
       <div className="flex w-full items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             type="button"
             onClick={handleToggle}
@@ -137,8 +172,8 @@ export default function ShellTopbar() {
             )}
           </button>
 
-          <div className="hidden lg:block">
-            <div className="relative">
+          <div className="hidden min-w-0 lg:block">
+            <div className="relative max-w-[288px]">
               <svg
                 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
                 fill="none"
@@ -151,7 +186,7 @@ export default function ShellTopbar() {
                 ref={inputRef}
                 type="text"
                 placeholder="Cari materi, konsep, atau quiz..."
-                className="h-10 w-72 rounded-control border border-track bg-surface py-1 pl-9 pr-12 text-xs text-ink placeholder-muted outline-none transition-all focus:border-peach focus:ring-2 focus:ring-peach/20 dark:border-white/10"
+                className="h-10 w-full min-w-0 rounded-control border border-track bg-surface py-1 pl-9 pr-12 text-xs text-ink placeholder-muted outline-none transition-all focus:border-peach focus:ring-2 focus:ring-peach/20 dark:border-white/10 xl:w-72"
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-track bg-canvas px-1.5 py-0.5 font-mono text-[10px] text-muted dark:border-white/10">
                 ⌘K
@@ -160,9 +195,9 @@ export default function ShellTopbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-1.5 xl:gap-2.5">
           <div
-            className="flex h-10 min-w-[92px] items-center gap-2 rounded-control border border-track bg-canvas px-2.5 sm:min-w-[148px] sm:px-3"
+            className="flex h-10 min-w-0 items-center gap-2 rounded-control border border-track bg-canvas px-2.5 xl:min-w-[148px] xl:px-3"
             title={
               xpNext
                 ? `${xpTier.label} · ${xpBalance} XP · ${xpRemaining} XP menuju ${xpNext.label}`
@@ -172,7 +207,7 @@ export default function ShellTopbar() {
             <XpMedal color={xpTier.color} className="h-5 w-5 shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1.5">
-                <span className="hidden truncate text-[11px] font-semibold text-ink sm:inline">{xpTier.label}</span>
+                <span className="hidden max-w-[90px] truncate text-[11px] font-semibold text-ink xl:inline">{xpTier.label}</span>
                 <span className="text-[11px] font-bold text-brand">{xpBalance} XP</span>
               </div>
               <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-track">
@@ -202,7 +237,7 @@ export default function ShellTopbar() {
             <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-peach" />
           </button>
 
-          <div className="relative" ref={profileMenuRef}>
+          <div className="relative" ref={profileTriggerRef}>
             <button
               type="button"
               onClick={() => setIsProfileMenuOpen((open) => !open)}
@@ -213,7 +248,7 @@ export default function ShellTopbar() {
               className="flex h-10 items-center gap-2 rounded-control px-1.5 transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-peach/40"
             >
               <Avatar src={user?.avatar} name={displayName} />
-              <span className="hidden max-w-[140px] truncate text-sm font-semibold text-ink sm:block">
+              <span className="hidden max-w-[100px] truncate text-sm font-semibold text-ink xl:block">
                 {displayName}
               </span>
               <svg
@@ -229,15 +264,20 @@ export default function ShellTopbar() {
               </svg>
             </button>
 
-            {isProfileMenuOpen && (
-              <div
-                role="menu"
-                className="absolute right-0 top-full z-[80] mt-2 w-60 max-w-[calc(100vw-2rem)] animate-fade-in-up space-y-1 rounded-card bg-surface p-1.5 shadow-card-hover dark:ring-1 dark:ring-white/10"
-              >
+            {isProfileMenuOpen &&
+              profileMenuPosition &&
+              createPortal(
+                <div
+                  ref={profileDropdownRef}
+                  role="menu"
+                  style={profileMenuPosition}
+                  className="fixed z-[90] w-60 max-w-[calc(100vw-2rem)] animate-fade-in-up space-y-1 rounded-card bg-surface p-1.5 shadow-card-hover dark:ring-1 dark:ring-white/10"
+                >
                 {!user?.is_admin && (
                   <>
                     <Link
                       href="/profile"
+                      onClick={() => setIsProfileMenuOpen(false)}
                       className="flex items-center gap-2.5 rounded-control px-3 py-2 text-xs font-medium text-muted transition-all hover:bg-canvas hover:text-ink"
                     >
                       <svg className="h-4 w-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -247,6 +287,7 @@ export default function ShellTopbar() {
                     </Link>
                     <Link
                       href="/settings"
+                      onClick={() => setIsProfileMenuOpen(false)}
                       className="flex items-center gap-2.5 rounded-control px-3 py-2 text-xs font-medium text-muted transition-all hover:bg-canvas hover:text-ink"
                     >
                       <svg className="h-4 w-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75">
@@ -271,8 +312,9 @@ export default function ShellTopbar() {
                   </svg>
                   Log Out
                 </button>
-              </div>
-            )}
+                </div>,
+                document.body
+              )}
           </div>
         </div>
       </div>

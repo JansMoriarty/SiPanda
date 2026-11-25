@@ -2,24 +2,24 @@
 
 namespace App\Services;
 
-use Smalot\PdfParser\Parser as PdfParser;
-use ZipArchive;
 use DOMDocument;
 use DOMXPath;
+use Smalot\PdfParser\Parser as PdfParser;
+use ZipArchive;
 
 class DocumentExtractor
 {
     public function extractPdf(string $path): string
     {
-        $parser = new PdfParser();
+        $parser = new PdfParser;
         $pdf = $parser->parseFile($path);
 
-        return $pdf->getText();
+        return TextSanitizer::sanitize($pdf->getText());
     }
 
     public function extractPptx(string $path): string
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($path) !== true) {
             throw new \RuntimeException('Tidak bisa membuka file PPTX');
         }
@@ -32,12 +32,12 @@ class DocumentExtractor
 
         foreach ($slideOrder as $slideFile) {
             $slideNumber++;
-            $slideXml = $zip->getFromName('ppt/slides/' . $slideFile);
+            $slideXml = $zip->getFromName('ppt/slides/'.$slideFile);
             if ($slideXml === false) {
                 continue;
             }
 
-            $dom = new DOMDocument();
+            $dom = new DOMDocument;
             $dom->loadXML($slideXml);
             $xpath = new DOMXPath($dom);
             $xpath->registerNamespace('a', 'http://schemas.openxmlformats.org/drawingml/2006/main');
@@ -51,12 +51,12 @@ class DocumentExtractor
                 }
             }
 
-            $text .= "\n--- Slide {$slideNumber} ---\n" . implode("\n", $slideText) . "\n";
+            $text .= "\n--- Slide {$slideNumber} ---\n".implode("\n", $slideText)."\n";
         }
 
         $zip->close();
 
-        return $text;
+        return TextSanitizer::sanitize($text);
     }
 
     private function getSlideOrder(ZipArchive $zip): array
@@ -66,7 +66,7 @@ class DocumentExtractor
 
         $relsXml = $zip->getFromName('ppt/_rels/presentation.xml.rels');
         if ($relsXml !== false) {
-            $relsDom = new DOMDocument();
+            $relsDom = new DOMDocument;
             $relsDom->loadXML($relsXml);
             foreach ($relsDom->getElementsByTagName('Relationship') as $rel) {
                 $relMap[$rel->getAttribute('Id')] = basename($rel->getAttribute('Target'));
@@ -75,7 +75,7 @@ class DocumentExtractor
 
         $presentationXml = $zip->getFromName('ppt/presentation.xml');
         if ($presentationXml !== false) {
-            $presDom = new DOMDocument();
+            $presDom = new DOMDocument;
             $presDom->loadXML($presentationXml);
             foreach ($presDom->getElementsByTagName('sldId') as $sldId) {
                 $rId = $sldId->getAttributeNS(
@@ -105,6 +105,8 @@ class DocumentExtractor
 
     public function chunkText(string $text, int $wordsPerChunk = 500, int $overlapWords = 50): array
     {
+        $text = TextSanitizer::sanitize($text);
+
         // Pisahkan per slide/section dulu kalau ada marker "--- Slide N ---"
         $sections = preg_split('/\n--- (Slide \d+|Halaman \d+) ---\n/', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
 

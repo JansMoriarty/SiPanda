@@ -10,6 +10,7 @@ use App\Models\Document;
 use App\Models\Flashcard;
 use App\Models\Question;
 use App\Models\User;
+use App\Services\Llm\LlmRateLimit;
 use App\Services\StudyPack\StudyPackGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -254,5 +255,24 @@ class StudyPackGeneratorTest extends TestCase
         $document->refresh();
         $this->assertSame('failed', $document->study_pack_status);
         $this->assertNotNull($document->error_message);
+    }
+
+    public function test_rate_limit_harian_menyimpan_pesan_yang_jelas(): void
+    {
+        Http::fake([
+            '*' => Http::response(['error' => ['message' => 'Resource has been exhausted']], 429),
+        ]);
+        $document = $this->document();
+
+        try {
+            app(StudyPackGenerator::class)->generate($document);
+            $this->fail('Rate limit seharusnya melempar exception.');
+        } catch (\Throwable $e) {
+            $this->assertSame(LlmRateLimit::CODE, $e->getCode());
+        }
+
+        $document->refresh();
+        $this->assertSame('failed', $document->study_pack_status);
+        $this->assertSame(LlmRateLimit::MESSAGE, $document->error_message);
     }
 }

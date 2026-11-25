@@ -6,6 +6,7 @@ use App\Models\Chunk;
 use App\Models\Document;
 use App\Services\DocumentExtractor;
 use App\Services\GeminiClient;
+use App\Services\Llm\LlmRateLimit;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -67,7 +68,7 @@ class ProcessDocumentJob implements ShouldQueue
             $max = $document->chunks()->max('chunk_index');
             $startIndex = $max === null ? 0 : ((int) $max + 1);
 
-            $path = Storage::path('documents/' . $document->stored_filename);
+            $path = Storage::path('documents/'.$document->stored_filename);
 
             $text = $document->file_type === 'pdf'
                 ? $extractor->extractPdf($path)
@@ -114,7 +115,10 @@ class ProcessDocumentJob implements ShouldQueue
 
             GenerateStudyPackJob::dispatch($document);
         } catch (\Throwable $e) {
-            $document->update(['status' => 'failed', 'error_message' => $e->getMessage()]);
+            $document->update([
+                'status' => 'failed',
+                'error_message' => LlmRateLimit::is($e) ? LlmRateLimit::MESSAGE : $e->getMessage(),
+            ]);
 
             throw $e;
         }
@@ -124,7 +128,7 @@ class ProcessDocumentJob implements ShouldQueue
     {
         $this->document->fresh()?->update([
             'status' => 'failed',
-            'error_message' => $e?->getMessage(),
+            'error_message' => $e !== null && LlmRateLimit::is($e) ? LlmRateLimit::MESSAGE : $e?->getMessage(),
         ]);
     }
 }

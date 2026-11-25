@@ -160,7 +160,7 @@ export default function Index({ session }) {
         <>
             <Head title={`Quiz — ${session.document_title}`} />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-7">
+            <div className="mx-auto max-w-6xl space-y-6 p-6 sm:p-7">
                 {/* header */}
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0">
@@ -170,10 +170,11 @@ export default function Index({ session }) {
                             </Link>
                             <span>/</span>
                             <Link
-                                href={`/documents/${session.document_id}`}
+                                href={`/documents/${session.document_id}/study-pack`}
+                                title={session.document_title}
                                 className="transition-colors hover:text-ink hover:underline"
                             >
-                                {session.document_title}
+                                Study Pack
                             </Link>
                             <span>/</span>
                             <span className="text-ink">Quiz</span>
@@ -201,6 +202,7 @@ export default function Index({ session }) {
 
                 <QuizRunner
                     session={session}
+                    layout="split"
                     context={{
                         note: "Setiap jawaban dicatat per konsep untuk menyusun Knowledge Gap.",
                         finishLabel: "Selesai & lihat hasil",

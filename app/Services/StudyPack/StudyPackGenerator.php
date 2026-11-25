@@ -9,6 +9,7 @@ use App\Models\Flashcard;
 use App\Models\LlmUsage;
 use App\Models\Question;
 use App\Models\StudyLevel;
+use App\Services\Llm\LlmRateLimit;
 use App\Services\Llm\LlmUsageRecorder;
 use Illuminate\Support\Collection;
 
@@ -57,7 +58,7 @@ class StudyPackGenerator
         } catch (\Throwable $e) {
             $document->update([
                 'study_pack_status' => 'failed',
-                'error_message' => $e->getMessage(),
+                'error_message' => LlmRateLimit::is($e) ? LlmRateLimit::MESSAGE : $e->getMessage(),
             ]);
 
             throw $e;

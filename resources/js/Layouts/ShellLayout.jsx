@@ -17,8 +17,8 @@ import Backdrop from "./Backdrop";
  */
 function InnerShell({ children }) {
   return (
-    <div className="flex h-screen min-h-screen overflow-hidden bg-canvas p-0 font-['Outfit',sans-serif] text-ink lg:p-5">
-      <div className="flex h-full min-h-0 w-full flex-row lg:gap-5">
+    <div className="flex h-screen min-h-screen overflow-hidden bg-canvas p-0 font-['Outfit',sans-serif] text-ink lg:p-3 xl:p-5">
+      <div className="flex h-full min-h-0 w-full flex-row lg:gap-3 xl:gap-5">
         <ShellSidebar />
         <Backdrop />
 

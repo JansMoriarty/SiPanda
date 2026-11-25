@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\AttemptAnswer;
 use App\Models\Document;
 use App\Models\QuizAttempt;
+use App\Services\LevelProgress;
 use App\Services\Progress\ProgressData;
 use App\Services\Progress\StudyStreak;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 
 /**
@@ -61,6 +63,9 @@ class DashboardController extends Controller
             ->groupBy('document_id')
             ->map(fn ($rows) => $rows->last()->score);
 
+        $passingScore = (int) config('sipanda.quiz.passing_score', 70);
+        $levelProgress = app(LevelProgress::class)->completionSummary($user, $documents, $passingScore);
+
         return Inertia::render('Dashboard', [
             'greeting_name' => $this->greetingName($user->name),
             'study_streak_days' => $streak->forUser($user->id, $documentIds)['current'],
@@ -70,7 +75,10 @@ class DashboardController extends Controller
                 'quizzes_taken' => $quizzesTaken,
                 'average_score' => $averageScore,
                 'questions_this_week' => $questionsThisWeek,
-                'passing_score' => (int) config('sipanda.quiz.passing_score', 70),
+                'passing_score' => $passingScore,
+                'level_progress_percent' => $levelProgress['percent'],
+                'levels_completed' => $levelProgress['completed'],
+                'levels_total' => $levelProgress['total'],
             ],
             'weekly_activity' => $weekly,
             'score_trend' => $scoreTrend,
@@ -111,7 +119,7 @@ class DashboardController extends Controller
      * ini). Dipakai sebagai grafik "aktivitas" karena durasi belajar tidak
      * dilacak.
      *
-     * @param  \Illuminate\Support\Collection<int, int>  $documentIds
+     * @param  Collection<int, int>  $documentIds
      * @return array<int, array{day: string, date: string, questions: int, is_today: bool}>
      */
     private function weeklyActivity(int $userId, $documentIds): array
@@ -151,7 +159,7 @@ class DashboardController extends Controller
      * Rata-rata skor quiz per hari untuk 7 hari terakhir. Hari tanpa attempt
      * dikirim sebagai null supaya grafik tidak mengarang nilai 0.
      *
-     * @param  \Illuminate\Support\Collection<int, int>  $documentIds
+     * @param  Collection<int, int>  $documentIds
      * @return array<int, array{day: string, date: string, score: int|null, attempts: int, is_today: bool}>
      */
     private function scoreTrend(int $userId, $documentIds): array
@@ -192,7 +200,7 @@ class DashboardController extends Controller
     /**
      * Tanggal (Y-m-d) yang punya attempt selesai, dipakai untuk dot kalender.
      *
-     * @param  \Illuminate\Support\Collection<int, int>  $documentIds
+     * @param  Collection<int, int>  $documentIds
      * @return array<int, string>
      */
     private function studyDates(int $userId, $documentIds): array
@@ -212,7 +220,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, int>  $documentIds
+     * @param  Collection<int, int>  $documentIds
      * @return array<int, array<string, mixed>>
      */
     private function recentQuizzes(int $userId, $documentIds): array

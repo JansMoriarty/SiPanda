@@ -21,58 +21,51 @@ class LlmManager implements LlmClient
 
     public function generateAnswer(string $question, array $chunks, array $history = [], ?string $scopeInstruction = null): array
     {
-        $errors = [];
-
-        foreach ($this->providerNames() as $name) {
-            try {
-                return $this->client($name)->generateAnswer($question, $chunks, $history, $scopeInstruction);
-            } catch (\Throwable $e) {
-                $errors[$name] = $e->getMessage();
-                Log::warning("LLM provider [{$name}] gagal generateAnswer", [
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        throw new \RuntimeException('Semua provider LLM gagal: ' . json_encode($errors));
+        return $this->throughProviders(
+            fn (LlmClient $client) => $client->generateAnswer($question, $chunks, $history, $scopeInstruction)
+        );
     }
 
     public function generateStreamAnswer(string $question, array $chunks, array $history, callable $onChunk, ?string $scopeInstruction = null): void
     {
-        $errors = [];
-
-        foreach ($this->providerNames() as $name) {
-            try {
-                $this->client($name)->generateStreamAnswer($question, $chunks, $history, $onChunk, $scopeInstruction);
-
-                return;
-            } catch (\Throwable $e) {
-                $errors[$name] = $e->getMessage();
-                Log::warning("LLM provider [{$name}] gagal generateStreamAnswer", [
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        throw new \RuntimeException('Semua provider LLM gagal: ' . json_encode($errors));
+        $this->throughProviders(
+            fn (LlmClient $client) => $client->generateStreamAnswer($question, $chunks, $history, $onChunk, $scopeInstruction)
+        );
     }
 
     public function generateJson(string $prompt, array $schema, string $systemInstruction = ''): array
     {
+        return $this->throughProviders(
+            fn (LlmClient $client) => $client->generateJson($prompt, $schema, $systemInstruction)
+        );
+    }
+
+    protected function throughProviders(callable $operation): mixed
+    {
         $errors = [];
+        $rateLimitFailure = null;
 
         foreach ($this->providerNames() as $name) {
             try {
-                return $this->client($name)->generateJson($prompt, $schema, $systemInstruction);
+                return $operation($this->client($name));
             } catch (\Throwable $e) {
+                Log::warning("LLM provider [{$name}] gagal", ['error' => $e->getMessage()]);
+
+                if (LlmRateLimit::is($e)) {
+                    $rateLimitFailure ??= $e;
+
+                    continue;
+                }
+
                 $errors[$name] = $e->getMessage();
-                Log::warning("LLM provider [{$name}] gagal generateJson", [
-                    'error' => $e->getMessage(),
-                ]);
             }
         }
 
-        throw new \RuntimeException('Semua provider LLM gagal: ' . json_encode($errors));
+        if ($rateLimitFailure !== null) {
+            throw $rateLimitFailure;
+        }
+
+        throw new \RuntimeException('Semua provider LLM gagal: '.json_encode($errors));
     }
 
     public function name(): string

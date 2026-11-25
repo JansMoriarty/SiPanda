@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\Document;
 use App\Models\Question;
 use App\Models\QuizAttempt;
+use App\Models\StudyLevel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -77,6 +78,9 @@ class DashboardPageTest extends TestCase
                 ->where('stats.study_packs_ready', 1)
                 ->where('stats.quizzes_taken', 1)
                 ->where('stats.average_score', 75)
+                ->where('stats.level_progress_percent', null)
+                ->where('stats.levels_completed', 0)
+                ->where('stats.levels_total', 0)
                 ->has('weekly_activity', 7)
                 ->where('weekly_activity.6.is_today', true)
                 ->has('score_trend', 7)
@@ -85,6 +89,87 @@ class DashboardPageTest extends TestCase
                 ->where('score_trend.6.attempts', 1)
                 ->has('study_dates', 1)
                 ->where('study_dates.0', now()->toDateString()));
+    }
+
+    public function test_progress_dashboard_dihitung_dari_level_yang_selesai(): void
+    {
+        $user = User::factory()->create();
+        $course = $this->course($user);
+        $document = $this->document($course, 'a');
+
+        $firstLevel = StudyLevel::create([
+            'document_id' => $document->id,
+            'level_number' => 1,
+            'title' => 'Fondasi',
+        ]);
+        $secondLevel = StudyLevel::create([
+            'document_id' => $document->id,
+            'level_number' => 2,
+            'title' => 'Penguatan',
+        ]);
+
+        $firstConcept = Concept::create([
+            'document_id' => $document->id,
+            'level_id' => $firstLevel->id,
+            'name' => 'Limit',
+            'sort_order' => 1,
+        ]);
+        $secondConcept = Concept::create([
+            'document_id' => $document->id,
+            'level_id' => $secondLevel->id,
+            'name' => 'Turunan',
+            'sort_order' => 2,
+        ]);
+
+        $firstQuestion = Question::create([
+            'document_id' => $document->id,
+            'level_id' => $firstLevel->id,
+            'concept_id' => $firstConcept->id,
+            'question' => 'Limit?',
+            'options' => ['A', 'B'],
+            'correct_index' => 0,
+            'explanation' => 'A.',
+        ]);
+        $secondQuestion = Question::create([
+            'document_id' => $document->id,
+            'level_id' => $secondLevel->id,
+            'concept_id' => $secondConcept->id,
+            'question' => 'Turunan?',
+            'options' => ['A', 'B'],
+            'correct_index' => 0,
+            'explanation' => 'A.',
+        ]);
+
+        $attempt = QuizAttempt::create([
+            'document_id' => $document->id,
+            'user_id' => $user->id,
+            'total_questions' => 2,
+            'correct_answers' => 1,
+            'score' => 50,
+            'started_at' => now(),
+            'completed_at' => now(),
+        ]);
+
+        AttemptAnswer::create([
+            'quiz_attempt_id' => $attempt->id,
+            'question_id' => $firstQuestion->id,
+            'selected_index' => 0,
+            'is_correct' => true,
+        ]);
+        AttemptAnswer::create([
+            'quiz_attempt_id' => $attempt->id,
+            'question_id' => $secondQuestion->id,
+            'selected_index' => 1,
+            'is_correct' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('stats.average_score', 50)
+                ->where('stats.level_progress_percent', 50)
+                ->where('stats.levels_completed', 1)
+                ->where('stats.levels_total', 2));
     }
 
     public function test_aktivitas_mingguan_menghitung_soal_dijawab(): void
@@ -188,6 +273,9 @@ class DashboardPageTest extends TestCase
                 ->where('stats.total_materials', 0)
                 ->where('stats.quizzes_taken', 0)
                 ->where('stats.average_score', null)
+                ->where('stats.level_progress_percent', null)
+                ->where('stats.levels_completed', 0)
+                ->where('stats.levels_total', 0)
                 ->where('study_streak_days', 0)
                 ->where('score_trend.6.score', null)
                 ->has('study_dates', 0)

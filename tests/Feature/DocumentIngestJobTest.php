@@ -9,6 +9,7 @@ use App\Models\Course;
 use App\Models\Document;
 use App\Models\User;
 use App\Services\DocumentExtractor;
+use App\Services\Llm\LlmRateLimit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
@@ -185,5 +186,43 @@ class DocumentIngestJobTest extends TestCase
         $document->refresh();
         $this->assertSame('failed', $document->status);
         $this->assertNotNull($document->error_message);
+    }
+
+    public function test_rate_limit_harian_pada_embed_menyimpan_pesan_yang_jelas(): void
+    {
+        Http::fake([
+            '*' => Http::response(['error' => ['message' => 'Resource has been exhausted']], 429),
+        ]);
+        $this->fakeExtractor($this->sampleText());
+        $document = $this->document();
+
+        try {
+            ProcessDocumentJob::dispatchSync($document);
+            $this->fail('Rate limit seharusnya melempar exception.');
+        } catch (\Throwable $e) {
+            $this->assertSame(LlmRateLimit::CODE, $e->getCode());
+        }
+
+        $document->refresh();
+        $this->assertSame('failed', $document->status);
+        $this->assertSame(LlmRateLimit::MESSAGE, $document->error_message);
+    }
+
+    public function test_teks_invalid_utf8_disbersihkan_sebelum_embed(): void
+    {
+        Http::fake(function ($request) {
+            $text = $request->data()['content']['parts'][0]['text'] ?? '';
+            $this->assertTrue(mb_check_encoding($text, 'UTF-8'));
+
+            return Http::response(['embedding' => ['values' => [0.1, 0.2, 0.3]]], 200);
+        });
+        $this->fakeExtractor("alpha \xE2\x82 beta");
+        $document = $this->document();
+
+        ProcessDocumentJob::dispatchSync($document);
+
+        $document->refresh();
+        $this->assertSame('processed', $document->status);
+        $this->assertSame('alpha ? beta', $document->chunks()->first()->content);
     }
 }

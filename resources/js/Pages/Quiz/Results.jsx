@@ -46,7 +46,7 @@ export default function Results({ result }) {
         <>
             <Head title={`Hasil Quiz — ${result.document_title}`} />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-6 sm:p-7">
+            <div className="mx-auto max-w-6xl space-y-6 p-6 sm:p-7">
                 {/* header */}
                 <div>
                     <p className="mb-1.5 flex flex-wrap items-center gap-1.5 text-xs font-medium text-muted">
@@ -76,12 +76,16 @@ export default function Results({ result }) {
                     </p>
                 </div>
 
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] lg:items-start">
                 {/* score */}
                 <Card>
-                    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+                    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center lg:flex-col">
                         <ScoreRing score={result.score} />
-                        <div className="flex-1 text-center sm:text-left">
-                            <Badge tone={passed ? "sage" : "rose"}>{passed ? "LULUS" : "BELUM LULUS"}</Badge>
+                        <div className="flex-1 text-center sm:text-left lg:text-center">
+                            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start lg:justify-center">
+                                <Badge tone={passed ? "sage" : "rose"}>{passed ? "LULUS" : "BELUM LULUS"}</Badge>
+                                {result.xp_awarded > 0 && <Badge tone="lavender">+{result.xp_awarded} XP</Badge>}
+                            </div>
                             <p className="mt-3 text-base font-bold text-ink">
                                 {passed
                                     ? "Bagus, kamu sudah menguasai materi ini."
@@ -93,7 +97,7 @@ export default function Results({ result }) {
                                     : "Semua konsep di atas 50%. Lanjutkan ke materi berikutnya."}
                             </p>
 
-                            <div className="mt-4 flex justify-center gap-2.5 sm:justify-start">
+                            <div className="mt-4 flex justify-center gap-2.5 sm:justify-start lg:justify-center">
                                 <span className="rounded-control border border-emerald-200/80 bg-emerald-50 px-3 py-2 text-center dark:border-emerald-500/20 dark:bg-emerald-500/10">
                                     <span className="block text-base font-bold leading-none text-emerald-600 dark:text-emerald-400">
                                         {result.correct}
@@ -158,6 +162,7 @@ export default function Results({ result }) {
                         })}
                     </div>
                 </Card>
+                </div>
 
                 {/* next step */}
                 {weak.length > 0 && (
@@ -167,7 +172,7 @@ export default function Results({ result }) {
                             Personalized Practice akan memakai konsep di bawah 50% untuk membuat soal baru. Fitur itu
                             dibangun pada tahap Knowledge Gap, jadi untuk sekarang yang tersedia baru kerangka ini.
                         </p>
-                        <Button href="/progress" size="sm" className="mt-4">
+                        <Button href="/progress" size="sm" variant="secondary" className="mt-4">
                             Lihat Progress &amp; Knowledge Gap
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -177,18 +182,24 @@ export default function Results({ result }) {
                 )}
 
                 {/* actions */}
-                <div className="flex flex-wrap gap-2.5">
-                    <Button href={`/documents/${result.document_id}/study-pack`} variant="secondary" className="flex-1">
+                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <Button href="/progress" variant="secondary" className="w-full sm:w-auto">
+                            Lihat Progress
+                        </Button>
+                        <Button href={`/documents/${result.document_id}/quiz`} variant="ghost" size="sm" className="w-full sm:w-auto">
+                            Kerjakan ulang
+                        </Button>
+                    </div>
+                    <Button
+                        href={`/documents/${result.document_id}/study-pack`}
+                        variant="primary"
+                        className="w-full sm:w-auto"
+                    >
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
                         </svg>
                         Kembali ke Study Pack
-                    </Button>
-                    <Button href="/progress" variant="secondary" className="flex-1">
-                        Lihat Progress
-                    </Button>
-                    <Button href={`/documents/${result.document_id}/quiz`} variant="secondary" className="flex-1">
-                        Kerjakan ulang
                     </Button>
                 </div>
 

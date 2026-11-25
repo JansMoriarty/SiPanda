@@ -129,6 +129,9 @@ export const buildWeakestConcepts = ({ courses = [], attempts = [], questions = 
         )
         .sort(byGap);
 
+/** Konsep dengan nilai di bawah ambang, untuk kartu Knowledge Gap di Dashboard. */
+export const buildWeakConcepts = (data) => buildWeakestConcepts(data).filter((row) => row.needs_practice);
+
 /** Konsep terkuat lintas course, untuk kartu "Sudah kuat" di Dashboard. */
 export const buildStrongestConcepts = (data, limit = 2) =>
     [...buildWeakestConcepts(data)].reverse().slice(0, limit);

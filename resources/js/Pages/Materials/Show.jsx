@@ -243,19 +243,19 @@ function PipelinePanel({ doc }) {
             </ol>
 
             <dl className="mt-4 space-y-2 border-t border-track pt-4 text-xs">
-                <div className="flex justify-between gap-3">
-                    <dt className="text-muted">Diunggah</dt>
-                    <dd className="font-medium text-ink">{formatDateTime(doc.uploaded_at)}</dd>
+                <div className="flex min-w-0 justify-between gap-3">
+                    <dt className="shrink-0 text-muted">Diunggah</dt>
+                    <dd className="min-w-0 truncate font-medium text-ink">{formatDateTime(doc.uploaded_at)}</dd>
                 </div>
-                <div className="flex justify-between gap-3">
-                    <dt className="text-muted">Selesai diproses</dt>
-                    <dd className="font-medium text-ink">
+                <div className="flex min-w-0 justify-between gap-3">
+                    <dt className="shrink-0 text-muted">Selesai diproses</dt>
+                    <dd className="min-w-0 truncate font-medium text-ink">
                         {doc.processed_at ? formatDateTime(doc.processed_at) : "—"}
                     </dd>
                 </div>
-                <div className="flex justify-between gap-3">
-                    <dt className="text-muted">Study pack</dt>
-                    <dd className="font-medium text-ink">{packBadge(doc.study_pack).label}</dd>
+                <div className="flex min-w-0 justify-between gap-3">
+                    <dt className="shrink-0 text-muted">Study pack</dt>
+                    <dd className="min-w-0 truncate font-medium text-ink">{packBadge(doc.study_pack).label}</dd>
                 </div>
             </dl>
 
@@ -492,8 +492,8 @@ export default function Show({ document: doc }) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                    <div className="xl:col-span-2">
                         <PipelinePanel doc={doc} />
                     </div>
                     <div>

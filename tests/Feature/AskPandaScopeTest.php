@@ -7,6 +7,7 @@ use App\Models\Chunk;
 use App\Models\Course;
 use App\Models\Document;
 use App\Models\User;
+use App\Services\Llm\LlmRateLimit;
 use App\Services\RetrievalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -146,7 +147,8 @@ class AskPandaScopeTest extends TestCase
         $this->chunk($docA, [0.8, 0.2]);
         $this->chunk($docB, [1, 0]);
 
-        $fake = new class implements LlmClient {
+        $fake = new class implements LlmClient
+        {
             public array $calls = [];
 
             public function generateAnswer(string $question, array $chunks, array $history = [], ?string $scopeInstruction = null): array
@@ -200,7 +202,8 @@ class AskPandaScopeTest extends TestCase
         $course = $this->course($user);
         $this->chunk($this->document($course, 'a'), [1, 0]);
 
-        $fake = new class implements LlmClient {
+        $fake = new class implements LlmClient
+        {
             public array $calls = [];
 
             public function generateAnswer(string $question, array $chunks, array $history = [], ?string $scopeInstruction = null): array
@@ -266,7 +269,7 @@ class AskPandaScopeTest extends TestCase
         $user = User::factory()->create();
         $this->course($user);
 
-        $fake = new RecordingLlm();
+        $fake = new RecordingLlm;
         $this->app->instance(LlmClient::class, $fake);
 
         $response = $this->actingAs($user)->post('/ask-panda', [
@@ -287,7 +290,7 @@ class AskPandaScopeTest extends TestCase
         $user = User::factory()->create();
         $this->course($user);
 
-        $fake = new RecordingLlm();
+        $fake = new RecordingLlm;
         $this->app->instance(LlmClient::class, $fake);
 
         $response = $this->actingAs($user)->post('/ask-panda', [
@@ -310,7 +313,7 @@ class AskPandaScopeTest extends TestCase
         $user = User::factory()->create();
         $doc = $this->document($this->course($user), 'a');
 
-        $fake = new RecordingLlm();
+        $fake = new RecordingLlm;
         $this->app->instance(LlmClient::class, $fake);
 
         $response = $this->actingAs($user)->post('/ask-panda', [
@@ -323,6 +326,53 @@ class AskPandaScopeTest extends TestCase
         $body = $response->streamedContent();
         $this->assertStringNotContainsString('"type":"no_context"', $body);
         $this->assertCount(1, $fake->calls);
+    }
+
+    public function test_ask_rate_limit_mengirim_pesan_batas_harian(): void
+    {
+        $this->fakeEmbedding([1, 0]);
+
+        $user = User::factory()->create();
+        $course = $this->course($user);
+        $this->chunk($this->document($course, 'a'), [1, 0]);
+
+        $fake = new class implements LlmClient
+        {
+            public function generateAnswer(string $question, array $chunks, array $history = [], ?string $scopeInstruction = null): array
+            {
+                return [];
+            }
+
+            public function generateStreamAnswer(string $question, array $chunks, array $history, callable $onChunk, ?string $scopeInstruction = null): void
+            {
+                throw new \RuntimeException('Rate limit', 429);
+            }
+
+            public function generateJson(string $prompt, array $schema, string $systemInstruction = ''): array
+            {
+                return [];
+            }
+
+            public function name(): string
+            {
+                return 'rate-limited';
+            }
+        };
+
+        $this->app->instance(LlmClient::class, $fake);
+
+        $body = $this->actingAs($user)
+            ->post('/ask-panda', ['question' => 'jelaskan limit'])
+            ->streamedContent();
+
+        $events = collect(explode("\n\n", $body))
+            ->filter(fn ($line) => str_starts_with(trim($line), 'data: '))
+            ->map(fn ($line) => json_decode(substr(trim($line), 6), true));
+
+        $this->assertStringContainsString('"rate_limited":true', $body);
+        $this->assertTrue($events->contains(
+            fn ($event) => ($event['type'] ?? null) === 'error' && ($event['message'] ?? null) === LlmRateLimit::MESSAGE
+        ));
     }
 }
 

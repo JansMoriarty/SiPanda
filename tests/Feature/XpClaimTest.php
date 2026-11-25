@@ -99,7 +99,7 @@ class XpClaimTest extends TestCase
         return [$user, $document, $first, $second];
     }
 
-    public function test_klaim_level_genap_menambah_xp(): void
+    public function test_klaim_level_target_menambah_xp(): void
     {
         [$user, , , $second] = $this->completedMaterial();
 
@@ -115,6 +115,69 @@ class XpClaimTest extends TestCase
             'user_id' => $user->id,
             'level_id' => $second->id,
             'points' => 50,
+        ]);
+    }
+
+    public function test_submit_quiz_memberi_5_xp_per_level_selesai(): void
+    {
+        [$user, $document, $first, $second] = $this->completedMaterial();
+
+        $questions = $document->questions()->orderBy('id')->get();
+        $attempt = QuizAttempt::create([
+            'document_id' => $document->id,
+            'user_id' => $user->id,
+            'total_questions' => $questions->count(),
+            'started_at' => now(),
+        ]);
+
+        $answers = $questions
+            ->map(fn ($question) => [
+                'question_id' => $question->id,
+                'chosen' => $question->correct_index,
+            ])
+            ->all();
+
+        $this->actingAs($user)
+            ->post(route('materials.quiz.submit', $attempt), ['answers' => $answers])
+            ->assertRedirect(route('quiz.results', $attempt));
+
+        $user->refresh();
+
+        $this->assertSame(20, $user->xp);
+        $this->assertDatabaseHas('xp_claims', [
+            'user_id' => $user->id,
+            'level_id' => $first->id,
+            'points' => 5,
+        ]);
+        $this->assertDatabaseHas('xp_claims', [
+            'user_id' => $user->id,
+            'level_id' => $second->id,
+            'points' => 5,
+        ]);
+    }
+
+    public function test_klaim_target_setelah_dapat_5_xp_tetap_menambah_50(): void
+    {
+        [$user, , , $second] = $this->completedMaterial();
+
+        XpClaim::create([
+            'user_id' => $user->id,
+            'level_id' => $second->id,
+            'points' => 5,
+            'claimed_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('xp.claims.store', $second))
+            ->assertRedirect();
+
+        $user->refresh();
+
+        $this->assertSame(50, $user->xp);
+        $this->assertDatabaseHas('xp_claims', [
+            'user_id' => $user->id,
+            'level_id' => $second->id,
+            'points' => 55,
         ]);
     }
 
@@ -136,7 +199,7 @@ class XpClaimTest extends TestCase
         $this->assertDatabaseCount('xp_claims', 1);
     }
 
-    public function test_level_ganjil_tidak_bisa_diklaim(): void
+    public function test_level_non_target_tidak_bisa_diklaim(): void
     {
         [$user, , $first] = $this->completedMaterial();
 
@@ -153,6 +216,21 @@ class XpClaimTest extends TestCase
 
         AttemptAnswer::query()->delete();
         $second->concepts()->first()->questions()->delete();
+
+        $this->actingAs($user)
+            ->post(route('xp.claims.store', $second))
+            ->assertStatus(422);
+
+        $this->assertDatabaseCount('xp_claims', 0);
+    }
+
+    public function test_level_sebelum_target_belum_selesai_tidak_bisa_diklaim(): void
+    {
+        [$user, , $first, $second] = $this->completedMaterial();
+
+        AttemptAnswer::query()
+            ->whereIn('question_id', $first->concepts()->first()->questions()->pluck('id'))
+            ->delete();
 
         $this->actingAs($user)
             ->post(route('xp.claims.store', $second))
@@ -187,6 +265,7 @@ class XpClaimTest extends TestCase
             ->get(route('materials.study-pack', $document))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('pack.xp.balance', 120)
+                ->where('pack.xp.per_level', 5)
                 ->where('pack.xp.tier.id', 'ambisius')
                 ->where('pack.xp.tier.next.id', 'pakar')
                 ->where('pack.xp.tier.progress.remaining', 180)

@@ -172,18 +172,23 @@ function SidebarSection({ label, items, url, show }) {
 }
 
 export default function ShellSidebar() {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, isHovered, isWideDesktop, setIsHovered } = useSidebar();
   const { url, props } = usePage();
   const user = props.auth?.user;
 
-  const isSidebarVisible = isExpanded || isHovered || isMobileOpen;
+  const isSidebarVisible = isExpanded || isMobileOpen || (isHovered && isWideDesktop);
+  const sidebarWidthClass = isExpanded || isMobileOpen
+    ? "w-[260px]"
+    : isSidebarVisible
+      ? "w-[90px] xl:w-[260px]"
+      : "w-[90px]";
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 flex h-screen shrink-0 flex-col justify-between bg-surface-tint font-['Outfit',sans-serif] text-muted transition-all duration-300 ease-in-out lg:static lg:z-auto lg:h-full lg:overflow-hidden lg:rounded-shell lg:shadow-card ${
-        isSidebarVisible ? "w-[260px]" : "w-[90px]"
-      } ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
-      onMouseEnter={() => !isExpanded && setIsHovered(true)}
+      className={`fixed inset-y-0 left-0 z-50 flex h-screen shrink-0 flex-col justify-between bg-surface-tint font-['Outfit',sans-serif] text-muted transition-all duration-300 ease-in-out lg:static lg:z-auto lg:h-full lg:overflow-hidden lg:rounded-shell lg:shadow-card ${sidebarWidthClass} ${
+        isMobileOpen ? "translate-x-0" : "-translate-x-full"
+      } lg:translate-x-0`}
+      onMouseEnter={() => !isExpanded && isWideDesktop && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex flex-1 flex-col overflow-y-auto no-scrollbar">
@@ -225,7 +230,7 @@ export default function ShellSidebar() {
       </div>
 
       {/* TODO: sembunyikan kalau user sudah premium (data dari backend) */}
-      <div className={`mt-auto shrink-0 px-4 pb-5 ${!isSidebarVisible ? "flex justify-center" : ""}`}>
+      <div className={`mt-auto shrink-0 px-4 pb-[max(2.25rem,env(safe-area-inset-bottom))] lg:pb-5 ${!isSidebarVisible ? "flex justify-center" : ""}`}>
         {isSidebarVisible ? (
           <Link
             href={route("pricing.index")}

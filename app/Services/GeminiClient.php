@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Llm\LlmRateLimit;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -21,6 +22,8 @@ class GeminiClient
 
     public function embed(string $text, string $taskType = 'RETRIEVAL_DOCUMENT'): array
     {
+        $text = TextSanitizer::sanitize($text);
+
         $response = Http::post(
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={$this->apiKey}",
             [
@@ -36,7 +39,9 @@ class GeminiClient
         );
 
         if ($response->failed()) {
-            throw new \RuntimeException('Gemini Embedding API error: ' . $response->body());
+            LlmRateLimit::throwIfMatched($response->status(), $response->body());
+
+            throw new \RuntimeException('Gemini Embedding API error: '.$response->body());
         }
 
         return $response->json('embedding.values');

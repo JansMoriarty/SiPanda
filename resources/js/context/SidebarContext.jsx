@@ -11,19 +11,30 @@ export const useSidebar = () => {
 };
 
 export const SidebarProvider = ({ children }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(
+    () => typeof window === "undefined" || window.innerWidth >= 1440
+  );
+  const [hasManuallyToggled, setHasManuallyToggled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isWideDesktop, setIsWideDesktop] = useState(
+    () => typeof window === "undefined" || window.innerWidth >= 1440
+  );
   const [isHovered, setIsHovered] = useState(false);
   const [activeItem, setActiveItem] = useState(null);
   const [openSubmenu, setOpenSubmenu] = useState(null);
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 768;
+      const width = window.innerWidth;
+      const mobile = width < 768;
       setIsMobile(mobile);
+      setIsWideDesktop(width >= 1440);
       if (!mobile) {
         setIsMobileOpen(false);
+        if (!hasManuallyToggled) {
+          setIsExpanded(width >= 1440);
+        }
       }
     };
 
@@ -33,9 +44,10 @@ export const SidebarProvider = ({ children }) => {
     return () => {
       window.removeEventListener("resize", handleResize);
     };
-  }, []);
+  }, [hasManuallyToggled]);
 
   const toggleSidebar = () => {
+    setHasManuallyToggled(true);
     setIsExpanded((prev) => !prev);
   };
 
@@ -52,6 +64,7 @@ export const SidebarProvider = ({ children }) => {
       value={{
         isExpanded: isMobile ? false : isExpanded,
         isMobileOpen,
+        isWideDesktop,
         isHovered,
         activeItem,
         openSubmenu,

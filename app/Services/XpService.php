@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Document;
 use App\Models\StudyLevel;
 use App\Models\User;
 use App\Models\XpClaim;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class XpService
@@ -19,6 +21,7 @@ class XpService
             'balance' => $balance,
             'tier' => $this->tierFor($balance),
             'timeline' => $this->timeline($balance),
+            'per_level' => (int) config('sipanda.xp.per_level', 5),
             'per_claim' => (int) config('sipanda.xp.per_claim', 50),
         ];
     }
@@ -103,6 +106,52 @@ class XpService
             ->all();
     }
 
+    public function claimedRewardLevelIds(User $user): Collection
+    {
+        return XpClaim::query()
+            ->where('user_id', $user->id)
+            ->where('points', '>=', (int) config('sipanda.xp.per_claim', 50))
+            ->pluck('level_id');
+    }
+
+    public function awardCompletedLevels(User $user, Document $document): int
+    {
+        $levels = $this->progress->levelRows(
+            $document,
+            $document->concepts()->get(['id', 'name', 'description', 'importance'])
+        );
+        $mastery = $this->progress->masteryByConcept($user, $document);
+        $passingScore = (int) config('sipanda.quiz.passing_score', 70);
+        $points = (int) config('sipanda.xp.per_level', 5);
+        $awarded = 0;
+
+        foreach ($levels as $row) {
+            $levelId = $row['id'];
+
+            if (! is_numeric($levelId)) {
+                continue;
+            }
+
+            $result = $this->progress->evaluate(collect($row['concepts']), $mastery, $passingScore);
+
+            if (! $result['completed']) {
+                continue;
+            }
+
+            $claim = XpClaim::firstOrCreate(
+                ['user_id' => $user->id, 'level_id' => (int) $levelId],
+                ['points' => $points, 'claimed_at' => now()]
+            );
+
+            if ($claim->wasRecentlyCreated) {
+                $user->increment('xp', $points);
+                $awarded += $points;
+            }
+        }
+
+        return $awarded;
+    }
+
     public function claimLevel(User $user, StudyLevel $level): XpClaim
     {
         $document = $level->document()->with('course:id,user_id')->firstOrFail();
@@ -112,36 +161,60 @@ class XpService
             403
         );
 
+        $levels = $this->progress->levelRows(
+            $document,
+            $document->concepts()->get(['id', 'name', 'description', 'importance'])
+        );
+        $target = $levels->last();
+
         abort_unless(
-            $level->level_number % 2 === 0,
+            $target !== null && is_numeric($target['id']) && (int) $target['id'] === $level->id,
             422,
-            'EXP hanya bisa diklaim pada level bernomor genap.'
+            'EXP hanya bisa diklaim pada level target.'
         );
 
         $mastery = $this->progress->masteryByConcept($user, $document);
-        $result = $this->progress->evaluate(
-            $level->concepts,
-            $mastery,
-            (int) config('sipanda.quiz.passing_score', 70)
-        );
+        $passingScore = (int) config('sipanda.quiz.passing_score', 70);
 
-        abort_unless(
-            $result['completed'],
-            422,
-            'Selesaikan quiz level ini dulu sebelum klaim EXP.'
-        );
+        foreach ($levels as $row) {
+            $result = $this->progress->evaluate(collect($row['concepts']), $mastery, $passingScore);
+
+            abort_unless(
+                $result['completed'],
+                422,
+                'Selesaikan semua level sampai target dulu sebelum klaim EXP.'
+            );
+        }
 
         $points = (int) config('sipanda.xp.per_claim', 50);
 
         return DB::transaction(function () use ($user, $level, $points) {
-            $claim = XpClaim::firstOrCreate(
-                ['user_id' => $user->id, 'level_id' => $level->id],
-                ['points' => $points, 'claimed_at' => now()]
-            );
+            $claim = XpClaim::query()
+                ->where('user_id', $user->id)
+                ->where('level_id', $level->id)
+                ->first();
 
-            if ($claim->wasRecentlyCreated) {
-                $user->increment('xp', $points);
+            if ($claim && (int) $claim->points >= $points) {
+                return $claim;
             }
+
+            if ($claim) {
+                $claim->update([
+                    'points' => (int) $claim->points + $points,
+                    'claimed_at' => now(),
+                ]);
+                $user->increment('xp', $points);
+
+                return $claim;
+            }
+
+            $claim = XpClaim::create([
+                'user_id' => $user->id,
+                'level_id' => $level->id,
+                'points' => $points,
+                'claimed_at' => now(),
+            ]);
+            $user->increment('xp', $points);
 
             return $claim;
         });

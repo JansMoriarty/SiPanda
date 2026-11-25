@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AttemptAnswer;
 use App\Models\Document;
 use App\Models\QuizAttempt;
+use App\Services\XpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -127,11 +128,28 @@ class QuizController extends Controller
         $total = $attempt->total_questions ?: $questions->count();
         $score = $total > 0 ? (int) round($correctCount / $total * 100) : 0;
 
+        $firstCompletion = $attempt->newQuery()
+            ->whereKey($attempt->id)
+            ->whereNull('completed_at')
+            ->update(['completed_at' => now()]) === 1;
+
         $attempt->update([
             'correct_answers' => $correctCount,
             'score' => $score,
-            'completed_at' => now(),
         ]);
+
+        $xpAwarded = 0;
+
+        if ($firstCompletion) {
+            $xpAwarded = (int) config('sipanda.xp.per_quiz', 10);
+            $request->user()->increment('xp', $xpAwarded);
+        }
+
+        $xpAwarded += app(XpService::class)->awardCompletedLevels($request->user(), $attempt->document);
+
+        if ($xpAwarded > 0) {
+            $request->session()->flash('xp_awarded', $xpAwarded);
+        }
 
         return redirect()->route('quiz.results', $attempt);
     }
@@ -185,6 +203,7 @@ class QuizController extends Controller
                 'total' => $attempt->total_questions,
                 'correct' => $attempt->correct_answers,
                 'score' => $attempt->score ?? 0,
+                'xp_awarded' => (int) $request->session()->pull('xp_awarded', 0),
                 'passing_score' => (int) config('sipanda.quiz.passing_score', 70),
                 'completed_at' => $attempt->completed_at?->toISOString(),
                 'answers' => $answers,
